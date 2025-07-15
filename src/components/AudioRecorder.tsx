@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { saveFile } from '../utils/fileUtils';
-import { convertToMp3 } from '../utils/mediaConverter';
+import { useFileConverter } from '../hooks/useFileConverter';
 // @ts-expect-error: no types for lamejs
 import lamejs from 'lamejs';
 // Fix for lamejs: define Lame global if not present
@@ -23,6 +23,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const [saved, setSaved] = useState(false);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const chunksRef = React.useRef<BlobPart[]>([]);
+  const { convert, progress: convertProgress, error: convertError } = useFileConverter();
 
   React.useEffect(() => {
     let timer: any;
@@ -132,38 +133,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     return new Blob([buffer], { type: 'audio/wav' });
   }
 
-  // Helper: encode PCM to MP3 using lamejs
-  function encodeMP3(channelData: Float32Array[], sampleRate: number): Blob {
-    const mp3encoder = new lamejs.Mp3Encoder(channelData.length, sampleRate, 128);
-    const samples = channelData[0];
-    const mp3Data: Uint8Array[] = [];
-    let remaining = samples.length;
-    let maxSamples = 1152;
-    let sampleBlock = new Int16Array(maxSamples);
-    let i = 0;
-    while (remaining >= maxSamples) {
-      for (let j = 0; j < maxSamples; j++) {
-        sampleBlock[j] = samples[i + j] * 32767;
-      }
-      const mp3buf = mp3encoder.encodeBuffer(sampleBlock);
-      if (mp3buf.length > 0) mp3Data.push(new Uint8Array(mp3buf));
-      i += maxSamples;
-      remaining -= maxSamples;
-    }
-    // Flush
-    if (remaining > 0) {
-      sampleBlock = new Int16Array(remaining);
-      for (let j = 0; j < remaining; j++) {
-        sampleBlock[j] = samples[i + j] * 32767;
-      }
-      const mp3buf = mp3encoder.encodeBuffer(sampleBlock);
-      if (mp3buf.length > 0) mp3Data.push(new Uint8Array(mp3buf));
-    }
-    const mp3buf = mp3encoder.flush();
-    if (mp3buf.length > 0) mp3Data.push(new Uint8Array(mp3buf));
-    return new Blob(mp3Data, { type: 'audio/mp3' });
-  }
-
   const handleSave = async () => {
     if (!audioUrl) return;
     setSaving(true);
@@ -181,10 +150,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           outName = `audio-${Date.now()}.wav`;
           outMime = 'audio/wav';
         } else if (audioFormat === 'mp3') {
-          // Use ffmpeg-based conversion
+          // Use useFileConverter hook for mp3 conversion
           const arrayBuffer = await blob.arrayBuffer();
           const uint8 = new Uint8Array(arrayBuffer);
-          const mp3Data = await convertToMp3(uint8);
+          const mp3Data = await convert('mp3', uint8);
+          if (!mp3Data) throw new Error('MP3 conversion failed');
           outBlob = new Blob([mp3Data], { type: 'audio/mp3' });
           outName = `audio-${Date.now()}.mp3`;
           outMime = 'audio/mp3';
@@ -223,6 +193,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     <div className="flex flex-col items-center p-4">
       <h2 className="text-lg font-bold mb-2">Audio Recorder</h2>
       {error && <div className="text-red-600 mb-2">{error}</div>}
+      {convertError && <div className="text-red-600 mb-2">{convertError}</div>}
       {formatWarning && <div className="text-yellow-600 mb-2">{formatWarning}</div>}
       <div className="w-full h-16 bg-gray-200 rounded mb-4 flex items-center justify-center">
         {/* Waveform placeholder */}
@@ -240,7 +211,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         disabled={recording || !audioUrl || saving}
         onClick={handleSave}
       >
-        {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
+        {saving ? (audioFormat === 'mp3' && convertProgress > 0 && convertProgress < 1 ? `Converting... ${(convertProgress * 100).toFixed(0)}%` : 'Saving...') : saved ? 'Saved!' : 'Save'}
       </button>
       {audioUrl && (
         <audio controls src={audioUrl} className="mt-2" />

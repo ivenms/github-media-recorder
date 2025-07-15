@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { saveFile } from '../utils/fileUtils';
-import { convertToMp4 } from '../utils/mediaConverter';
+import { useFileConverter } from '../hooks/useFileConverter';
 
 const VideoRecorder: React.FC = () => {
   const {
@@ -19,6 +19,8 @@ const VideoRecorder: React.FC = () => {
     videoBlob,
   } = useMediaRecorder({ video: true, audio: true });
 
+  const { convert, progress: convertProgress, error: convertError } = useFileConverter();
+
   // For video, use videoUrl/videoBlob if available, else fallback to audioUrl/audioBlob
   const mediaUrl = (videoUrl as string) || (audioUrl as string) || null;
   const mediaBlob = (videoBlob as Blob) || (audioBlob as Blob) || null;
@@ -33,10 +35,11 @@ const VideoRecorder: React.FC = () => {
     let outName = `video-${Date.now()}.webm`;
     let outMime = mediaBlob.type;
     try {
-      // Convert to MP4
+      // Convert to MP4 using useFileConverter hook
       const arrayBuffer = await mediaBlob.arrayBuffer();
       const uint8 = new Uint8Array(arrayBuffer);
-      const mp4Data = await convertToMp4(uint8);
+      const mp4Data = await convert('mp4', uint8);
+      if (!mp4Data) throw new Error('MP4 conversion failed');
       outBlob = new Blob([mp4Data], { type: 'video/mp4' });
       outName = `video-${Date.now()}.mp4`;
       outMime = 'video/mp4';
@@ -69,6 +72,7 @@ const VideoRecorder: React.FC = () => {
       </div>
       <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
       {error && <div className="text-red-600 mb-2">{error}</div>}
+      {convertError && <div className="text-red-600 mb-2">{convertError}</div>}
       <div className="flex gap-2 mb-4">
         {!recording && (
           <button
@@ -100,7 +104,7 @@ const VideoRecorder: React.FC = () => {
         disabled={recording || !mediaBlob || saving}
         onClick={handleSave}
       >
-        {saving ? 'Saving...' : saved ? 'Saved!' : 'Save'}
+        {saving ? (convertProgress > 0 && convertProgress < 1 ? `Converting... ${(convertProgress * 100).toFixed(0)}%` : 'Saving...') : saved ? 'Saved!' : 'Save'}
       </button>
     </div>
   );
