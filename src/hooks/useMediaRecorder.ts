@@ -1,10 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-
-interface UseMediaRecorderOptions {
-  audio?: boolean;
-  video?: boolean;
-  mimeType?: string;
-}
+import type { UseMediaRecorderOptions } from '../types';
 
 export function useMediaRecorder(options: UseMediaRecorderOptions) {
   const [recording, setRecording] = useState(false);

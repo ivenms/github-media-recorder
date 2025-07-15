@@ -11,10 +11,7 @@ if (typeof window !== 'undefined' && !(window as any).Lame) {
 if (typeof window !== 'undefined' && !(window as any).BitStream && lamejs.BitStream) {
   (window as any).BitStream = lamejs.BitStream;
 }
-
-interface AudioRecorderProps {
-  audioFormat: 'mp3' | 'wav';
-}
+import type { AudioRecorderProps } from '../types';
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const [recording, setRecording] = useState(false);

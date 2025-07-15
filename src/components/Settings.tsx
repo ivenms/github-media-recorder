@@ -1,24 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import type { GitHubSettings, SettingsProps } from '../types';
 
 const SETTINGS_KEY = 'githubSettings';
-
-interface GitHubSettings {
-  token: string;
-  owner: string;
-  repo: string;
-  audioFormat: 'mp3' | 'wav';
-}
 
 const getInitialSettings = (): GitHubSettings => {
   const saved = localStorage.getItem(SETTINGS_KEY);
   if (saved) return { audioFormat: 'mp3', ...JSON.parse(saved) };
   return { token: '', owner: '', repo: '', audioFormat: 'mp3' };
 };
-
-interface SettingsProps {
-  audioFormat: 'mp3' | 'wav';
-  setAudioFormat: (format: 'mp3' | 'wav') => void;
-}
 
 const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat }) => {
   const [settings, setSettings] = useState<GitHubSettings>(getInitialSettings());

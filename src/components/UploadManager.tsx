@@ -1,14 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { listFiles } from '../utils/fileUtils';
 import { uploadFile } from '../utils/uploadUtils';
-
-interface UploadState {
-  [id: string]: {
-    status: 'pending' | 'uploading' | 'success' | 'error';
-    progress: number;
-    error?: string;
-  };
-}
+import type { UploadState } from '../types';
 
 const UploadManager: React.FC = () => {
   const [files, setFiles] = useState<any[]>([]);

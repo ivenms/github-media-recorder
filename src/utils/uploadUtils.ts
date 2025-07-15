@@ -4,11 +4,7 @@
 // - Uploads to 'media/' directory
 // - Supports progress callback
 
-interface GitHubSettings {
-  token: string;
-  owner: string;
-  repo: string;
-}
+import type { GitHubSettings } from '../types';
 
 function getGitHubSettings(): GitHubSettings | null {
   const raw = localStorage.getItem('githubSettings');

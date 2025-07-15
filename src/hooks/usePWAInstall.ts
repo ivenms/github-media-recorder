@@ -1,3 +1,4 @@
+// TODO: Placeholder for usePWAInstall. Implement or remove if not needed.
 import { useState, useEffect } from 'react';
 
 export function usePWAInstall() {
