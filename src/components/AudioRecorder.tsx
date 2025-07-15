@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { saveFile } from '../utils/fileUtils';
+import { saveFile, decodeWebmToPCM, encodeWAV, formatMediaFileName } from '../utils/fileUtils';
 import { useFileConverter } from '../hooks/useFileConverter';
 // @ts-expect-error: no types for lamejs
 import lamejs from 'lamejs';
@@ -12,6 +12,7 @@ if (typeof window !== 'undefined' && !(window as any).BitStream && lamejs.BitStr
   (window as any).BitStream = lamejs.BitStream;
 }
 import type { AudioRecorderProps } from '../types';
+import { MEDIA_CATEGORIES } from '../types';
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const [recording, setRecording] = useState(false);
@@ -24,6 +25,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const chunksRef = React.useRef<BlobPart[]>([]);
   const { convert, progress: convertProgress, error: convertError } = useFileConverter();
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+  const [category, setCategory] = useState(MEDIA_CATEGORIES[0].id);
+  const [date, setDate] = useState('');
+  const [inputError, setInputError] = useState<string | null>(null);
 
   React.useEffect(() => {
     let timer: any;
@@ -76,88 +82,52 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     setRecording(false);
   };
 
-  // Helper: decode webm audio to PCM using Web Audio API
-  async function decodeWebmToPCM(blob: Blob): Promise<{channelData: Float32Array[], sampleRate: number}> {
-    const arrayBuffer = await blob.arrayBuffer();
-    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    const channelData = [];
-    for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
-      channelData.push(audioBuffer.getChannelData(i));
+  const validateInputs = () => {
+    if (!title.trim() || !author.trim()) {
+      setInputError('Title and Author are required.');
+      return false;
     }
-    return { channelData, sampleRate: audioBuffer.sampleRate };
-  }
-
-  // Helper: encode PCM to WAV
-  function encodeWAV(channelData: Float32Array[], sampleRate: number): Blob {
-    const numChannels = channelData.length;
-    const length = channelData[0].length;
-    const buffer = new ArrayBuffer(44 + length * numChannels * 2);
-    const view = new DataView(buffer);
-    // RIFF identifier 'RIFF'
-    view.setUint32(0, 0x52494646, false);
-    // file length
-    view.setUint32(4, 36 + length * numChannels * 2, true);
-    // RIFF type 'WAVE'
-    view.setUint32(8, 0x57415645, false);
-    // format chunk identifier 'fmt '
-    view.setUint32(12, 0x666d7420, false);
-    // format chunk length
-    view.setUint32(16, 16, true);
-    // sample format (raw)
-    view.setUint16(20, 1, true);
-    // channel count
-    view.setUint16(22, numChannels, true);
-    // sample rate
-    view.setUint32(24, sampleRate, true);
-    // byte rate (sample rate * block align)
-    view.setUint32(28, sampleRate * numChannels * 2, true);
-    // block align (channel count * bytes per sample)
-    view.setUint16(32, numChannels * 2, true);
-    // bits per sample
-    view.setUint16(34, 16, true);
-    // data chunk identifier 'data'
-    view.setUint32(36, 0x64617461, false);
-    // data chunk length
-    view.setUint32(40, length * numChannels * 2, true);
-    // write PCM samples
-    let offset = 44;
-    for (let i = 0; i < length; i++) {
-      for (let ch = 0; ch < numChannels; ch++) {
-        let sample = channelData[ch][i];
-        sample = Math.max(-1, Math.min(1, sample));
-        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
-        offset += 2;
-      }
+    if (title.length > 100) {
+      setInputError('Title cannot exceed 100 characters.');
+      return false;
     }
-    return new Blob([buffer], { type: 'audio/wav' });
-  }
+    if (author.length > 50) {
+      setInputError('Author cannot exceed 50 characters.');
+      return false;
+    }
+    if (title.includes('_') || author.includes('_')) {
+      setInputError('Underscore ( _ ) is not allowed in Title or Author.');
+      return false;
+    }
+    setInputError(null);
+    return true;
+  };
 
   const handleSave = async () => {
     if (!audioUrl) return;
+    if (!validateInputs()) return;
     setSaving(true);
     // Fetch the blob from the audioUrl
     const response = await fetch(audioUrl);
     const blob = await response.blob();
     let outBlob = blob;
-    let outName = `audio-${Date.now()}.webm`;
     let outMime = blob.type;
+    let ext = 'webm';
     try {
       if (audioFormat === 'wav' || audioFormat === 'mp3') {
         const { channelData, sampleRate } = await decodeWebmToPCM(blob);
         if (audioFormat === 'wav') {
           outBlob = encodeWAV(channelData, sampleRate);
-          outName = `audio-${Date.now()}.wav`;
           outMime = 'audio/wav';
+          ext = 'wav';
         } else if (audioFormat === 'mp3') {
-          // Use useFileConverter hook for mp3 conversion
           const arrayBuffer = await blob.arrayBuffer();
           const uint8 = new Uint8Array(arrayBuffer);
           const mp3Data = await convert('mp3', uint8);
           if (!mp3Data) throw new Error('MP3 conversion failed');
           outBlob = new Blob([mp3Data], { type: 'audio/mp3' });
-          outName = `audio-${Date.now()}.mp3`;
           outMime = 'audio/mp3';
+          ext = 'mp3';
         }
       }
     } catch (err) {
@@ -165,6 +135,17 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
       setSaving(false);
       return;
     }
+    // Format date
+    let fileDate = date ? date : new Date().toISOString().slice(0, 10);
+    const catObj = MEDIA_CATEGORIES.find(c => c.id === category);
+    const catName = catObj ? catObj.name : category;
+    const outName = formatMediaFileName({
+      category: catName,
+      title,
+      author,
+      date: fileDate,
+      extension: ext,
+    });
     await saveFile(outBlob, {
       name: outName,
       type: 'audio',
@@ -193,18 +174,52 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     <div className="flex flex-col items-center p-4">
       <h2 className="text-lg font-bold mb-2">Audio Recorder</h2>
       {error && <div className="text-red-600 mb-2">{error}</div>}
+      {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
       {convertError && <div className="text-red-600 mb-2">{convertError}</div>}
       {formatWarning && <div className="text-yellow-600 mb-2">{formatWarning}</div>}
       <div className="w-full h-16 bg-gray-200 rounded mb-4 flex items-center justify-center">
         {/* Waveform placeholder */}
         <span className="text-gray-500">[Waveform]</span>
       </div>
+      <div className="flex flex-col w-full max-w-md gap-2 mb-4">
+        <input
+          className="border rounded px-2 py-1"
+          placeholder="Title (required)"
+          value={title}
+          maxLength={100}
+          onChange={e => setTitle(e.target.value)}
+          required
+        />
+        <input
+          className="border rounded px-2 py-1"
+          placeholder="Author (required)"
+          value={author}
+          maxLength={50}
+          onChange={e => setAuthor(e.target.value)}
+          required
+        />
+        <select
+          className="border rounded px-2 py-1"
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+        >
+          {MEDIA_CATEGORIES.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
+        <input
+          className="border rounded px-2 py-1"
+          type="date"
+          value={date}
+          onChange={e => setDate(e.target.value)}
+        />
+      </div>
       <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
       <button
         className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${recording ? 'bg-red-600' : 'bg-green-600'} text-white text-2xl`}
         onClick={recording ? stopRecording : startRecording}
       >
-        {recording ? '■' : '●'}
+        {recording ? '\u25a0' : '\u25cf'}
       </button>
       <button
         className="bg-blue-600 text-white px-4 py-2 rounded"

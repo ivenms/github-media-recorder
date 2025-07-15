@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { saveFile } from '../utils/fileUtils';
 import { useFileConverter } from '../hooks/useFileConverter';
+import { MEDIA_CATEGORIES } from '../types';
+import { formatMediaFileName } from '../utils/fileUtils';
 
 const VideoRecorder: React.FC = () => {
   const {
@@ -25,15 +27,43 @@ const VideoRecorder: React.FC = () => {
   const mediaUrl = (videoUrl as string) || (audioUrl as string) || null;
   const mediaBlob = (videoBlob as Blob) || (audioBlob as Blob) || null;
 
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+  const [category, setCategory] = useState(MEDIA_CATEGORIES[0].id);
+  const [date, setDate] = useState('');
+  const [inputError, setInputError] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const validateInputs = () => {
+    if (!title.trim() || !author.trim()) {
+      setInputError('Title and Author are required.');
+      return false;
+    }
+    if (title.length > 100) {
+      setInputError('Title cannot exceed 100 characters.');
+      return false;
+    }
+    if (author.length > 50) {
+      setInputError('Author cannot exceed 50 characters.');
+      return false;
+    }
+    if (title.includes('_') || author.includes('_')) {
+      setInputError('Underscore ( _ ) is not allowed in Title or Author.');
+      return false;
+    }
+    setInputError(null);
+    return true;
+  };
+
   const handleSave = async () => {
     if (!mediaBlob) return;
+    if (!validateInputs()) return;
     setSaving(true);
     let outBlob = mediaBlob;
-    let outName = `video-${Date.now()}.webm`;
     let outMime = mediaBlob.type;
+    let ext = 'webm';
     try {
       // Convert to MP4 using useFileConverter hook
       const arrayBuffer = await mediaBlob.arrayBuffer();
@@ -41,12 +71,23 @@ const VideoRecorder: React.FC = () => {
       const mp4Data = await convert('mp4', uint8);
       if (!mp4Data) throw new Error('MP4 conversion failed');
       outBlob = new Blob([mp4Data], { type: 'video/mp4' });
-      outName = `video-${Date.now()}.mp4`;
       outMime = 'video/mp4';
+      ext = 'mp4';
     } catch (err) {
       // fallback: save original if conversion fails
       console.error('MP4 conversion failed:', err);
     }
+    // Format date
+    let fileDate = date ? date : new Date().toISOString().slice(0, 10);
+    const catObj = MEDIA_CATEGORIES.find(c => c.id === category);
+    const catName = catObj ? catObj.name : category;
+    const outName = formatMediaFileName({
+      category: catName,
+      title,
+      author,
+      date: fileDate,
+      extension: ext,
+    });
     await saveFile(outBlob, {
       name: outName,
       type: 'video',
@@ -63,12 +104,46 @@ const VideoRecorder: React.FC = () => {
   return (
     <div className="flex flex-col items-center p-4">
       <h2 className="text-lg font-bold mb-2">Video Recorder</h2>
+      {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
       <div className="w-full h-48 bg-gray-300 rounded mb-4 flex items-center justify-center">
         {mediaUrl ? (
           <video src={mediaUrl} controls className="w-full h-48 object-contain rounded" />
         ) : (
           <span className="text-gray-500">{recording ? '[Recording...]' : '[Camera Preview]'}</span>
         )}
+      </div>
+      <div className="flex flex-col w-full max-w-md gap-2 mb-4">
+        <input
+          className="border rounded px-2 py-1"
+          placeholder="Title (required)"
+          value={title}
+          maxLength={100}
+          onChange={e => setTitle(e.target.value)}
+          required
+        />
+        <input
+          className="border rounded px-2 py-1"
+          placeholder="Author (required)"
+          value={author}
+          maxLength={50}
+          onChange={e => setAuthor(e.target.value)}
+          required
+        />
+        <select
+          className="border rounded px-2 py-1"
+          value={category}
+          onChange={e => setCategory(e.target.value)}
+        >
+          {MEDIA_CATEGORIES.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
+        <input
+          className="border rounded px-2 py-1"
+          type="date"
+          value={date}
+          onChange={e => setDate(e.target.value)}
+        />
       </div>
       <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
       {error && <div className="text-red-600 mb-2">{error}</div>}

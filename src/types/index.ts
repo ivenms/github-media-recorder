@@ -59,3 +59,15 @@ export interface UseMediaRecorderOptions {
 
 // TODO: Define more specific types for fileUtils and mediaConverter if needed
 // TODO: Add types for FileList and VideoRecorder if props are added in the future 
+
+export type MediaCategory = {
+  id: string;
+  name: string;
+};
+
+export const MEDIA_CATEGORIES: MediaCategory[] = [
+  { id: 'Music', name: 'Music' },
+  { id: 'Podcast', name: 'Podcast' },
+  { id: 'Lecture', name: 'Lecture' },
+  { id: 'Audiobook', name: 'Audiobook' },
+]; 
