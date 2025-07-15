@@ -4,6 +4,7 @@ import { saveFile } from '../utils/fileUtils';
 import { useFileConverter } from '../hooks/useFileConverter';
 import { MEDIA_CATEGORIES } from '../types';
 import { formatMediaFileName } from '../utils/fileUtils';
+import { convertImageToJpg } from '../utils/fileUtils';
 
 const VideoRecorder: React.FC = () => {
   const {
@@ -32,6 +33,8 @@ const VideoRecorder: React.FC = () => {
   const [category, setCategory] = useState(MEDIA_CATEGORIES[0].id);
   const [date, setDate] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
+  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -55,6 +58,19 @@ const VideoRecorder: React.FC = () => {
     }
     setInputError(null);
     return true;
+  };
+
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setThumbnailError(null);
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setThumbnailError('Please select a valid image file.');
+        setThumbnail(null);
+        return;
+      }
+      setThumbnail(file);
+    }
   };
 
   const handleSave = async () => {
@@ -96,6 +112,22 @@ const VideoRecorder: React.FC = () => {
       duration,
       created: Date.now(),
     });
+    // Handle thumbnail save
+    if (thumbnail) {
+      try {
+        const jpgBlob = await convertImageToJpg(thumbnail);
+        const thumbName = outName.replace(/\.[^.]+$/, '.jpg');
+        await saveFile(jpgBlob, {
+          name: thumbName,
+          type: 'thumbnail',
+          mimeType: 'image/jpeg',
+          size: jpgBlob.size,
+          created: Date.now(),
+        });
+      } catch (err) {
+        setThumbnailError('Thumbnail conversion failed.');
+      }
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -105,6 +137,7 @@ const VideoRecorder: React.FC = () => {
     <div className="flex flex-col items-center p-4">
       <h2 className="text-lg font-bold mb-2">Video Recorder</h2>
       {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
+      {thumbnailError && <div className="text-red-600 mb-2">{thumbnailError}</div>}
       <div className="w-full h-48 bg-gray-300 rounded mb-4 flex items-center justify-center">
         {mediaUrl ? (
           <video src={mediaUrl} controls className="w-full h-48 object-contain rounded" />
@@ -143,6 +176,12 @@ const VideoRecorder: React.FC = () => {
           type="date"
           value={date}
           onChange={e => setDate(e.target.value)}
+        />
+        <input
+          type="file"
+          accept="image/*"
+          className="border rounded px-2 py-1"
+          onChange={handleThumbnailChange}
         />
       </div>
       <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>

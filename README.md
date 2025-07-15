@@ -1,5 +1,5 @@
 # Mobile Recorder PWA
-
+  
 A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4, and uploading to a server. Installable, offline-capable, and optimized for mobile devices.
 
 ## Features

@@ -40,3 +40,12 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Neumorphic shadow for bottom menu */
+.shadow-neumorph {
+  box-shadow: 4px 4px 16px #d1d9e6, -4px -4px 16px #ffffff;
+}
+
+body {
+  background: linear-gradient(135deg, #e0e7ef 0%, #f7faff 100%);
+}

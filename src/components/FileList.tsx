@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { listFiles, deleteFile } from '../utils/fileUtils';
+import Waveform from './Waveform';
+import MicIcon from './icons/MicIcon';
 
 const FileList: React.FC = () => {
   const [files, setFiles] = useState<any[]>([]);
@@ -41,17 +43,31 @@ const FileList: React.FC = () => {
   return (
     <div className="p-4">
       <h2 className="text-lg font-bold mb-4">Files</h2>
-      <ul className="space-y-2">
+      <ul className="space-y-4">
         {files.map((file) => (
-          <li key={file.id} className="flex items-center justify-between bg-gray-100 rounded px-3 py-2">
-            <div>
-              <span className="font-mono text-sm">{file.name}</span>
-              <span className="ml-2 text-xs text-gray-500">[{file.type}]</span>
+          <li key={file.id} className="flex items-center justify-between bg-white/70 rounded-2xl shadow-neumorph px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 flex items-center justify-center bg-blue-50 rounded-xl">
+                <MicIcon className="w-8 h-8" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-semibold text-gray-800 text-sm truncate max-w-[10rem] block">{file.name}</span>
+                <span className="text-xs text-gray-400">{file.type}</span>
+                <div className="w-32 h-6 mt-1">
+                  {file.type === 'audio' && <Waveform height={24} />}
+                </div>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <button className="text-blue-600 hover:underline text-xs" onClick={() => setPreview(file)}>Preview</button>
-              <button className="text-red-600 hover:underline text-xs" onClick={() => handleDelete(file.id)}>Delete</button>
-              <button className="text-green-600 hover:underline text-xs" onClick={() => handleShare(file)} disabled={sharing}>Share</button>
+            <div className="flex flex-col gap-2 items-end">
+              <button className="text-blue-600 hover:bg-blue-100 rounded-full p-2 transition" onClick={() => setPreview(file)} title="Preview">
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" stroke="#3B82F6" strokeWidth="2"/><polygon points="8,6 15,10 8,14" fill="#3B82F6"/></svg>
+              </button>
+              <button className="text-red-500 hover:bg-red-100 rounded-full p-2 transition" onClick={() => handleDelete(file.id)} title="Delete">
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="5" y="8" width="10" height="7" rx="2" stroke="#EF4444" strokeWidth="2"/><rect x="8" y="4" width="4" height="4" rx="2" fill="#EF4444"/></svg>
+              </button>
+              <button className="text-green-600 hover:bg-green-100 rounded-full p-2 transition" onClick={() => handleShare(file)} disabled={sharing} title="Share">
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3" stroke="#22C55E" strokeWidth="2"/><path d="M10 13l5-5m0 0l-5-5m5 5H5" stroke="#22C55E" strokeWidth="2"/></svg>
+              </button>
             </div>
           </li>
         ))}

@@ -2,9 +2,9 @@ import React from 'react';
 import AudioRecorder from './components/AudioRecorder';
 import VideoRecorder from './components/VideoRecorder';
 import FileList from './components/FileList';
-import UploadManager from './components/UploadManager';
 import InstallPrompt from './components/InstallPrompt';
 import Settings from './components/Settings';
+import BottomMenu from './components/BottomMenu';
 
 const SETTINGS_KEY = 'githubSettings';
 
@@ -12,7 +12,7 @@ const App: React.FC = () => {
   // State: navigation (audio, video, files, upload)
   // Mobile-first layout, bottom nav, responsive
   // Show InstallPrompt, main content, and bottom nav
-  const [screen, setScreen] = React.useState<'audio' | 'video' | 'files' | 'upload' | 'settings'>('audio');
+  const [screen, setScreen] = React.useState<'home' | 'record' | 'library' | 'settings'>('home');
   const [audioFormat, setAudioFormat] = React.useState<'mp3' | 'wav'>(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
     if (saved) return (JSON.parse(saved).audioFormat as 'mp3' | 'wav') || 'mp3';
@@ -29,22 +29,22 @@ const App: React.FC = () => {
   }, [audioFormat]);
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-white dark:bg-black">
+    <div className="min-h-screen w-full flex flex-col">
       <InstallPrompt />
-      <main className="flex-1 overflow-y-auto">
-        {screen === 'audio' && <AudioRecorder audioFormat={audioFormat} />}
-        {screen === 'video' && <VideoRecorder />}
-        {screen === 'files' && <FileList />}
-        {screen === 'upload' && <UploadManager />}
+      <main className="flex-1 overflow-y-auto pb-20">
+        {screen === 'home' && <AudioRecorder audioFormat={audioFormat} />}
+        {screen === 'record' && <VideoRecorder />}
+        {screen === 'library' && <FileList />}
         {screen === 'settings' && <Settings audioFormat={audioFormat} setAudioFormat={setAudioFormat} />}
       </main>
-      <nav className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white flex justify-around py-2">
-        <button onClick={() => setScreen('audio')}>Audio</button>
-        <button onClick={() => setScreen('video')}>Video</button>
-        <button onClick={() => setScreen('files')}>Files</button>
-        <button onClick={() => setScreen('upload')}>Upload</button>
-        <button onClick={() => setScreen('settings')}>Settings</button>
-      </nav>
+      <BottomMenu
+        active={screen}
+        onNavigate={(key) => {
+          if (key === 'home' || key === 'record' || key === 'library' || key === 'settings') {
+            setScreen(key);
+          }
+        }}
+      />
     </div>
   );
 };

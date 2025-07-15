@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { saveFile, decodeWebmToPCM, encodeWAV, formatMediaFileName } from '../utils/fileUtils';
+import { saveFile, decodeWebmToPCM, encodeWAV, formatMediaFileName, convertImageToJpg } from '../utils/fileUtils';
 import { useFileConverter } from '../hooks/useFileConverter';
 // @ts-expect-error: no types for lamejs
 import lamejs from 'lamejs';
@@ -13,6 +13,8 @@ if (typeof window !== 'undefined' && !(window as any).BitStream && lamejs.BitStr
 }
 import type { AudioRecorderProps } from '../types';
 import { MEDIA_CATEGORIES } from '../types';
+import MicIcon from './icons/MicIcon';
+import Waveform from './Waveform';
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const [recording, setRecording] = useState(false);
@@ -30,6 +32,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const [category, setCategory] = useState(MEDIA_CATEGORIES[0].id);
   const [date, setDate] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
+  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
 
   React.useEffect(() => {
     let timer: any;
@@ -103,6 +107,19 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     return true;
   };
 
+  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setThumbnailError(null);
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setThumbnailError('Please select a valid image file.');
+        setThumbnail(null);
+        return;
+      }
+      setThumbnail(file);
+    }
+  };
+
   const handleSave = async () => {
     if (!audioUrl) return;
     if (!validateInputs()) return;
@@ -154,6 +171,22 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
       duration,
       created: Date.now(),
     });
+    // Handle thumbnail save
+    if (thumbnail) {
+      try {
+        const jpgBlob = await convertImageToJpg(thumbnail);
+        const thumbName = outName.replace(/\.[^.]+$/, '.jpg');
+        await saveFile(jpgBlob, {
+          name: thumbName,
+          type: 'thumbnail',
+          mimeType: 'image/jpeg',
+          size: jpgBlob.size,
+          created: Date.now(),
+        });
+      } catch (err) {
+        setThumbnailError('Thumbnail conversion failed.');
+      }
+    }
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -172,18 +205,44 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
 
   return (
     <div className="flex flex-col items-center p-4">
-      <h2 className="text-lg font-bold mb-2">Audio Recorder</h2>
+      <h2 className="text-xl font-bold mb-4 text-gray-700">Voice Recording</h2>
       {error && <div className="text-red-600 mb-2">{error}</div>}
       {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
       {convertError && <div className="text-red-600 mb-2">{convertError}</div>}
       {formatWarning && <div className="text-yellow-600 mb-2">{formatWarning}</div>}
-      <div className="w-full h-16 bg-gray-200 rounded mb-4 flex items-center justify-center">
-        {/* Waveform placeholder */}
-        <span className="text-gray-500">[Waveform]</span>
+      {thumbnailError && <div className="text-red-600 mb-2">{thumbnailError}</div>}
+      <div className="flex flex-col items-center w-full max-w-xs bg-white/70 rounded-3xl shadow-neumorph p-6 mb-6">
+        <div className="flex flex-col items-center mb-4">
+          <div className="w-20 h-20 flex items-center justify-center mb-2">
+            <MicIcon className="w-20 h-20" />
+          </div>
+          <div className="text-3xl font-mono text-blue-600 mb-2">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
+          <div className="w-full h-10 flex items-center justify-center mb-2">
+            <Waveform height={40} />
+          </div>
+        </div>
+        <div className="flex gap-4 mb-4">
+          <button
+            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-neumorph text-2xl transition-all ${recording ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+            onClick={recording ? stopRecording : startRecording}
+          >
+            {recording ? <span className="text-3xl">&#10073;&#10073;</span> : <span className="text-3xl">&#9679;</span>}
+          </button>
+        </div>
+        <button
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded-xl shadow-neumorph disabled:opacity-50"
+          disabled={recording || !audioUrl || saving}
+          onClick={handleSave}
+        >
+          {saving ? (audioFormat === 'mp3' && convertProgress > 0 && convertProgress < 1 ? `Converting... ${(convertProgress * 100).toFixed(0)}%` : 'Saving...') : saved ? 'Saved!' : 'Save'}
+        </button>
+        {audioUrl && (
+          <audio controls src={audioUrl} className="w-full mt-4 rounded-xl" />
+        )}
       </div>
-      <div className="flex flex-col w-full max-w-md gap-2 mb-4">
+      <div className="flex flex-col w-full max-w-xs gap-2 mt-2">
         <input
-          className="border rounded px-2 py-1"
+          className="border rounded-xl px-3 py-2 shadow-neumorph"
           placeholder="Title (required)"
           value={title}
           maxLength={100}
@@ -191,7 +250,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           required
         />
         <input
-          className="border rounded px-2 py-1"
+          className="border rounded-xl px-3 py-2 shadow-neumorph"
           placeholder="Author (required)"
           value={author}
           maxLength={50}
@@ -199,7 +258,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           required
         />
         <select
-          className="border rounded px-2 py-1"
+          className="border rounded-xl px-3 py-2 shadow-neumorph"
           value={category}
           onChange={e => setCategory(e.target.value)}
         >
@@ -208,29 +267,18 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           ))}
         </select>
         <input
-          className="border rounded px-2 py-1"
+          className="border rounded-xl px-3 py-2 shadow-neumorph"
           type="date"
           value={date}
           onChange={e => setDate(e.target.value)}
         />
+        <input
+          type="file"
+          accept="image/*"
+          className="border rounded-xl px-3 py-2 shadow-neumorph"
+          onChange={handleThumbnailChange}
+        />
       </div>
-      <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
-      <button
-        className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${recording ? 'bg-red-600' : 'bg-green-600'} text-white text-2xl`}
-        onClick={recording ? stopRecording : startRecording}
-      >
-        {recording ? '\u25a0' : '\u25cf'}
-      </button>
-      <button
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-        disabled={recording || !audioUrl || saving}
-        onClick={handleSave}
-      >
-        {saving ? (audioFormat === 'mp3' && convertProgress > 0 && convertProgress < 1 ? `Converting... ${(convertProgress * 100).toFixed(0)}%` : 'Saving...') : saved ? 'Saved!' : 'Save'}
-      </button>
-      {audioUrl && (
-        <audio controls src={audioUrl} className="mt-2" />
-      )}
     </div>
   );
 };

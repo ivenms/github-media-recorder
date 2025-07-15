@@ -131,6 +131,36 @@ export function encodeWAV(channelData: Float32Array[], sampleRate: number): Blob
 }
 
 /**
+ * Converts an image file (any format) to a JPG Blob using a canvas.
+ * @param file - The input image file (Blob or File)
+ * @param quality - JPG quality (0-1, default 0.92)
+ * @returns Promise<Blob> - The JPG Blob
+ */
+export async function convertImageToJpg(file: Blob, quality: number = 0.92): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Could not get canvas context'));
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Failed to convert image to JPG'));
+        },
+        'image/jpeg',
+        quality
+      );
+    };
+    img.onerror = (e) => reject(new Error('Failed to load image for conversion'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/**
  * Formats a media file name as Category_Title_Author_Date.extension
  * - Removes non-alphanumeric, dash, and space characters
  * - Removes spaces
