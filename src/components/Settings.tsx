@@ -6,15 +6,21 @@ interface GitHubSettings {
   token: string;
   owner: string;
   repo: string;
+  audioFormat: 'mp3' | 'wav';
 }
 
 const getInitialSettings = (): GitHubSettings => {
   const saved = localStorage.getItem(SETTINGS_KEY);
-  if (saved) return JSON.parse(saved);
-  return { token: '', owner: '', repo: '' };
+  if (saved) return { audioFormat: 'mp3', ...JSON.parse(saved) };
+  return { token: '', owner: '', repo: '', audioFormat: 'mp3' };
 };
 
-const Settings: React.FC = () => {
+interface SettingsProps {
+  audioFormat: 'mp3' | 'wav';
+  setAudioFormat: (format: 'mp3' | 'wav') => void;
+}
+
+const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat }) => {
   const [settings, setSettings] = useState<GitHubSettings>(getInitialSettings());
   const [status, setStatus] = useState<string>('');
 
@@ -65,6 +71,18 @@ const Settings: React.FC = () => {
           onChange={handleChange}
           className="w-full border rounded px-2 py-1 mt-1"
         />
+      </label>
+      <label className="block mb-4">
+        <span className="text-sm">Audio Format</span>
+        <select
+          name="audioFormat"
+          value={audioFormat}
+          onChange={(e) => setAudioFormat(e.target.value as 'mp3' | 'wav')}
+          className="w-full border rounded px-2 py-1 mt-1"
+        >
+          <option value="mp3">MP3</option>
+          <option value="wav">WAV</option>
+        </select>
       </label>
       <button
         onClick={handleSave}

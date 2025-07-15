@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { saveFile } from '../utils/fileUtils';
+import { convertToMp4 } from '../utils/mediaConverter';
 
 const VideoRecorder: React.FC = () => {
   const {
@@ -28,11 +29,26 @@ const VideoRecorder: React.FC = () => {
   const handleSave = async () => {
     if (!mediaBlob) return;
     setSaving(true);
-    await saveFile(mediaBlob, {
-      name: `video-${Date.now()}.webm`,
+    let outBlob = mediaBlob;
+    let outName = `video-${Date.now()}.webm`;
+    let outMime = mediaBlob.type;
+    try {
+      // Convert to MP4
+      const arrayBuffer = await mediaBlob.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+      const mp4Data = await convertToMp4(uint8);
+      outBlob = new Blob([mp4Data], { type: 'video/mp4' });
+      outName = `video-${Date.now()}.mp4`;
+      outMime = 'video/mp4';
+    } catch (err) {
+      // fallback: save original if conversion fails
+      console.error('MP4 conversion failed:', err);
+    }
+    await saveFile(outBlob, {
+      name: outName,
       type: 'video',
-      mimeType: mediaBlob.type,
-      size: mediaBlob.size,
+      mimeType: outMime,
+      size: outBlob.size,
       duration,
       created: Date.now(),
     });
