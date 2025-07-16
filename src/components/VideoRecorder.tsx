@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { saveFile } from '../utils/fileUtils';
 import { useFileConverter } from '../hooks/useFileConverter';
@@ -20,6 +20,7 @@ const VideoRecorder: React.FC = () => {
     resume,
     videoUrl,
     videoBlob,
+    stream,
   } = useMediaRecorder({ video: true, audio: true });
 
   const { convert, progress: convertProgress, error: convertError } = useFileConverter();
@@ -27,6 +28,16 @@ const VideoRecorder: React.FC = () => {
   // For video, use videoUrl/videoBlob if available, else fallback to audioUrl/audioBlob
   const mediaUrl = (videoUrl as string) || (audioUrl as string) || null;
   const mediaBlob = (videoBlob as Blob) || (audioBlob as Blob) || null;
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (recording && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    } else if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, [recording, stream]);
 
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
@@ -139,7 +150,9 @@ const VideoRecorder: React.FC = () => {
       {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
       {thumbnailError && <div className="text-red-600 mb-2">{thumbnailError}</div>}
       <div className="w-full h-48 bg-gray-300 rounded mb-4 flex items-center justify-center">
-        {mediaUrl ? (
+        {recording && stream ? (
+          <video ref={videoRef} autoPlay muted className="w-full h-48 object-contain rounded" />
+        ) : mediaUrl ? (
           <video src={mediaUrl} controls className="w-full h-48 object-contain rounded" />
         ) : (
           <span className="text-gray-500">{recording ? '[Recording...]' : '[Camera Preview]'}</span>

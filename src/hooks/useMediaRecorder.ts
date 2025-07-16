@@ -13,6 +13,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<any>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const start = useCallback(async () => {
     setError(null);
@@ -23,6 +24,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
     setDuration(0);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: options.audio, video: options.video });
+      streamRef.current = stream;
       const mimeType = options.mimeType || (options.audio && !options.video ? 'audio/webm' : 'video/webm');
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = recorder;
@@ -40,6 +42,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
           setAudioUrl(URL.createObjectURL(blob));
         }
         stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
       };
       recorder.onerror = (e) => setError(e.error?.message || 'Recording error');
       recorder.start();
@@ -89,5 +92,6 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
     stop,
     pause,
     resume,
+    stream: streamRef.current,
   };
 } 
