@@ -38,4 +38,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
   },
+  server: {
+    allowedHosts: ['.ngrok-free.app'],
+  },
 })
