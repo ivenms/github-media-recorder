@@ -5,6 +5,7 @@ import FileList from './components/FileList';
 import InstallPrompt from './components/InstallPrompt';
 import Settings from './components/Settings';
 import BottomMenu from './components/BottomMenu';
+import DesktopAlert from './components/DesktopAlert';
 
 const SETTINGS_KEY = 'githubSettings';
 
@@ -30,6 +31,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full flex flex-col">
+      <DesktopAlert />
       <InstallPrompt />
       <main className="flex-1 overflow-y-auto pb-20">
         {screen === 'home' && <AudioRecorder audioFormat={audioFormat} />}
