@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { saveFile, decodeWebmToPCM, encodeWAV, formatMediaFileName, convertImageToJpg } from '../utils/fileUtils';
+import React from 'react';
 import { useFileConverter } from '../hooks/useFileConverter';
 // @ts-expect-error: no types for lamejs
 import lamejs from 'lamejs';
@@ -15,188 +14,77 @@ import type { AudioRecorderProps } from '../types';
 import { MEDIA_CATEGORIES } from '../types';
 import MicIcon from './icons/MicIcon';
 import Waveform from './Waveform';
+import { useAudioRecorder } from '../hooks/useAudioRecorder';
+import { useAudioForm } from '../hooks/useAudioForm';
+import { useAudioSave } from '../hooks/useAudioSave';
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
-  const [recording, setRecording] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [formatWarning, setFormatWarning] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
-  const chunksRef = React.useRef<BlobPart[]>([]);
+  // Recording logic
+  const {
+    recording,
+    duration,
+    audioUrl,
+    error,
+    formatWarning,
+    stream,
+    startRecording,
+    stopRecording,
+    setError,
+    setFormatWarning,
+    setDuration,
+    setAudioUrl,
+    setStream,
+  } = useAudioRecorder(audioFormat);
+
+  // Form logic
+  const {
+    title,
+    setTitle,
+    author,
+    setAuthor,
+    category,
+    setCategory,
+    date,
+    setDate,
+    inputError,
+    setInputError,
+    thumbnail,
+    setThumbnail,
+    thumbnailError,
+    setThumbnailError,
+    validateInputs,
+    handleThumbnailChange,
+  } = useAudioForm();
+
+  // File conversion logic
   const { convert, progress: convertProgress, error: convertError } = useFileConverter();
-  const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
-  const [category, setCategory] = useState(MEDIA_CATEGORIES[0].id);
-  const [date, setDate] = useState('');
-  const [inputError, setInputError] = useState<string | null>(null);
-  const [thumbnail, setThumbnail] = useState<File | null>(null);
-  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    let timer: any;
-    if (recording) {
-      timer = setInterval(() => setDuration((d) => d + 1), 1000);
-    } else {
-      clearInterval(timer);
-    }
-    return () => clearInterval(timer);
-  }, [recording]);
+  // Save logic
+  const {
+    handleSave,
+    saving,
+    saved,
+  } = useAudioSave({
+    audioUrl,
+    audioFormat,
+    title,
+    author,
+    category,
+    date,
+    duration,
+    thumbnail,
+    validateInputs,
+    convert,
+    convertProgress,
+    setInputError,
+    setThumbnailError,
+  });
 
-  const startRecording = async () => {
-    setError(null);
-    setFormatWarning(null);
-    setDuration(0);
-    setAudioUrl(null);
-    chunksRef.current = [];
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      let mimeType = 'audio/webm';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        throw new Error('audio/webm is not supported in this browser.');
-      }
-      if (audioFormat === 'mp3' || audioFormat === 'wav') {
-        setFormatWarning('Selected format (' + audioFormat.toUpperCase() + ') is not supported for recording. Recording will be saved as WEBM.');
-      }
-      const recorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = recorder;
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-        }
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        setAudioUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach((track) => track.stop());
-      };
-      recorder.start();
-      setRecording(true);
-    } catch (err: any) {
-      setError('Could not start recording: ' + (err?.message || 'Unknown error'));
-      setRecording(false);
-      console.error('AudioRecorder error:', err);
-    }
-  };
-
-  const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    setRecording(false);
-  };
-
-  const validateInputs = () => {
-    if (!title.trim() || !author.trim()) {
-      setInputError('Title and Author are required.');
-      return false;
-    }
-    if (title.length > 100) {
-      setInputError('Title cannot exceed 100 characters.');
-      return false;
-    }
-    if (author.length > 50) {
-      setInputError('Author cannot exceed 50 characters.');
-      return false;
-    }
-    if (title.includes('_') || author.includes('_')) {
-      setInputError('Underscore ( _ ) is not allowed in Title or Author.');
-      return false;
-    }
-    setInputError(null);
-    return true;
-  };
-
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setThumbnailError(null);
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        setThumbnailError('Please select a valid image file.');
-        setThumbnail(null);
-        return;
-      }
-      setThumbnail(file);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!audioUrl) return;
-    if (!validateInputs()) return;
-    setSaving(true);
-    // Fetch the blob from the audioUrl
-    const response = await fetch(audioUrl);
-    const blob = await response.blob();
-    let outBlob = blob;
-    let outMime = blob.type;
-    let ext = 'webm';
-    try {
-      if (audioFormat === 'wav' || audioFormat === 'mp3') {
-        const { channelData, sampleRate } = await decodeWebmToPCM(blob);
-        if (audioFormat === 'wav') {
-          outBlob = encodeWAV(channelData, sampleRate);
-          outMime = 'audio/wav';
-          ext = 'wav';
-        } else if (audioFormat === 'mp3') {
-          const arrayBuffer = await blob.arrayBuffer();
-          const uint8 = new Uint8Array(arrayBuffer);
-          const mp3Data = await convert('mp3', uint8);
-          if (!mp3Data) throw new Error('MP3 conversion failed');
-          outBlob = new Blob([mp3Data], { type: 'audio/mp3' });
-          outMime = 'audio/mp3';
-          ext = 'mp3';
-        }
-      }
-    } catch (err) {
-      setError('Conversion failed: ' + (err as any)?.message);
-      setSaving(false);
-      return;
-    }
-    // Format date
-    let fileDate = date ? date : new Date().toISOString().slice(0, 10);
-    const catObj = MEDIA_CATEGORIES.find(c => c.id === category);
-    const catName = catObj ? catObj.name : category;
-    const outName = formatMediaFileName({
-      category: catName,
-      title,
-      author,
-      date: fileDate,
-      extension: ext,
-    });
-    await saveFile(outBlob, {
-      name: outName,
-      type: 'audio',
-      mimeType: outMime,
-      size: outBlob.size,
-      duration,
-      created: Date.now(),
-    });
-    // Handle thumbnail save
-    if (thumbnail) {
-      try {
-        const jpgBlob = await convertImageToJpg(thumbnail);
-        const thumbName = outName.replace(/\.[^.]+$/, '.jpg');
-        await saveFile(jpgBlob, {
-          name: thumbName,
-          type: 'thumbnail',
-          mimeType: 'image/jpeg',
-          size: jpgBlob.size,
-          created: Date.now(),
-        });
-      } catch (err) {
-        setThumbnailError('Thumbnail conversion failed.');
-      }
-    }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  React.useEffect(() => {
-    return () => {
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
-    };
-  }, [audioUrl]);
+  // For freezing waveform: listen to last animation frame from Waveform
+  const [waveformData, setWaveformData] = React.useState<number[] | undefined>(undefined);
+  const handleWaveformData = React.useCallback((bars: number[]) => {
+    setWaveformData(bars);
+  }, []);
 
   // Fix for lamejs: define MPEGMode if not present
   if (typeof window !== 'undefined' && !(window as any).MPEGMode) {
@@ -218,7 +106,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           </div>
           <div className="text-3xl font-mono text-blue-600 mb-2">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
           <div className="w-full h-10 flex items-center justify-center mb-2">
-            <Waveform height={40} />
+            <Waveform height={40} stream={recording ? stream : undefined} data={!recording ? waveformData : undefined} />
           </div>
         </div>
         <div className="flex gap-4 mb-4">
