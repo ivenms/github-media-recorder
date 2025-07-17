@@ -28,6 +28,7 @@ export interface GitHubSettings {
   owner: string;
   repo: string;
   audioFormat?: 'mp3' | 'wav'; // Optional for utils, required for settings
+  path?: string; // Added for Settings usage
 }
 
 // Upload state for UploadManager
@@ -63,11 +64,4 @@ export interface UseMediaRecorderOptions {
 export type MediaCategory = {
   id: string;
   name: string;
-};
-
-export const MEDIA_CATEGORIES: MediaCategory[] = [
-  { id: 'Music', name: 'Music' },
-  { id: 'Podcast', name: 'Podcast' },
-  { id: 'Lecture', name: 'Lecture' },
-  { id: 'Audiobook', name: 'Audiobook' },
-]; 
+}; 

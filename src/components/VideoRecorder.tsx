@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { saveFile } from '../utils/fileUtils';
 import { useFileConverter } from '../hooks/useFileConverter';
-import { MEDIA_CATEGORIES } from '../types';
+import { MEDIA_CATEGORIES } from '../utils/appConfig';
 import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
 

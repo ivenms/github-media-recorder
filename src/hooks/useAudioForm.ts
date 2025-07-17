@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MEDIA_CATEGORIES } from '../types';
+import { MEDIA_CATEGORIES } from '../utils/appConfig';
 
 export function useAudioForm() {
   const [title, setTitle] = useState('');

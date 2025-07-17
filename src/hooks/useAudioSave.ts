@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { saveFile, decodeWebmToPCM, encodeWAV, formatMediaFileName, convertImageToJpg } from '../utils/fileUtils';
-import { MEDIA_CATEGORIES } from '../types';
+import { MEDIA_CATEGORIES } from '../utils/appConfig';
 import type { ConvertType } from './useFileConverter';
 
 interface UseAudioSaveParams {

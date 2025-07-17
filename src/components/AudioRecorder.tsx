@@ -11,7 +11,7 @@ if (typeof window !== 'undefined' && !(window as any).BitStream && lamejs.BitStr
   (window as any).BitStream = lamejs.BitStream;
 }
 import type { AudioRecorderProps } from '../types';
-import { MEDIA_CATEGORIES } from '../types';
+import { MEDIA_CATEGORIES } from '../utils/appConfig';
 import MicIcon from './icons/MicIcon';
 import Waveform from './Waveform';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
