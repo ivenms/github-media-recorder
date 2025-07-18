@@ -1,8 +1,12 @@
 # Mobile Recorder PWA
 
-A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4, and uploading to a GitHub repository. Installable, offline-capable, and optimized for mobile devices.
+A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4, and uploading to a GitHub repository. Features secure GitHub Personal Access Token authentication, installable PWA functionality, and automatic deployment to GitHub Pages.
 
 ## Features
+- **GitHub Personal Access Token Authentication**
+  - Secure authentication using GitHub Personal Access Tokens
+  - Token validation and expiration handling
+  - Comprehensive setup instructions
 - **Audio & Video Recording**
   - Record audio (WebM, convert to MP3/WAV) and video (WebM, convert to MP4)
   - Add metadata: title, author, category, date, and optional thumbnail
@@ -13,11 +17,12 @@ A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4
   - List, preview (modal for audio/video), delete, and share files (Web Share API)
   - Thumbnails supported for both audio and video files
 - **Upload to GitHub**
-  - Upload files to a user-specified GitHub repository (requires personal access token, owner, repo)
+  - Upload files to your GitHub repositories using Personal Access Tokens
   - Upload progress bar, status (pending, uploading, success, error), and retry on failure
-  - Uploads to a `media/` directory in the repo
+  - Configurable upload path in repository settings
 - **Settings**
-  - Configure GitHub token, owner, repo, and preferred audio format (MP3/WAV)
+  - Configure repository and upload path
+  - Choose preferred audio format (MP3/WAV)
   - Settings are persisted in localStorage
 - **PWA & Mobile-First**
   - Installable as a PWA, with offline support and background sync
@@ -25,28 +30,78 @@ A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4
   - Responsive and accessible design
 
 ## Tech Stack
-- React 18+ (TypeScript)
+- React 19+ (TypeScript)
 - Vite
 - Tailwind CSS
 - FFmpeg.js (for media conversion)
+- GitHub API
 - Service Worker, Web App Manifest
 
-## Getting Started
+## Development Setup
+
+### 1. Environment Configuration
+
+Create a `.env` file in the root directory:
+
+```env
+# Base URL for deployment (optional, defaults to '/')
+VITE_BASE_URL=/your-repo-name/
+```
+
+### 2. Install Dependencies
 
 ```bash
 npm install
+```
+
+### 3. Start Development Server
+
+```bash
 npm run dev
 ```
 
-1. Open the app in your browser.
-2. Go to **Settings** and enter your GitHub Personal Access Token, repository owner, and repository name to enable uploads.
-3. Choose your preferred audio format (MP3 or WAV).
+### 4. GitHub Personal Access Token Setup
 
-## Build for Production
+The app will guide you through creating a Personal Access Token on first launch:
+
+1. The app will show detailed instructions when you first run it
+2. You'll need to create a token with `repo` scope
+3. The token is stored securely in your browser's local storage
+
+## Deployment
+
+### GitHub Pages Deployment
+
+This project includes automated GitHub Actions deployment to GitHub Pages.
+
+#### 1. Repository Secrets Setup
+
+Add this secret in your GitHub repository (**Settings** → **Secrets and variables** → **Actions**):
+
+- `VITE_BASE_URL`: Your deployment path (e.g., `/github-media-recorder/`)
+
+#### 2. Enable GitHub Pages
+
+1. Go to repository **Settings** → **Pages**
+2. Set **Source** to "GitHub Actions"
+
+#### 3. Deploy
+
+Push to the `main` branch to trigger automatic deployment:
+
+```bash
+git push origin main
+```
+
+The app will be available at: `https://yourusername.github.io/your-repo-name/`
+
+### Manual Build
 
 ```bash
 npm run build
 ```
+
+The built files will be in the `dist/` directory.
 
 ## PWA Usage
 - Add to home screen on mobile for a standalone, native-like experience

@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { listFiles, deleteFile } from '../utils/fileUtils';
-import Waveform from './Waveform';
-import MicIcon from './icons/MicIcon';
+import { uploadFile, uploadThumbnail } from '../utils/uploadUtils';
+import { fetchRemoteFiles, extractDateFromFilename } from '../utils/githubUtils';
+import { formatReadableDate } from '../utils/date';
+import { processThumbnailForUpload } from '../utils/imageUtils';
 import DefaultThumbnail from './icons/DefaultThumbnail';
+import EyeIcon from './icons/EyeIcon';
+import EditIcon from './icons/EditIcon';
+import DeleteIcon from './icons/DeleteIcon';
+import UploadIcon from './icons/UploadIcon';
+import CheckIcon from './icons/CheckIcon';
+import AudioIcon from './icons/AudioIcon';
+import VideoIcon from './icons/VideoIcon';
+import EditFileModal from './EditFileModal';
 
 // Helper to parse metadata from file name
 function parseMediaFileName(name: string) {
@@ -21,22 +31,98 @@ const FileList: React.FC = () => {
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, any>>({});
   const [preview, setPreview] = useState<any | null>(null);
-  const [sharing, setSharing] = useState(false);
+  const [editingFile, setEditingFile] = useState<any | null>(null);
+  const [uploadState, setUploadState] = useState<Record<string, { status: string; progress: number; error?: string }>>({});
+  const [loading, setLoading] = useState<boolean>(false);
 
   const loadFiles = async () => {
-    const allFiles = await listFiles();
-    // Separate media and thumbnails
-    const media = allFiles.filter((f: any) => f.type === 'audio' || f.type === 'video');
-    const thumbs = allFiles.filter((f: any) => f.type === 'thumbnail');
-    // Map thumbnails by base name (without extension)
-    const thumbMap: Record<string, any> = {};
-    thumbs.forEach((thumb: any) => {
-      // Remove extension for matching
-      const base = thumb.name.replace(/\.[^.]+$/, '');
-      thumbMap[base] = thumb;
-    });
-    setMediaFiles(media);
-    setThumbnails(thumbMap);
+    setLoading(true);
+    try {
+      // Fetch local files
+      const localFiles = await listFiles();
+      const localMedia = localFiles.filter((f: any) => f.type === 'audio' || f.type === 'video');
+      const localThumbs = localFiles.filter((f: any) => f.type === 'thumbnail');
+      
+      // Fetch remote files
+      const remoteFiles = await fetchRemoteFiles();
+      const remoteMedia = remoteFiles.filter((f: any) => f.type === 'audio' || f.type === 'video');
+      const remoteThumbs = remoteFiles.filter((f: any) => f.type === 'thumbnail');
+      
+      // Create sets for quick lookup
+      const remoteMediaNames = new Set(remoteMedia.map(f => f.name));
+      const remoteThumbnailNames = new Set(remoteThumbs.map(f => f.name));
+      
+      // Separate local files: keep only those NOT uploaded yet
+      const localOnlyMedia = localMedia.filter((localFile: any) => !remoteMediaNames.has(localFile.name));
+      const localOnlyThumbs = localThumbs.filter((localThumb: any) => !remoteThumbnailNames.has(localThumb.name));
+      
+      // Clean up local files that have been uploaded
+      const uploadedLocalMedia = localMedia.filter((localFile: any) => remoteMediaNames.has(localFile.name));
+      const uploadedLocalThumbs = localThumbs.filter((localThumb: any) => remoteThumbnailNames.has(localThumb.name));
+      
+      // Remove uploaded files from local storage
+      for (const uploadedFile of [...uploadedLocalMedia, ...uploadedLocalThumbs]) {
+        try {
+          await deleteFile(uploadedFile.id);
+          console.log('Cleaned up uploaded local file:', uploadedFile.name);
+        } catch (error) {
+          console.error('Failed to clean up local file:', uploadedFile.name, error);
+        }
+      }
+      
+      // Mark local files as not uploaded
+      const enrichedLocalMedia = localOnlyMedia.map((localFile: any) => ({
+        ...localFile,
+        uploaded: false,
+        isLocal: true
+      }));
+      
+      // Mark remote files as uploaded
+      const enrichedRemoteMedia = remoteMedia.map((remoteFile: any) => ({
+        ...remoteFile,
+        uploaded: true,
+        isLocal: false
+      }));
+      
+      // Combine all media files
+      const allMediaFiles = [...enrichedLocalMedia, ...enrichedRemoteMedia];
+      
+      // Sort by date (descending)
+      allMediaFiles.sort((a: any, b: any) => {
+        const dateA = extractDateFromFilename(a.name);
+        const dateB = extractDateFromFilename(b.name);
+        return dateB.getTime() - dateA.getTime();
+      });
+      
+      // Map thumbnails by base name (without extension)
+      const thumbMap: Record<string, any> = {};
+      
+      // Add local thumbnails (for local files only)
+      localOnlyThumbs.forEach((thumb: any) => {
+        const base = thumb.name.replace(/\.[^.]+$/, '');
+        thumbMap[base] = { ...thumb, isLocal: true };
+      });
+      
+      // Add remote thumbnails (for remote files)
+      remoteThumbs.forEach((thumb: any) => {
+        const base = thumb.name.replace(/\.[^.]+$/, '');
+        thumbMap[base] = { ...thumb, isLocal: false };
+      });
+      
+      console.log('Files loaded:', { 
+        localMedia: enrichedLocalMedia.length, 
+        remoteMedia: enrichedRemoteMedia.length,
+        localThumbs: localOnlyThumbs.length,
+        remoteThumbs: remoteThumbs.length 
+      });
+      
+      setMediaFiles(allMediaFiles);
+      setThumbnails(thumbMap);
+    } catch (error) {
+      console.error('Error loading files:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -48,85 +134,284 @@ const FileList: React.FC = () => {
     loadFiles();
   };
 
-  const handleShare = async (file: any) => {
-    setSharing(true);
-    try {
-      if (navigator.share && file.file) {
-        const shareData: any = {
-          title: file.name,
-          files: [new File([file.file], file.name, { type: file.mimeType })],
-        };
-        await navigator.share(shareData);
-      } else {
-        alert('Web Share API not supported.');
-      }
-    } catch (e) {
-      alert('Share failed.');
+  const handleEdit = (file: any) => {
+    setEditingFile(file);
+  };
+
+  const handleUpload = async (file: any) => {
+    if (!file.file) {
+      alert('File data not available for upload.');
+      return;
     }
-    setSharing(false);
+
+    setUploadState((prev) => ({
+      ...prev,
+      [file.id]: { status: 'uploading', progress: 0 }
+    }));
+
+    try {
+      // Upload the main media file
+      await uploadFile(file.file, (progress) => {
+        setUploadState((prev) => ({
+          ...prev,
+          [file.id]: { status: 'uploading', progress: progress * 0.7 } // 70% for main file
+        }));
+      }, file.name);
+
+      // Check if there's a thumbnail to upload
+      const baseName = file.name.replace(/\.[^.]+$/, '');
+      const thumbnail = thumbnails[baseName];
+      
+      if (thumbnail && thumbnail.file) {
+        try {
+          // Process thumbnail: crop, scale, convert to JPG
+          const mediaFileName = file.name;
+          const { blob: processedThumbnail, filename: processedFilename } = await processThumbnailForUpload(
+            thumbnail.file,
+            mediaFileName
+          );
+          
+          console.log('Uploading processed thumbnail:', processedFilename);
+          await uploadThumbnail(processedThumbnail, (progress) => {
+            setUploadState((prev) => ({
+              ...prev,
+              [file.id]: { status: 'uploading', progress: 0.7 + (progress * 0.3) } // 30% for thumbnail
+            }));
+          }, processedFilename);
+        } catch (error) {
+          console.error('Error processing thumbnail:', error);
+          // Continue without thumbnail if processing fails
+        }
+      }
+
+      setUploadState((prev) => ({
+        ...prev,
+        [file.id]: { status: 'success', progress: 1 }
+      }));
+      
+      // Refresh file list to show updated state and clean up local files
+      setTimeout(() => {
+        loadFiles();
+      }, 1000);
+    } catch (error: any) {
+      setUploadState((prev) => ({
+        ...prev,
+        [file.id]: { status: 'error', progress: 0, error: error.message }
+      }));
+    }
+  };
+
+  const retryUpload = (file: any) => {
+    handleUpload(file);
   };
 
   return (
     <div className="p-4">
-      <h2 className="text-lg font-bold mb-4">Files</h2>
-      <ul className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-bold">Files</h2>
+        <div className="flex items-center gap-3">
+          {loading && (
+            <div className="text-sm text-gray-500">Loading files from repository...</div>
+          )}
+          <button
+            onClick={loadFiles}
+            disabled={loading}
+            className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div className="space-y-4">
         {mediaFiles.map((file) => {
           const meta: any = parseMediaFileName(file.name) || {};
-          // Find thumbnail by base name
           const baseName = file.name.replace(/\.[^.]+$/, '');
           const thumb = thumbnails[baseName];
+          const upload = uploadState[file.id] || { status: 'pending', progress: 0 };
+          
           return (
-            <li key={file.id} className="flex items-center justify-between bg-white/70 rounded-2xl shadow-neumorph px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 flex items-center justify-center bg-blue-50 rounded-xl overflow-hidden">
-                  {thumb ? (
-                    <img
-                      src={thumb.url}
-                      alt="thumbnail"
-                      className="w-12 h-12 object-cover rounded-xl"
-                    />
-                  ) : (
-                    <DefaultThumbnail className="w-12 h-12" />
-                  )}
+            <div key={file.id} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+              {/* Main File Info */}
+              <div className="p-4">
+                <div className="flex items-start gap-4">
+                  {/* Thumbnail */}
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                      {thumb && ((file.isLocal && thumb.isLocal) || (!file.isLocal && !thumb.isLocal)) ? (
+                        <img
+                          src={thumb.url}
+                          alt="thumbnail"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <DefaultThumbnail className="w-8 h-8 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* File Details */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 text-base truncate">
+                      {meta.title || file.name}
+                    </h3>
+                    {meta.author && (
+                      <p className="text-sm text-gray-600 mt-1">by {meta.author}</p>
+                    )}
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex-shrink-0 flex items-center gap-2">
+                    <button 
+                      onClick={() => setPreview(file)}
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                      title="Preview"
+                    >
+                      <EyeIcon width={16} height={16} />
+                    </button>
+                    
+                    {!file.uploaded && (
+                      <>
+                        <button 
+                          onClick={() => handleEdit(file)}
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+                          title="Edit"
+                        >
+                          <EditIcon width={16} height={16} />
+                        </button>
+                        
+                        <button 
+                          onClick={() => handleDelete(file.id)}
+                          className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                          title="Delete"
+                        >
+                          <DeleteIcon width={16} height={16} />
+                        </button>
+                      </>
+                    )}
+                    
+                    {file.uploaded && (
+                      <div className="inline-flex items-center px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                        <CheckIcon width={12} height={12} className="mr-1" />
+                        Uploaded
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-semibold text-gray-800 text-sm truncate max-w-[10rem] block">{meta.title || file.name}</span>
-                  <span className="text-xs text-gray-500">{meta.author ? `by ${meta.author}` : ''}</span>
-                  <span className="text-xs text-gray-400">{meta.category || file.type}</span>
-                  <span className="text-xs text-gray-400">{meta.date ? `Date: ${meta.date}` : ''}</span>
-                  <div className="w-32 h-6 mt-1">
-                    {file.type === 'audio' && <Waveform height={24} />}
+                
+                {/* Metadata Row - Full Width */}
+                <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                      {meta.category || file.type}
+                    </span>
+                    {meta.date && (
+                      <span className="text-xs text-gray-500">{formatReadableDate(meta.date)}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {file.type === 'audio' ? (
+                      <AudioIcon className="text-gray-600" width={14} height={14} />
+                    ) : (
+                      <VideoIcon className="text-gray-600" width={14} height={14} />
+                    )}
+                    <span className="text-xs text-gray-600 capitalize">{file.type}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 items-end">
-                <button className="text-blue-600 hover:bg-blue-100 rounded-full p-2 transition" onClick={() => setPreview(file)} title="Preview">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" stroke="#3B82F6" strokeWidth="2"/><polygon points="8,6 15,10 8,14" fill="#3B82F6"/></svg>
-                </button>
-                <button className="text-red-500 hover:bg-red-100 rounded-full p-2 transition" onClick={() => handleDelete(file.id)} title="Delete">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect x="5" y="8" width="10" height="7" rx="2" stroke="#EF4444" strokeWidth="2"/><rect x="8" y="4" width="4" height="4" rx="2" fill="#EF4444"/></svg>
-                </button>
-                <button className="text-green-600 hover:bg-green-100 rounded-full p-2 transition" onClick={() => handleShare(file)} disabled={sharing} title="Share">
-                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M15 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3" stroke="#22C55E" strokeWidth="2"/><path d="M10 13l5-5m0 0l-5-5m5 5H5" stroke="#22C55E" strokeWidth="2"/></svg>
-                </button>
-              </div>
-            </li>
+              
+              {/* Upload Section - Only show for non-uploaded files */}
+              {!file.uploaded && (
+                <div className="bg-gray-50 px-4 py-3 border-t border-gray-100">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <UploadIcon className="text-gray-400" />
+                      <span className="text-sm font-medium text-gray-700">Upload to GitHub</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {upload.status === 'pending' && (
+                        <button 
+                          onClick={() => handleUpload(file)}
+                          className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                        >
+                          Upload
+                        </button>
+                      )}
+                      
+                      {upload.status === 'uploading' && (
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${upload.progress * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-blue-600 font-medium">
+                            {Math.round(upload.progress * 100)}%
+                          </span>
+                        </div>
+                      )}
+                      
+                      {upload.status === 'success' && (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckIcon />
+                          <span className="text-sm font-medium">Uploaded</span>
+                        </div>
+                      )}
+                      
+                      {upload.status === 'error' && (
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => retryUpload(file)}
+                            className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors"
+                          >
+                            Retry
+                          </button>
+                          {upload.error && (
+                            <span className="text-xs text-red-500 max-w-[120px] truncate" title={upload.error}>
+                              {upload.error}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           );
         })}
-      </ul>
+      </div>
       {/* Preview Modal */}
       {preview && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
-          <div className="bg-white rounded p-4 max-w-md w-full relative">
-            <button className="absolute top-2 right-2 text-lg" onClick={() => setPreview(null)}>&times;</button>
-            <h3 className="font-bold mb-2">{preview.name}</h3>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full relative">
+            <button 
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
+              onClick={() => setPreview(null)}
+            >
+              ×
+            </button>
+            <h3 className="font-bold mb-4 pr-8">{preview.name}</h3>
             {preview.type === 'audio' ? (
               <audio src={preview.url} controls className="w-full" />
             ) : (
-              <video src={preview.url} controls className="w-full max-h-64" />
+              <video src={preview.url} controls className="w-full max-h-64 rounded" />
             )}
           </div>
         </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingFile && (
+        <EditFileModal
+          file={editingFile}
+          onClose={() => setEditingFile(null)}
+          onSave={() => {
+            loadFiles();
+            setEditingFile(null);
+          }}
+        />
       )}
     </div>
   );

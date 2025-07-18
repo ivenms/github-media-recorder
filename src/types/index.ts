@@ -22,7 +22,16 @@ export interface UploadStatus {
   error?: string;
 }
 
-// GitHub settings for API and storage
+// App settings for repository and preferences
+export interface AppSettings {
+  repo: string;
+  path: string;
+  thumbnailPath: string;
+  thumbnailWidth: number;
+  thumbnailHeight: number;
+}
+
+// GitHub settings for API and storage (legacy - keeping for compatibility)
 export interface GitHubSettings {
   token: string;
   owner: string;
@@ -49,7 +58,14 @@ export interface AudioRecorderProps {
 export interface SettingsProps {
   audioFormat: 'mp3' | 'wav';
   setAudioFormat: (format: 'mp3' | 'wav') => void;
+  onLogout: () => void;
 }
+
+// Props for TokenSetup
+export interface TokenSetupProps {
+  onSuccess: () => void;
+}
+
 
 // Options for useMediaRecorder hook
 export interface UseMediaRecorderOptions {

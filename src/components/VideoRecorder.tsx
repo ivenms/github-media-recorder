@@ -5,6 +5,7 @@ import { useFileConverter } from '../hooks/useFileConverter';
 import { MEDIA_CATEGORIES } from '../utils/appConfig';
 import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
+import { getTodayDateString, isFutureDate } from '../utils/date';
 
 const VideoRecorder: React.FC = () => {
   const {
@@ -188,7 +189,13 @@ const VideoRecorder: React.FC = () => {
           className="border rounded px-2 py-1"
           type="date"
           value={date}
-          onChange={e => setDate(e.target.value)}
+          max={getTodayDateString()}
+          onChange={e => {
+            const selectedDate = e.target.value;
+            if (!isFutureDate(selectedDate)) {
+              setDate(selectedDate);
+            }
+          }}
         />
         <input
           type="file"

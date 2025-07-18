@@ -1,8 +1,5 @@
 // Application-wide configuration constants
 
-export const GITHUB_CLIENT_ID = 'YOUR_GITHUB_OAUTH_CLIENT_ID';
-export const GITHUB_REDIRECT_URI = 'YOUR_REDIRECT_URI';
-
 export const LOCALSTORAGE_KEYS = {
   githubToken: 'github_oauth_token',
   githubUsername: 'github_username',

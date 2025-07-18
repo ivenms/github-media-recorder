@@ -17,6 +17,7 @@ import Waveform from './Waveform';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { useAudioForm } from '../hooks/useAudioForm';
 import { useAudioSave } from '../hooks/useAudioSave';
+import { getTodayDateString, isFutureDate } from '../utils/date';
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   // Recording logic
@@ -158,7 +159,13 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           className="border rounded-xl px-3 py-2 shadow-neumorph"
           type="date"
           value={date}
-          onChange={e => setDate(e.target.value)}
+          max={getTodayDateString()}
+          onChange={e => {
+            const selectedDate = e.target.value;
+            if (!isFutureDate(selectedDate)) {
+              setDate(selectedDate);
+            }
+          }}
         />
         <input
           type="file"
