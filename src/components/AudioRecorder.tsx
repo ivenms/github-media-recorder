@@ -11,7 +11,7 @@ if (typeof window !== 'undefined' && !(window as any).BitStream && lamejs.BitStr
   (window as any).BitStream = lamejs.BitStream;
 }
 import type { AudioRecorderProps } from '../types';
-import { MEDIA_CATEGORIES } from '../utils/appConfig';
+import { getMediaCategories } from '../utils/appConfig';
 import MicIcon from './icons/MicIcon';
 import Waveform from './Waveform';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
@@ -20,6 +20,7 @@ import { useAudioSave } from '../hooks/useAudioSave';
 import { getTodayDateString, isFutureDate } from '../utils/date';
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
+  const mediaCategories = getMediaCategories();
   // Recording logic
   const {
     recording,
@@ -105,21 +106,21 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           <div className="w-20 h-20 flex items-center justify-center mb-2">
             <MicIcon className="w-20 h-20" />
           </div>
-          <div className="text-3xl font-mono text-blue-600 mb-2">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
+          <div className="text-3xl font-mono text-purple-600 mb-2">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
           <div className="w-full h-10 flex items-center justify-center mb-2">
             <Waveform height={40} stream={recording ? stream : undefined} data={!recording ? waveformData : undefined} />
           </div>
         </div>
         <div className="flex gap-4 mb-4">
           <button
-            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-neumorph text-2xl transition-all ${recording ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-neumorph text-2xl transition-all ${recording ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}
             onClick={recording ? stopRecording : startRecording}
           >
             {recording ? <span className="text-3xl">&#10073;&#10073;</span> : <span className="text-3xl">&#9679;</span>}
           </button>
         </div>
         <button
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-xl shadow-neumorph disabled:opacity-50"
+          className="w-full bg-purple-400 text-white px-4 py-2 rounded-xl shadow-neumorph disabled:opacity-50"
           disabled={recording || !audioUrl || saving}
           onClick={handleSave}
         >
@@ -151,7 +152,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           value={category}
           onChange={e => setCategory(e.target.value)}
         >
-          {MEDIA_CATEGORIES.map(cat => (
+          {mediaCategories.map(cat => (
             <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
         </select>

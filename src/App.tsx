@@ -7,7 +7,9 @@ import Settings from './components/Settings';
 import BottomMenu from './components/BottomMenu';
 import DesktopAlert from './components/DesktopAlert';
 import TokenSetup from './components/TokenSetup';
+import Modal from './components/Modal';
 import { isAuthenticated, checkTokenValidity, clearTokenData } from './utils/tokenAuth';
+import { useModal } from './hooks/useModal';
 
 const SETTINGS_KEY = 'githubSettings';
 
@@ -18,6 +20,7 @@ const App: React.FC = () => {
   const [screen, setScreen] = React.useState<'home' | 'record' | 'library' | 'settings'>('home');
   const [authenticated, setAuthenticated] = React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const { modalState, showAlert, closeModal } = useModal();
   const [audioFormat, setAudioFormat] = React.useState<'mp3' | 'wav'>(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
     if (saved) return (JSON.parse(saved).audioFormat as 'mp3' | 'wav') || 'mp3';
@@ -45,7 +48,7 @@ const App: React.FC = () => {
           setAuthenticated(false);
           
           if (tokenResult.isExpired) {
-            alert('Your GitHub token has expired. Please enter a new token to continue.');
+            showAlert('Your GitHub token has expired. Please enter a new token to continue.', 'Token Expired');
           }
         }
       } catch (error) {
@@ -86,7 +89,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col">
+    <div className="min-h-screen w-full flex flex-col" style={{ background: 'linear-gradient(135deg, #e0e7ef 0%, #f7faff 100%)' }}>
       <DesktopAlert />
       <InstallPrompt />
       <main className="flex-1 overflow-y-auto pb-20">
@@ -102,6 +105,17 @@ const App: React.FC = () => {
             setScreen(key);
           }
         }}
+      />
+      
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        confirmText={modalState.confirmText}
+        cancelText={modalState.cancelText}
       />
     </div>
   );

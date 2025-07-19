@@ -13,6 +13,8 @@ import CheckIcon from './icons/CheckIcon';
 import AudioIcon from './icons/AudioIcon';
 import VideoIcon from './icons/VideoIcon';
 import EditFileModal from './EditFileModal';
+import Modal from './Modal';
+import { useModal } from '../hooks/useModal';
 
 // Helper to parse metadata from file name
 function parseMediaFileName(name: string) {
@@ -28,6 +30,7 @@ function parseMediaFileName(name: string) {
 }
 
 const FileList: React.FC = () => {
+  const { modalState, showAlert, closeModal } = useModal();
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, any>>({});
   const [preview, setPreview] = useState<any | null>(null);
@@ -140,7 +143,7 @@ const FileList: React.FC = () => {
 
   const handleUpload = async (file: any) => {
     if (!file.file) {
-      alert('File data not available for upload.');
+      showAlert('File data not available for upload.', 'Upload Error');
       return;
     }
 
@@ -206,13 +209,10 @@ const FileList: React.FC = () => {
   };
 
   return (
-    <div className="p-4">
+    <div className="p-4 relative">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold">Files</h2>
+        <h2 className="text-lg font-bold">Media Library</h2>
         <div className="flex items-center gap-3">
-          {loading && (
-            <div className="text-sm text-gray-500">Loading files from repository...</div>
-          )}
           <button
             onClick={loadFiles}
             disabled={loading}
@@ -222,6 +222,16 @@ const FileList: React.FC = () => {
           </button>
         </div>
       </div>
+      
+      {loading && (
+        <div className="fixed inset-0 flex items-center justify-center z-40" style={{ background: 'linear-gradient(135deg, #e0e7ef 0%, #f7faff 100%)' }}>
+          <div className="flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <div className="text-gray-600 font-medium">Loading files from repository...</div>
+          </div>
+        </div>
+      )}
+      
       <div className="space-y-4">
         {mediaFiles.map((file) => {
           const meta: any = parseMediaFileName(file.name) || {};
@@ -263,7 +273,7 @@ const FileList: React.FC = () => {
                   <div className="flex-shrink-0 flex items-center gap-2">
                     <button 
                       onClick={() => setPreview(file)}
-                      className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
                       title="Preview"
                     >
                       <EyeIcon width={16} height={16} />
@@ -301,7 +311,7 @@ const FileList: React.FC = () => {
                 {/* Metadata Row - Full Width */}
                 <div className="flex items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-100">
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800">
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 text-purple-800">
                       {meta.category || file.type}
                     </span>
                     {meta.date && (
@@ -332,7 +342,7 @@ const FileList: React.FC = () => {
                       {upload.status === 'pending' && (
                         <button 
                           onClick={() => handleUpload(file)}
-                          className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                          className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-purple-400 text-white hover:bg-purple-500 transition-colors"
                         >
                           Upload
                         </button>
@@ -342,11 +352,11 @@ const FileList: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <div className="w-24 bg-gray-200 rounded-full h-2">
                             <div 
-                              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                              className="bg-purple-500 h-2 rounded-full transition-all duration-300"
                               style={{ width: `${upload.progress * 100}%` }}
                             />
                           </div>
-                          <span className="text-xs text-blue-600 font-medium">
+                          <span className="text-xs text-purple-600 font-medium">
                             {Math.round(upload.progress * 100)}%
                           </span>
                         </div>
@@ -413,6 +423,17 @@ const FileList: React.FC = () => {
           }}
         />
       )}
+      
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        confirmText={modalState.confirmText}
+        cancelText={modalState.cancelText}
+      />
     </div>
   );
 };

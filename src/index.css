@@ -26,11 +26,11 @@ html, body, #root {
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: #8B5CF6;
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: #7C3AED;
 }
 
 body {
@@ -73,9 +73,25 @@ button:focus-visible {
     background-color: #e0e7ef;
   }
   a:hover {
-    color: #747bff;
+    color: #A855F7;
   }
   button {
     background-color: #f9f9f9;
   }
+}
+
+/* Modal animation */
+@keyframes modal-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal {
+  animation: modal-appear 0.2s ease-out;
 }

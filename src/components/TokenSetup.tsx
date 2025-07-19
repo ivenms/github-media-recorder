@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import type { TokenSetupProps } from '../types';
 import { LOCALSTORAGE_KEYS } from '../utils/appConfig';
+import Modal from './Modal';
+import { useModal } from '../hooks/useModal';
 
 const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
+  const { modalState, showAlert, closeModal } = useModal();
   const [token, setToken] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -33,14 +36,14 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
         onSuccess();
       } else {
         if (response.status === 401) {
-          alert('Invalid token. Please check your Personal Access Token and make sure it has the correct permissions.');
+          showAlert('Invalid token. Please check your Personal Access Token and make sure it has the correct permissions.', 'Invalid Token');
         } else {
-          alert('Failed to verify token. Please try again.');
+          showAlert('Failed to verify token. Please try again.', 'Verification Failed');
         }
       }
     } catch (error) {
       console.error('Token verification failed:', error);
-      alert('Network error. Please check your connection and try again.');
+      showAlert('Network error. Please check your connection and try again.', 'Network Error');
     } finally {
       setIsVerifying(false);
     }
@@ -73,7 +76,7 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
             
             <button
               onClick={() => setShowInstructions(!showInstructions)}
-              className="flex items-center text-blue-600 hover:text-blue-700 font-medium"
+              className="flex items-center text-purple-600 hover:text-purple-700 font-medium"
             >
               <svg className={`w-5 h-5 mr-2 transform transition-transform ${showInstructions ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -83,25 +86,25 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
           </div>
 
           {showInstructions && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h3 className="font-semibold text-blue-900 mb-3">Step-by-step instructions:</h3>
-              <ol className="text-sm text-blue-800 space-y-3">
+            <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <h3 className="font-semibold text-purple-900 mb-3">Step-by-step instructions:</h3>
+              <ol className="text-sm text-purple-800 space-y-3">
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</span>
                   <div>
                     <p className="font-medium">Go to GitHub Settings</p>
-                    <p>Navigate to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-600">github.com/settings/tokens</a></p>
+                    <p>Navigate to <a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline hover:text-purple-600">github.com/settings/tokens</a></p>
                   </div>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</span>
                   <div>
                     <p className="font-medium">Generate new token</p>
                     <p>Click "Generate new token" → "Generate new token (classic)"</p>
                   </div>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</span>
                   <div>
                     <p className="font-medium">Configure the token</p>
                     <p>• <strong>Note:</strong> "Mobile Recorder PWA"</p>
@@ -110,14 +113,14 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
                   </div>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">4</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">4</span>
                   <div>
                     <p className="font-medium">Copy the token</p>
                     <p>Click "Generate token" and copy the token immediately (it won't be shown again)</p>
                   </div>
                 </li>
                 <li className="flex items-start">
-                  <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">5</span>
+                  <span className="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">5</span>
                   <div>
                     <p className="font-medium">Paste it below</p>
                     <p>Enter the token in the field below and click "Verify & Continue"</p>
@@ -138,7 +141,7 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -149,7 +152,7 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
             <button
               type="submit"
               disabled={isVerifying || !token.trim()}
-              className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-purple-400 text-white px-4 py-3 rounded-lg font-medium hover:bg-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {isVerifying ? (
                 <span className="flex items-center justify-center">
@@ -192,6 +195,17 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
           </div>
         </div>
       </div>
+      
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        confirmText={modalState.confirmText}
+        cancelText={modalState.cancelText}
+      />
     </div>
   );
 };

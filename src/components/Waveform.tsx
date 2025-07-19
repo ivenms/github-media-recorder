@@ -14,7 +14,7 @@ const DEFAULT_BARS = 32;
 
 const Waveform: React.FC<WaveformProps> = ({
   data,
-  color = '#3B82F6',
+  color = '#9333EA',
   height = 40,
   barWidth = 3,
   gap = 2,

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { MEDIA_CATEGORIES } from '../utils/appConfig';
+import { getMediaCategories } from '../utils/appConfig';
 
 export function useAudioForm() {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [category, setCategory] = useState(MEDIA_CATEGORIES[0].id);
+  const [category, setCategory] = useState(() => getMediaCategories()[0].id);
   const [date, setDate] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);

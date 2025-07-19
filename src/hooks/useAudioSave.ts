@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { saveFile, decodeWebmToPCM, encodeWAV, formatMediaFileName, convertImageToJpg } from '../utils/fileUtils';
-import { MEDIA_CATEGORIES } from '../utils/appConfig';
+import { getMediaCategories } from '../utils/appConfig';
 import type { ConvertType } from './useFileConverter';
 
 interface UseAudioSaveParams {
@@ -72,7 +72,7 @@ export function useAudioSave({
     }
     // Format date
     let fileDate = date ? date : new Date().toISOString().slice(0, 10);
-    const catObj = MEDIA_CATEGORIES.find(c => c.id === category);
+    const catObj = getMediaCategories().find(c => c.id === category);
     const catName = catObj ? catObj.name : category;
     const outName = formatMediaFileName({
       category: catName,

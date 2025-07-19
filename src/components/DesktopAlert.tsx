@@ -22,13 +22,13 @@ const DesktopAlert: React.FC = () => {
       }}
     >
       <div
-        className="bg-blue-100 border border-blue-400 rounded-lg shadow-xl flex flex-col items-center p-8 max-w-sm"
+        className="bg-purple-100 border border-purple-400 rounded-lg shadow-xl flex flex-col items-center p-8 max-w-sm"
         style={{ pointerEvents: 'auto' }} // Ensure alert box is interactive
       >
-        <div className="text-lg font-semibold text-blue-800 mb-2 text-center">
+        <div className="text-lg font-semibold text-purple-800 mb-2 text-center">
           For best experience, open this app on your mobile device!
         </div>
-        <div className="text-sm text-blue-700 mb-4 text-center">
+        <div className="text-sm text-purple-700 mb-4 text-center">
           Scan this QR code with your phone to open:
         </div>
         <QRCodeCanvas value={url} size={256} />

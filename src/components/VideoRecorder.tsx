@@ -2,12 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { saveFile } from '../utils/fileUtils';
 import { useFileConverter } from '../hooks/useFileConverter';
-import { MEDIA_CATEGORIES } from '../utils/appConfig';
+import { getMediaCategories } from '../utils/appConfig';
 import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
 import { getTodayDateString, isFutureDate } from '../utils/date';
 
 const VideoRecorder: React.FC = () => {
+  const mediaCategories = getMediaCategories();
   const {
     recording,
     paused,
@@ -42,7 +43,7 @@ const VideoRecorder: React.FC = () => {
 
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
-  const [category, setCategory] = useState(MEDIA_CATEGORIES[0].id);
+  const [category, setCategory] = useState(mediaCategories[0].id);
   const [date, setDate] = useState('');
   const [inputError, setInputError] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
@@ -107,7 +108,7 @@ const VideoRecorder: React.FC = () => {
     }
     // Format date
     let fileDate = date ? date : new Date().toISOString().slice(0, 10);
-    const catObj = MEDIA_CATEGORIES.find(c => c.id === category);
+    const catObj = mediaCategories.find(c => c.id === category);
     const catName = catObj ? catObj.name : category;
     const outName = formatMediaFileName({
       category: catName,
@@ -181,7 +182,7 @@ const VideoRecorder: React.FC = () => {
           value={category}
           onChange={e => setCategory(e.target.value)}
         >
-          {MEDIA_CATEGORIES.map(cat => (
+          {mediaCategories.map(cat => (
             <option key={cat.id} value={cat.id}>{cat.name}</option>
           ))}
         </select>
@@ -210,7 +211,7 @@ const VideoRecorder: React.FC = () => {
       <div className="flex gap-2 mb-4">
         {!recording && (
           <button
-            className="w-16 h-16 rounded-full bg-green-600 text-white text-2xl flex items-center justify-center"
+            className="w-14 h-14 rounded-full bg-green-500 text-white text-2xl flex items-center justify-center shadow-neumorph transition-all"
             onClick={start}
           >
             ●
@@ -219,7 +220,7 @@ const VideoRecorder: React.FC = () => {
         {recording && (
           <>
             <button
-              className="w-16 h-16 rounded-full bg-red-600 text-white text-2xl flex items-center justify-center"
+              className="w-14 h-14 rounded-full bg-red-500 text-white text-2xl flex items-center justify-center shadow-neumorph transition-all"
               onClick={stop}
             >
               ■
@@ -234,7 +235,7 @@ const VideoRecorder: React.FC = () => {
         )}
       </div>
       <button
-        className="bg-blue-600 text-white px-4 py-2 rounded"
+        className="bg-purple-400 text-white px-4 py-2 rounded"
         disabled={recording || !mediaBlob || saving}
         onClick={handleSave}
       >

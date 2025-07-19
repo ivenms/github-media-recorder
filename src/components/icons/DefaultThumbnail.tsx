@@ -8,9 +8,9 @@ const DefaultThumbnail: React.FC<{ className?: string }> = ({ className }) => (
     className={className}
   >
     <rect x="4" y="4" width="40" height="40" rx="8" fill="#E0E7EF" />
-    <circle cx="24" cy="20" r="8" fill="#A5B4FC" />
-    <rect x="12" y="32" width="24" height="4" rx="2" fill="#A5B4FC" />
-    <rect x="4" y="4" width="40" height="40" rx="8" stroke="#6366F1" strokeWidth="2" />
+    <circle cx="24" cy="20" r="8" fill="#C4B5FD" />
+    <rect x="12" y="32" width="24" height="4" rx="2" fill="#C4B5FD" />
+    <rect x="4" y="4" width="40" height="40" rx="8" stroke="#9333EA" strokeWidth="2" />
   </svg>
 );
 

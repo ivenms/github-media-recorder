@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { MEDIA_CATEGORIES } from '../utils/appConfig';
 import { getTodayDateString, isFutureDate } from '../utils/date';
+import Modal from './Modal';
+import { useModal } from '../hooks/useModal';
 
 // Helper to parse metadata from file name
 function parseMediaFileName(name: string) {
@@ -22,6 +24,7 @@ interface EditFileModalProps {
 }
 
 const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave }) => {
+  const { modalState, showAlert, closeModal } = useModal();
   const meta = parseMediaFileName(file.name) || {};
   const [formData, setFormData] = useState({
     title: meta.title || '',
@@ -39,7 +42,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave }) 
     
     // Here you would implement the actual file update logic
     // For now, we'll just show a success message
-    alert('File metadata updated successfully!');
+    showAlert('File metadata updated successfully!', 'Success');
     onSave();
   };
 
@@ -65,7 +68,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave }) 
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
           </div>
@@ -78,7 +81,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave }) 
               type="text"
               value={formData.author}
               onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
           </div>
@@ -90,7 +93,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave }) 
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
             >
               {MEDIA_CATEGORIES.map((category) => (
                 <option key={category.id} value={category.id}>
@@ -114,7 +117,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave }) 
                   setFormData({ ...formData, date: selectedDate });
                 }
               }}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
           </div>
@@ -129,13 +132,24 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave }) 
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="flex-1 px-4 py-2 bg-purple-400 text-white rounded-md hover:bg-purple-500 transition-colors"
             >
               Save Changes
             </button>
           </div>
         </form>
       </div>
+      
+      <Modal
+        isOpen={modalState.isOpen}
+        onClose={closeModal}
+        onConfirm={modalState.onConfirm}
+        title={modalState.title}
+        message={modalState.message}
+        type={modalState.type}
+        confirmText={modalState.confirmText}
+        cancelText={modalState.cancelText}
+      />
     </div>
   );
 };

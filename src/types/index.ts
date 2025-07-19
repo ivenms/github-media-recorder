@@ -29,6 +29,7 @@ export interface AppSettings {
   thumbnailPath: string;
   thumbnailWidth: number;
   thumbnailHeight: number;
+  customCategories?: MediaCategory[];
 }
 
 // GitHub settings for API and storage (legacy - keeping for compatibility)

@@ -3,22 +3,18 @@ import React from 'react';
 const SettingsIcon: React.FC<{ className?: string }> = ({ className }) => (
   <svg
     className={className}
-    width="28"
-    height="28"
-    viewBox="0 0 28 28"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
     fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect width="28" height="28" rx="8" fill="white" fillOpacity="0.7" />
-    <circle cx="14" cy="14" r="4" stroke="#3B82F6" strokeWidth="2" fill="none" />
-    <path d="M14 4V8" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M14 20V24" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M4 14H8" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M20 14H24" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M7.05 7.05L9.88 9.88" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M18.12 18.12L20.95 20.95" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M7.05 20.95L9.88 18.12" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
-    <path d="M18.12 9.88L20.95 7.05" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
   </svg>
 );
 
