@@ -14,7 +14,7 @@ export function useWaveformVisualizer(stream?: MediaStream): number[] | undefine
     if (audioContextRef.current) {
       audioContextRef.current.close();
     }
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const audioContext = new (window.AudioContext || (window as Window & {webkitAudioContext?: typeof AudioContext}).webkitAudioContext)();
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 64;
     const source = audioContext.createMediaStreamSource(stream);

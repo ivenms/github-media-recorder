@@ -38,7 +38,7 @@ export async function validateToken(token: string): Promise<TokenValidationResul
         error: `API error: ${response.status}`,
       };
     }
-  } catch (error) {
+  } catch {
     return {
       isValid: false,
       isExpired: false,

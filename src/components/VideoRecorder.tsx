@@ -108,7 +108,7 @@ const VideoRecorder: React.FC = () => {
       console.error('MP4 conversion failed:', err);
     }
     // Format date
-    let fileDate = date ? date : new Date().toISOString().slice(0, 10);
+    const fileDate = date ? date : new Date().toISOString().slice(0, 10);
     const catObj = mediaCategories.find(c => c.id === category);
     const catName = catObj ? catObj.name : category;
     const outName = formatMediaFileName({
@@ -138,7 +138,7 @@ const VideoRecorder: React.FC = () => {
           size: jpgBlob.size,
           created: Date.now(),
         });
-      } catch (err) {
+      } catch {
         setThumbnailError('Thumbnail conversion failed.');
       }
     }

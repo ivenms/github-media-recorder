@@ -13,6 +13,7 @@ export interface RecordingFile {
   thumbnailUrl?: string;
   uploaded?: boolean;
   uploadProgress?: number;
+  file?: Blob;
 }
 
 export interface UploadStatus {
@@ -97,8 +98,76 @@ export interface ParsedMediaFileName {
 }
 
 export interface EditFileModalProps {
-  file: any;
+  file: FileRecord;
   onClose: () => void;
   onSave: (fileId?: string) => void;
-  thumbnail?: any;
+  thumbnail?: string;
+}
+
+export interface ThumbnailFile {
+  id: string;
+  name: string;
+  type: 'thumbnail';
+  url: string;
+  thumbnailUrl?: string;
+}
+
+export interface UploadProgress {
+  status: 'pending' | 'uploading' | 'success' | 'error';
+  progress: number;
+  error?: string;
+}
+
+export interface ModalState {
+  type: 'alert' | 'confirm' | null;
+  message: string;
+  onConfirm?: () => void;
+}
+
+export interface FileMetadata {
+  id?: string;
+  name: string;
+  type: MediaType | 'thumbnail';
+  mimeType: string;
+  size: number;
+  duration?: number;
+  created: number;
+  thumbnailUrl?: string;
+  uploaded?: boolean;
+  uploadProgress?: number;
+}
+
+export interface FileRecord extends FileMetadata {
+  id: string;
+  file: Blob;
+  url?: string;
+}
+
+export interface GitHubConfig {
+  token: string;
+  owner: string;
+  repo: string;
+  path?: string;
+}
+
+export interface GitTreeItem {
+  path: string;
+  mode: string;
+  type: string;
+  sha: string;
+}
+
+export interface CreateTreeBody {
+  tree: GitTreeItem[];
+  base_tree?: string;
+}
+
+export interface CreateCommitBody {
+  message: string;
+  tree: string;
+  parents?: string[];
+}
+
+export interface EnhancedFileRecord extends FileRecord {
+  isLocal: boolean;
 }

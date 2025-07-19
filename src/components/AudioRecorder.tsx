@@ -3,12 +3,12 @@ import { useFileConverter } from '../hooks/useFileConverter';
 // @ts-expect-error: no types for lamejs
 import lamejs from 'lamejs';
 // Fix for lamejs: define Lame global if not present
-if (typeof window !== 'undefined' && !(window as any).Lame) {
-  (window as any).Lame = lamejs;
+if (typeof window !== 'undefined' && !(window as Window & {Lame?: unknown}).Lame) {
+  (window as unknown as Window & {Lame: unknown}).Lame = lamejs;
 }
 // Fix for lamejs: define BitStream global if not present
-if (typeof window !== 'undefined' && !(window as any).BitStream && lamejs.BitStream) {
-  (window as any).BitStream = lamejs.BitStream;
+if (typeof window !== 'undefined' && !(window as Window & {BitStream?: unknown}).BitStream && lamejs.BitStream) {
+  (window as unknown as Window & {BitStream: unknown}).BitStream = lamejs.BitStream;
 }
 import type { AudioRecorderProps } from '../types';
 import { getMediaCategories } from '../utils/appConfig';
@@ -47,9 +47,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateTo
     titleError,
     authorError,
     thumbnail,
-    setThumbnail,
-    thumbnailError,
-    setThumbnailError,
     validateInputs,
     handleThumbnailChange,
   } = useAudioForm();
@@ -80,14 +77,10 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateTo
   });
 
   // For freezing waveform: listen to last animation frame from Waveform
-  const [waveformData, setWaveformData] = React.useState<number[] | undefined>(undefined);
-  const handleWaveformData = React.useCallback((bars: number[]) => {
-    setWaveformData(bars);
-  }, []);
 
   // Fix for lamejs: define MPEGMode if not present
-  if (typeof window !== 'undefined' && !(window as any).MPEGMode) {
-    (window as any).MPEGMode = { MONO: 3, STEREO: 0, DUAL_CHANNEL: 2, JOINT_STEREO: 1 };
+  if (typeof window !== 'undefined' && !(window as Window & {MPEGMode?: unknown}).MPEGMode) {
+    (window as unknown as Window & {MPEGMode: object}).MPEGMode = { MONO: 3, STEREO: 0, DUAL_CHANNEL: 2, JOINT_STEREO: 1 };
   }
 
   // Navigate to library screen when file is saved
@@ -121,7 +114,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateTo
           </div>
           <div className="text-3xl font-mono text-purple-600 mb-2">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
           <div className="w-full h-10 flex items-center justify-center mb-2">
-            <Waveform height={40} stream={recording ? stream : undefined} data={!recording ? waveformData : undefined} />
+            <Waveform height={40} stream={recording ? stream : undefined} />
           </div>
         </div>
         <div className="flex gap-4 mb-4">

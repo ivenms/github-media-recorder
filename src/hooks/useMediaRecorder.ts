@@ -12,7 +12,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
   const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<any>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const start = useCallback(async () => {
@@ -49,8 +49,8 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
       setRecording(true);
       setPaused(false);
       timerRef.current = setInterval(() => setDuration((d) => d + 1), 1000);
-    } catch (e: any) {
-      setError(e.message || 'Could not start recording');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Could not start recording');
     }
   }, [options.audio, options.video, options.mimeType]);
 
@@ -59,7 +59,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
       mediaRecorderRef.current.stop();
       setRecording(false);
       setPaused(false);
-      clearInterval(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
     }
   }, []);
 
@@ -67,7 +67,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.pause();
       setPaused(true);
-      clearInterval(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
     }
   }, []);
 

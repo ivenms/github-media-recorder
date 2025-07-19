@@ -4,7 +4,7 @@
 // - Uploads to configured directory
 // - Supports progress callback
 
-import type { AppSettings } from '../types';
+import type { AppSettings, GitHubConfig, CreateTreeBody, CreateCommitBody } from '../types';
 import { getStoredToken, getStoredUsername } from './tokenAuth';
 import { LOCALSTORAGE_KEYS } from './appConfig';
 
@@ -45,7 +45,7 @@ function getUploadConfig() {
   };
 }
 
-async function getLatestCommitSha(config: any, branch = 'main') {
+async function getLatestCommitSha(config: GitHubConfig, branch = 'main') {
   const res = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/git/refs/heads/${branch}`, {
     headers: { Authorization: `Bearer ${config.token}` },
   });
@@ -65,7 +65,7 @@ async function getLatestCommitSha(config: any, branch = 'main') {
   return data.object.sha;
 }
 
-async function getTreeSha(config: any, commitSha: string) {
+async function getTreeSha(config: GitHubConfig, commitSha: string) {
   const res = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/git/commits/${commitSha}`, {
     headers: { Authorization: `Bearer ${config.token}` },
   });
@@ -74,7 +74,7 @@ async function getTreeSha(config: any, commitSha: string) {
   return data.tree.sha;
 }
 
-async function createBlob(config: any, file: Blob) {
+async function createBlob(config: GitHubConfig, file: Blob) {
   const content = await file.arrayBuffer();
   const base64 = arrayBufferToBase64(content);
   
@@ -97,8 +97,8 @@ async function createBlob(config: any, file: Blob) {
   return data.sha;
 }
 
-async function createTree(config: any, baseTreeSha: string | null, filePath: string, blobSha: string) {
-  const body: any = {
+async function createTree(config: GitHubConfig, baseTreeSha: string | null, filePath: string, blobSha: string) {
+  const body: CreateTreeBody = {
     tree: [
       {
         path: filePath,
@@ -127,8 +127,8 @@ async function createTree(config: any, baseTreeSha: string | null, filePath: str
   return data.sha;
 }
 
-async function createCommit(config: any, message: string, treeSha: string, parentSha: string | null) {
-  const body: any = {
+async function createCommit(config: GitHubConfig, message: string, treeSha: string, parentSha: string | null) {
+  const body: CreateCommitBody = {
     message,
     tree: treeSha,
   };
@@ -151,30 +151,8 @@ async function createCommit(config: any, message: string, treeSha: string, paren
   return data.sha;
 }
 
-async function createRef(config: any, commitSha: string, branch = 'main') {
-  const url = `https://api.github.com/repos/${config.owner}/${config.repo}/git/refs`;
-  const body = {
-    ref: `refs/heads/${branch}`,
-    sha: commitSha,
-  };
-  console.log('Creating ref at:', url);
-  console.log('Ref body:', body);
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${config.token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error('Ref creation failed:', res.status, errorText);
-    throw new Error(`Failed to create ref: ${res.status} ${errorText}`);
-  }
-}
 
-async function updateRef(config: any, commitSha: string, branch = 'main', force = false) {
+async function updateRef(config: GitHubConfig, commitSha: string, branch = 'main', force = false) {
   const res = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/git/refs/heads/${branch}`, {
     method: 'PATCH',
     headers: {
@@ -205,7 +183,7 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
-async function uploadFileContentsAPI(config: any, file: Blob, filePath: string, fileName: string) {
+async function uploadFileContentsAPI(config: GitHubConfig, file: Blob, filePath: string, fileName: string) {
   const content = await file.arrayBuffer();
   
   console.log('Converting file to base64...');
@@ -262,7 +240,7 @@ async function uploadFileToPath(file: Blob, pathType: 'media' | 'thumbnail', onP
   });
   
   const branch = 'main';
-  const finalFileName = fileName || (file as any).name || `media-${Date.now()}`;
+  const finalFileName = fileName || `media-${Date.now()}`;
   const uploadPath = pathType === 'thumbnail' ? config.thumbnailPath : config.path;
   const filePath = `${uploadPath}${finalFileName}`;
   
@@ -321,11 +299,12 @@ async function uploadFileToPath(file: Blob, pathType: 'media' | 'thumbnail', onP
       console.log('Upload successful!');
       if (onProgress) onProgress(1);
       return; // Success, exit retry loop
-    } catch (error: any) {
-      console.error('Upload error:', error.message);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Upload error:', errorMessage);
       retries--;
-      if ((error.message.includes('409') || error.message.includes('422')) && retries > 0) {
-        console.log(`Conflict detected (${error.message.includes('409') ? '409' : '422'}), retrying... (${retries} attempts left)`);
+      if ((errorMessage.includes('409') || errorMessage.includes('422')) && retries > 0) {
+        console.log(`Conflict detected (${errorMessage.includes('409') ? '409' : '422'}), retrying... (${retries} attempts left)`);
         await new Promise(resolve => setTimeout(resolve, 1000));
         continue;
       }

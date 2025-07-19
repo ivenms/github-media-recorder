@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import type { MediaType } from '../types';
 import { getMediaCategories } from '../utils/appConfig';
 import { getTodayDateString, isFutureDate } from '../utils/date';
 import { saveFile } from '../utils/fileUtils';
@@ -122,7 +123,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
         // Save the media file
         const fileData = {
           name: fileName,
-          type: extension === 'mp4' ? 'video' : 'audio',
+          type: (extension === 'mp4' ? 'video' : 'audio') as MediaType,
           mimeType: file.type,
           size: file.size,
           duration: 0, // We don't have duration info for imported files

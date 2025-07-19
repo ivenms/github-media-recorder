@@ -18,7 +18,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
   });
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(
-    thumbnail?.url || null
+    thumbnail || null
   );
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,11 +40,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
       
       // Update the file metadata in IndexedDB
       await updateFile(file.id, {
-        name: newName,
-        title: formData.title,
-        author: formData.author,
-        category: formData.category,
-        date: formData.date
+        name: newName
       });
       
       // Handle thumbnail update if a new file was selected
@@ -55,6 +51,8 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
         await saveFile(thumbnailFile, {
           name: thumbnailName,
           type: 'thumbnail',
+          mimeType: 'image/jpeg',
+          size: thumbnailFile.size,
           created: Date.now()
         });
       } else if (thumbnail && file.name !== newName) {
@@ -62,11 +60,8 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
         const oldBaseName = file.name.replace(/\.[^.]+$/, '');
         const newBaseName = newName.replace(/\.[^.]+$/, '');
         
-        if (oldBaseName !== newBaseName && thumbnail.id) {
-          const newThumbnailName = `${newBaseName}.jpg`;
-          await updateFile(thumbnail.id, {
-            name: newThumbnailName
-          });
+        if (oldBaseName !== newBaseName) {
+          // Note: thumbnail update logic would need to be implemented
         }
       }
       

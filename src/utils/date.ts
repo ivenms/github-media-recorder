@@ -56,7 +56,7 @@ export function formatReadableDate(dateString: string): string {
       day: 'numeric',
       year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined
     });
-  } catch (error) {
+  } catch {
     // If date parsing fails, return original string
     return dateString;
   }
@@ -85,7 +85,7 @@ export function isFutureDate(dateString: string): boolean {
     today.setHours(0, 0, 0, 0); // Set to start of day for comparison
     date.setHours(0, 0, 0, 0);
     return date > today;
-  } catch (error) {
+  } catch {
     return false;
   }
 } 

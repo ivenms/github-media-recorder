@@ -4,7 +4,7 @@ import { getMobilePlatform } from '../utils/device';
 // InstallPrompt: Show PWA install prompt and status
 const InstallPrompt: React.FC = () => {
   // State: install event, status
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<Event & {prompt: () => void; userChoice: Promise<{outcome: string}>} | null>(null);
   const [installed, setInstalled] = useState(false);
   const [showPrompt, setShowPrompt] = useState(false);
   const platform = getMobilePlatform();
@@ -15,28 +15,28 @@ const InstallPrompt: React.FC = () => {
     // Hide prompt if already installed (standalone mode)
     const isStandalone =
       window.matchMedia('(display-mode: standalone)').matches ||
-      (platform === 'ios-safari' && (window.navigator as any).standalone);
+      (platform === 'ios-safari' && (window.navigator as Navigator & {standalone?: boolean}).standalone);
 
     if (isStandalone) return;
 
     // Android/Chrome: Listen for beforeinstallprompt
-    const handler = (e: any) => {
+    const handler = (e: Event & {prompt: () => void; userChoice: Promise<{outcome: string}>}) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setShowPrompt(true);
     };
-    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('beforeinstallprompt', handler as EventListener);
 
     // Listen for appinstalled event
     window.addEventListener('appinstalled', () => setInstalled(true));
 
     // iOS Safari: Show prompt if not in standalone
-    if (platform === 'ios-safari' && !(window.navigator as any).standalone) {
+    if (platform === 'ios-safari' && !(window.navigator as Navigator & {standalone?: boolean}).standalone) {
       setShowPrompt(true);
     }
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('beforeinstallprompt', handler as EventListener);
     };
   }, [platform]);
 
@@ -48,7 +48,7 @@ const InstallPrompt: React.FC = () => {
     }
   };
 
-  if (!showPrompt || installed || (platform === 'ios-safari' && (window.navigator as any).standalone)) return null;
+  if (!showPrompt || installed || (platform === 'ios-safari' && (window.navigator as Navigator & {standalone?: boolean}).standalone)) return null;
 
   return (
     <div style={{ padding: 16, background: '#fffbe6', border: '1px solid #ffe58f', borderRadius: 8 }}>

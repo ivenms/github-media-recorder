@@ -1,5 +1,5 @@
 // Utility for fetching files from GitHub repository
-import type { AppSettings } from '../types';
+import type { AppSettings, FileRecord } from '../types';
 import { getStoredToken, getStoredUsername } from './tokenAuth';
 import { LOCALSTORAGE_KEYS } from './appConfig';
 
@@ -37,19 +37,9 @@ interface GitHubFile {
   type: 'file' | 'dir';
 }
 
-interface RemoteFile {
-  id: string;
-  name: string;
-  type: 'audio' | 'video' | 'thumbnail';
-  size: number;
-  url: string;
-  uploaded: boolean;
-  uploadedAt?: string;
-  sha: string;
-}
 
 // Helper to parse metadata from file name and determine type
-function parseRemoteFile(file: GitHubFile, basePath: string): RemoteFile | null {
+function parseRemoteFile(file: GitHubFile): FileRecord | null {
   const fileName = file.name;
   const extension = fileName.split('.').pop()?.toLowerCase();
   
@@ -71,21 +61,25 @@ function parseRemoteFile(file: GitHubFile, basePath: string): RemoteFile | null 
     id: `remote-${file.sha}`,
     name: fileName,
     type,
+    mimeType: type === 'video' ? 'video/mp4' : type === 'audio' ? 'audio/mp3' : 'image/jpeg',
     size: file.size,
+    duration: 0,
+    created: Date.now(),
     url: file.download_url,
     uploaded: true,
+    file: undefined,
     sha: file.sha
-  };
+  } as unknown as FileRecord;
 }
 
-export async function fetchRemoteFiles(): Promise<RemoteFile[]> {
+export async function fetchRemoteFiles(): Promise<FileRecord[]> {
   const config = getGitHubConfig();
   if (!config) {
     throw new Error('GitHub configuration not found. Please check your settings.');
   }
   
   try {
-    const files: RemoteFile[] = [];
+    const files: FileRecord[] = [];
     
     // First, validate that the repository exists
     console.log('Validating repository:', `${config.owner}/${config.repo}`);
@@ -122,7 +116,7 @@ export async function fetchRemoteFiles(): Promise<RemoteFile[]> {
       if (Array.isArray(mediaFiles)) {
         mediaFiles.forEach(file => {
           if (file.type === 'file') {
-            const parsed = parseRemoteFile(file, config.path);
+            const parsed = parseRemoteFile(file);
             if (parsed) files.push(parsed);
           }
         });
@@ -151,7 +145,7 @@ export async function fetchRemoteFiles(): Promise<RemoteFile[]> {
       if (Array.isArray(thumbnailFiles)) {
         thumbnailFiles.forEach(file => {
           if (file.type === 'file') {
-            const parsed = parseRemoteFile(file, config.thumbnailPath);
+            const parsed = parseRemoteFile(file);
             if (parsed) files.push(parsed);
           }
         });

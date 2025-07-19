@@ -18,16 +18,16 @@ import AddMediaModal from './AddMediaModal';
 import Modal from './Modal';
 import Header from './Header';
 import { useModal } from '../hooks/useModal';
-import type { FileListProps } from '../types';
+import type { FileListProps, FileRecord, UploadProgress, EnhancedFileRecord } from '../types';
 
 const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   const { modalState, showAlert, closeModal } = useModal();
-  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
-  const [thumbnails, setThumbnails] = useState<Record<string, any>>({});
-  const [preview, setPreview] = useState<any | null>(null);
-  const [editingFile, setEditingFile] = useState<any | null>(null);
+  const [mediaFiles, setMediaFiles] = useState<EnhancedFileRecord[]>([]);
+  const [thumbnails, setThumbnails] = useState<Record<string, FileRecord>>({});
+  const [preview, setPreview] = useState<FileRecord | null>(null);
+  const [editingFile, setEditingFile] = useState<FileRecord | null>(null);
   const [showAddMediaModal, setShowAddMediaModal] = useState<boolean>(false);
-  const [uploadState, setUploadState] = useState<Record<string, { status: string; progress: number; error?: string }>>({});
+  const [uploadState, setUploadState] = useState<Record<string, UploadProgress>>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightId || null);
@@ -38,33 +38,33 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
     try {
       // Fetch local files
       const localFiles = await listFiles();
-      const localMedia = localFiles.filter((f: any) => f.type === 'audio' || f.type === 'video');
-      const localThumbs = localFiles.filter((f: any) => f.type === 'thumbnail');
+      const localMedia = localFiles.filter((f) => f.type === 'audio' || f.type === 'video');
+      const localThumbs = localFiles.filter((f) => f.type === 'thumbnail');
       
       // Fetch remote files
-      let remoteFiles: any[] = [];
+      let remoteFiles: FileRecord[] = [];
       try {
         remoteFiles = await fetchRemoteFiles();
-      } catch (remoteError: any) {
+      } catch (remoteError: unknown) {
         console.error('Failed to fetch remote files:', remoteError);
-        setError(`Repository access failed: ${remoteError.message || 'Check your GitHub settings and repository configuration'}`);
+        setError(`Repository access failed: ${remoteError instanceof Error ? remoteError.message : 'Check your GitHub settings and repository configuration'}`);
         // Continue with local files only
       }
       
-      const remoteMedia = remoteFiles.filter((f: any) => f.type === 'audio' || f.type === 'video');
-      const remoteThumbs = remoteFiles.filter((f: any) => f.type === 'thumbnail');
+      const remoteMedia = remoteFiles.filter((f) => f.type === 'audio' || f.type === 'video');
+      const remoteThumbs = remoteFiles.filter((f) => f.type === 'thumbnail');
       
       // Create sets for quick lookup
       const remoteMediaNames = new Set(remoteMedia.map(f => f.name));
       const remoteThumbnailNames = new Set(remoteThumbs.map(f => f.name));
       
       // Separate local files: keep only those NOT uploaded yet
-      const localOnlyMedia = localMedia.filter((localFile: any) => !remoteMediaNames.has(localFile.name));
-      const localOnlyThumbs = localThumbs.filter((localThumb: any) => !remoteThumbnailNames.has(localThumb.name));
+      const localOnlyMedia = localMedia.filter((localFile) => !remoteMediaNames.has(localFile.name));
+      const localOnlyThumbs = localThumbs.filter((localThumb) => !remoteThumbnailNames.has(localThumb.name));
       
       // Clean up local files that have been uploaded
-      const uploadedLocalMedia = localMedia.filter((localFile: any) => remoteMediaNames.has(localFile.name));
-      const uploadedLocalThumbs = localThumbs.filter((localThumb: any) => remoteThumbnailNames.has(localThumb.name));
+      const uploadedLocalMedia = localMedia.filter((localFile) => remoteMediaNames.has(localFile.name));
+      const uploadedLocalThumbs = localThumbs.filter((localThumb) => remoteThumbnailNames.has(localThumb.name));
       
       // Remove uploaded files from local storage
       for (const uploadedFile of [...uploadedLocalMedia, ...uploadedLocalThumbs]) {
@@ -77,14 +77,14 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       }
       
       // Mark local files as not uploaded
-      const enrichedLocalMedia = localOnlyMedia.map((localFile: any) => ({
+      const enrichedLocalMedia = localOnlyMedia.map((localFile) => ({
         ...localFile,
         uploaded: false,
         isLocal: true
       }));
       
       // Mark remote files as uploaded
-      const enrichedRemoteMedia = remoteMedia.map((remoteFile: any) => ({
+      const enrichedRemoteMedia = remoteMedia.map((remoteFile) => ({
         ...remoteFile,
         uploaded: true,
         isLocal: false
@@ -94,7 +94,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       const allMediaFiles = [...enrichedLocalMedia, ...enrichedRemoteMedia];
       
       // Sort by date (descending), then by creation timestamp for same-day files
-      allMediaFiles.sort((a: any, b: any) => {
+      allMediaFiles.sort((a: EnhancedFileRecord, b: EnhancedFileRecord) => {
         const dateA = extractDateFromFilename(a.name);
         const dateB = extractDateFromFilename(b.name);
         
@@ -109,16 +109,16 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       });
       
       // Map thumbnails by base name (without extension)
-      const thumbMap: Record<string, any> = {};
+      const thumbMap: Record<string, FileRecord & {isLocal: boolean}> = {};
       
       // Add local thumbnails (for local files only)
-      localOnlyThumbs.forEach((thumb: any) => {
+      localOnlyThumbs.forEach((thumb: FileRecord) => {
         const base = thumb.name.replace(/\.[^.]+$/, '');
         thumbMap[base] = { ...thumb, isLocal: true };
       });
       
       // Add remote thumbnails (for remote files)
-      remoteThumbs.forEach((thumb: any) => {
+      remoteThumbs.forEach((thumb: FileRecord) => {
         const base = thumb.name.replace(/\.[^.]+$/, '');
         thumbMap[base] = { ...thumb, isLocal: false };
       });
@@ -163,11 +163,11 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
     loadFiles();
   };
 
-  const handleEdit = (file: any) => {
+  const handleEdit = (file: EnhancedFileRecord) => {
     setEditingFile(file);
   };
 
-  const handleUpload = async (file: any) => {
+  const handleUpload = async (file: EnhancedFileRecord) => {
     if (!file.file) {
       showAlert('File data not available for upload.', 'Upload Error');
       return;
@@ -222,15 +222,15 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       setTimeout(() => {
         loadFiles();
       }, 1000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setUploadState((prev) => ({
         ...prev,
-        [file.id]: { status: 'error', progress: 0, error: error.message }
+        [file.id]: { status: 'error', progress: 0, error: error instanceof Error ? error.message : 'Upload failed' }
       }));
     }
   };
 
-  const retryUpload = (file: any) => {
+  const retryUpload = (file: EnhancedFileRecord) => {
     handleUpload(file);
   };
 
@@ -302,7 +302,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             
             <div className="space-y-4">
         {mediaFiles.map((file) => {
-          const meta: any = parseMediaFileName(file.name) || {};
+          const meta = parseMediaFileName(file.name) || { title: '', author: '', category: '', date: '' };
           const baseName = file.name.replace(/\.[^.]+$/, '');
           const thumb = thumbnails[baseName];
           const upload = uploadState[file.id] || { status: 'pending', progress: 0 };
@@ -325,7 +325,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
                   {/* Thumbnail */}
                   <div className="flex-shrink-0">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                      {thumb && ((file.isLocal && thumb.isLocal) || (!file.isLocal && !thumb.isLocal)) ? (
+                      {thumb && ((file.isLocal && (thumb as FileRecord & {isLocal: boolean}).isLocal) || (!file.isLocal && !(thumb as FileRecord & {isLocal: boolean}).isLocal)) ? (
                         <img
                           src={thumb.url}
                           alt="thumbnail"
@@ -499,7 +499,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       {editingFile && (
         <EditFileModal
           file={editingFile}
-          thumbnail={thumbnails[editingFile.name.replace(/\.[^.]+$/, '')]}
+          thumbnail={thumbnails[editingFile.name.replace(/\.[^.]+$/, '')]?.url}
           onClose={() => setEditingFile(null)}
           onSave={(fileId) => {
             loadFiles();

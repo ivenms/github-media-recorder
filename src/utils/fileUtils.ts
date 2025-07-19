@@ -4,7 +4,7 @@
 // - Extract metadata
 
 import { formatDate } from './date';
-import type { ParsedMediaFileName } from '../types';
+import type { ParsedMediaFileName, FileMetadata, FileRecord } from '../types';
 
 const DB_NAME = 'media-recorder-db';
 const STORE_NAME = 'mediaFiles';
@@ -24,7 +24,7 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveFile(file: Blob, meta: any): Promise<string> {
+export async function saveFile(file: Blob, meta: FileMetadata): Promise<string> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -37,14 +37,14 @@ export async function saveFile(file: Blob, meta: any): Promise<string> {
   });
 }
 
-export async function listFiles(): Promise<any[]> {
+export async function listFiles(): Promise<FileRecord[]> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const store = tx.objectStore(STORE_NAME);
     const req = store.getAll();
     req.onsuccess = () => {
-      const files = req.result.map((rec: any) => ({
+      const files = req.result.map((rec: FileRecord) => ({
         ...rec,
         url: URL.createObjectURL(rec.file),
       }));
@@ -65,7 +65,7 @@ export async function deleteFile(id: string): Promise<void> {
   });
 }
 
-export async function updateFile(id: string, updatedMeta: any): Promise<void> {
+export async function updateFile(id: string, updatedMeta: Partial<FileMetadata>): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -103,7 +103,7 @@ export async function updateFile(id: string, updatedMeta: any): Promise<void> {
  */
 export async function decodeWebmToPCM(blob: Blob): Promise<{channelData: Float32Array[], sampleRate: number}> {
   const arrayBuffer = await blob.arrayBuffer();
-  const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const audioCtx = new (window.AudioContext || (window as Window & {webkitAudioContext?: typeof AudioContext}).webkitAudioContext)();
   const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
   const channelData = [];
   for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
@@ -187,7 +187,7 @@ export async function convertImageToJpg(file: Blob, quality: number = 0.92): Pro
         quality
       );
     };
-    img.onerror = (e) => reject(new Error('Failed to load image for conversion'));
+    img.onerror = () => reject(new Error('Failed to load image for conversion'));
     img.src = URL.createObjectURL(file);
   });
 }

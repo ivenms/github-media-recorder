@@ -17,7 +17,7 @@ export function useAudioRecorder() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       setStream(stream);
-      let mimeType = 'audio/webm';
+      const mimeType = 'audio/webm';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         throw new Error('audio/webm is not supported in this browser.');
       }
@@ -36,8 +36,8 @@ export function useAudioRecorder() {
       };
       recorder.start();
       setRecording(true);
-    } catch (err: any) {
-      setError('Could not start recording: ' + (err?.message || 'Unknown error'));
+    } catch (err: unknown) {
+      setError('Could not start recording: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setRecording(false);
       setStream(undefined);
       console.error('AudioRecorder error:', err);
@@ -50,7 +50,7 @@ export function useAudioRecorder() {
   };
 
   useEffect(() => {
-    let timer: any;
+    let timer: NodeJS.Timeout | undefined;
     if (recording) {
       timer = setInterval(() => setDuration((d) => d + 1), 1000);
     } else {

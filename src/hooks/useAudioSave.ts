@@ -28,7 +28,6 @@ export function useAudioSave({
   thumbnail,
   validateInputs,
   convert,
-  convertProgress,
 }: UseAudioSaveParams) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -64,12 +63,12 @@ export function useAudioSave({
         }
       }
     } catch (err) {
-      setError('Conversion failed: ' + (err as any)?.message);
+      setError('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setSaving(false);
       return;
     }
     // Format date
-    let fileDate = date ? date : new Date().toISOString().slice(0, 10);
+    const fileDate = date ? date : new Date().toISOString().slice(0, 10);
     const catObj = getMediaCategories().find(c => c.id === category);
     const catName = catObj ? catObj.name : category;
     const outName = formatMediaFileName({
@@ -100,7 +99,7 @@ export function useAudioSave({
           size: jpgBlob.size,
           created: Date.now(),
         });
-      } catch (err) {
+      } catch {
         setThumbnailError('Thumbnail conversion failed.');
       }
     }

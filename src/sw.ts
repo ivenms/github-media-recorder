@@ -5,15 +5,15 @@
 // - Push notifications support
 // - Cache management strategies
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   // Cache static assets
 });
 
-self.addEventListener('activate', (event) => {
+self.addEventListener('activate', () => {
   // Clean up old caches
 });
 
-self.addEventListener('fetch', (event) => {
+self.addEventListener('fetch', () => {
   // Serve from cache or fetch from network
 });
 

@@ -20,8 +20,8 @@ export function useFileConverter() {
           setError('Unsupported conversion type');
           return null;
         }
-      } catch (err: any) {
-        setError(err?.message || 'Conversion failed');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Conversion failed');
         return null;
       }
     },
