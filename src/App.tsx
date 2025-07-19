@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [screen, setScreen] = React.useState<'home' | 'record' | 'library' | 'settings'>('home');
   const [authenticated, setAuthenticated] = React.useState<boolean>(false);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [highlightFileId, setHighlightFileId] = React.useState<string | undefined>(undefined);
   const { modalState, showAlert, closeModal } = useModal();
   const [audioFormat, setAudioFormat] = React.useState<'mp3' | 'wav'>(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
@@ -71,6 +72,19 @@ const App: React.FC = () => {
     }
   }, [audioFormat]);
 
+  // Handle navigation to library with optional highlight
+  const handleNavigateToLibrary = React.useCallback((highlightId?: string) => {
+    setHighlightFileId(highlightId);
+    setScreen('library');
+  }, []);
+
+  // Clear highlight when navigating away from library
+  React.useEffect(() => {
+    if (screen !== 'library') {
+      setHighlightFileId(undefined);
+    }
+  }, [screen]);
+
   // Show loading while checking authentication
   if (isLoading) {
     return (
@@ -93,9 +107,9 @@ const App: React.FC = () => {
       <DesktopAlert />
       <InstallPrompt />
       <main className="flex-1 overflow-y-auto pb-20">
-        {screen === 'home' && <AudioRecorder audioFormat={audioFormat} />}
+        {screen === 'home' && <AudioRecorder audioFormat={audioFormat} onNavigateToLibrary={handleNavigateToLibrary} />}
         {screen === 'record' && <VideoRecorder />}
-        {screen === 'library' && <FileList />}
+        {screen === 'library' && <FileList highlightId={highlightFileId} />}
         {screen === 'settings' && <Settings audioFormat={audioFormat} setAudioFormat={setAudioFormat} onLogout={() => setAuthenticated(false)} />}
       </main>
       <BottomMenu

@@ -152,7 +152,7 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
             <button
               type="submit"
               disabled={isVerifying || !token.trim()}
-              className="w-full bg-purple-400 text-white px-4 py-3 rounded-lg font-medium hover:bg-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="w-full bg-purple-500 text-white px-4 py-3 rounded-lg font-medium hover:bg-purple-400 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               {isVerifying ? (
                 <span className="flex items-center justify-center">

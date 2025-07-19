@@ -1,5 +1,4 @@
 import React from 'react';
-import HomeIcon from './icons/HomeIcon';
 import MicIcon from './icons/MicIcon';
 import LibraryIcon from './icons/LibraryIcon';
 import SettingsIcon from './icons/SettingsIcon';

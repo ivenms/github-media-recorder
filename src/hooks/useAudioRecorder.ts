@@ -1,18 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 
-export function useAudioRecorder(audioFormat: string) {
+export function useAudioRecorder() {
   const [recording, setRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [formatWarning, setFormatWarning] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | undefined>(undefined);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
 
   const startRecording = async () => {
     setError(null);
-    setFormatWarning(null);
     setDuration(0);
     setAudioUrl(null);
     chunksRef.current = [];
@@ -22,9 +20,6 @@ export function useAudioRecorder(audioFormat: string) {
       let mimeType = 'audio/webm';
       if (!MediaRecorder.isTypeSupported(mimeType)) {
         throw new Error('audio/webm is not supported in this browser.');
-      }
-      if (audioFormat === 'mp3' || audioFormat === 'wav') {
-        setFormatWarning('Selected format (' + audioFormat.toUpperCase() + ') is not supported for recording. Recording will be saved as WEBM.');
       }
       const recorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = recorder;
@@ -75,14 +70,8 @@ export function useAudioRecorder(audioFormat: string) {
     duration,
     audioUrl,
     error,
-    formatWarning,
     stream,
     startRecording,
     stopRecording,
-    setError,
-    setFormatWarning,
-    setDuration,
-    setAudioUrl,
-    setStream,
   };
 } 

@@ -4,6 +4,7 @@
 // - Extract metadata
 
 import { formatDate } from './date';
+import type { ParsedMediaFileName } from '../types';
 
 const DB_NAME = 'media-recorder-db';
 const STORE_NAME = 'mediaFiles';
@@ -23,7 +24,7 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveFile(file: Blob, meta: any): Promise<void> {
+export async function saveFile(file: Blob, meta: any): Promise<string> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
@@ -31,7 +32,7 @@ export async function saveFile(file: Blob, meta: any): Promise<void> {
     const id = meta.id || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const record = { ...meta, id, file };
     store.put(record);
-    tx.oncomplete = () => resolve();
+    tx.oncomplete = () => resolve(id);
     tx.onerror = () => reject(tx.error);
   });
 }
@@ -61,6 +62,37 @@ export async function deleteFile(id: string): Promise<void> {
     store.delete(id);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function updateFile(id: string, updatedMeta: any): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    
+    // First get the existing file
+    const getReq = store.get(id);
+    getReq.onsuccess = () => {
+      const existingRecord = getReq.result;
+      if (!existingRecord) {
+        reject(new Error('File not found'));
+        return;
+      }
+      
+      // Update the record with new metadata, keeping the file blob
+      const updatedRecord = { 
+        ...existingRecord, 
+        ...updatedMeta, 
+        id, // Ensure ID remains the same
+        file: existingRecord.file // Keep the original file blob
+      };
+      
+      const putReq = store.put(updatedRecord);
+      putReq.onsuccess = () => resolve();
+      putReq.onerror = () => reject(putReq.error);
+    };
+    getReq.onerror = () => reject(getReq.error);
   });
 }
 
@@ -158,6 +190,23 @@ export async function convertImageToJpg(file: Blob, quality: number = 0.92): Pro
     img.onerror = (e) => reject(new Error('Failed to load image for conversion'));
     img.src = URL.createObjectURL(file);
   });
+}
+
+/**
+ * Parses a media file name into its metadata components.
+ * @param name The file name to parse.
+ * @returns ParsedMediaFileName object or null if parsing fails.
+ */
+export function parseMediaFileName(name: string): ParsedMediaFileName | null {
+  // Expected: Category_Title_Author_Date.extension
+  const match = name.match(/^([^_]+)_([^_]+)_([^_]+)_([0-9]{4}-[0-9]{2}-[0-9]{2})\.[^.]+$/);
+  if (!match) return null;
+  return {
+    category: match[1],
+    title: match[2],
+    author: match[3],
+    date: match[4],
+  };
 }
 
 /**

@@ -15,8 +15,6 @@ interface UseAudioSaveParams {
   validateInputs: () => boolean;
   convert: (type: ConvertType, input: Uint8Array) => Promise<Uint8Array | null>;
   convertProgress?: number;
-  setInputError: (msg: string | null) => void;
-  setThumbnailError: (msg: string | null) => void;
 }
 
 export function useAudioSave({
@@ -31,12 +29,12 @@ export function useAudioSave({
   validateInputs,
   convert,
   convertProgress,
-  setInputError,
-  setThumbnailError,
 }: UseAudioSaveParams) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
+  const [savedFileId, setSavedFileId] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!audioUrl) return;
@@ -81,7 +79,7 @@ export function useAudioSave({
       date: fileDate,
       extension: ext,
     });
-    await saveFile(outBlob, {
+    const fileId = await saveFile(outBlob, {
       name: outName,
       type: 'audio',
       mimeType: outMime,
@@ -89,6 +87,7 @@ export function useAudioSave({
       duration,
       created: Date.now(),
     });
+    setSavedFileId(fileId);
     // Handle thumbnail save
     if (thumbnail) {
       try {
@@ -110,6 +109,8 @@ export function useAudioSave({
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const clearThumbnailError = () => setThumbnailError(null);
+
   return {
     handleSave,
     saving,
@@ -118,5 +119,8 @@ export function useAudioSave({
     setSaved,
     error,
     setError,
+    thumbnailError,
+    clearThumbnailError,
+    savedFileId,
   };
 } 

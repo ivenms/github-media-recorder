@@ -53,6 +53,12 @@ export interface UploadState {
 // Props for AudioRecorder
 export interface AudioRecorderProps {
   audioFormat: 'mp3' | 'wav';
+  onNavigateToLibrary?: (highlightId?: string) => void;
+}
+
+// Props for FileList
+export interface FileListProps {
+  highlightId?: string;
 }
 
 // Props for Settings
@@ -82,3 +88,17 @@ export type MediaCategory = {
   id: string;
   name: string;
 }; 
+
+export interface ParsedMediaFileName {
+  category: string;
+  title: string;
+  author: string;
+  date: string;
+}
+
+export interface EditFileModalProps {
+  file: any;
+  onClose: () => void;
+  onSave: (fileId?: string) => void;
+  thumbnail?: any;
+}

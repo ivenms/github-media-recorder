@@ -14,12 +14,13 @@ import type { AudioRecorderProps } from '../types';
 import { getMediaCategories } from '../utils/appConfig';
 import MicIcon from './icons/MicIcon';
 import Waveform from './Waveform';
+import Modal from './Modal';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { useAudioForm } from '../hooks/useAudioForm';
 import { useAudioSave } from '../hooks/useAudioSave';
 import { getTodayDateString, isFutureDate } from '../utils/date';
 
-const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
+const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateToLibrary }) => {
   const mediaCategories = getMediaCategories();
   // Recording logic
   const {
@@ -27,16 +28,10 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     duration,
     audioUrl,
     error,
-    formatWarning,
     stream,
     startRecording,
     stopRecording,
-    setError,
-    setFormatWarning,
-    setDuration,
-    setAudioUrl,
-    setStream,
-  } = useAudioRecorder(audioFormat);
+  } = useAudioRecorder();
 
   // Form logic
   const {
@@ -48,8 +43,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     setCategory,
     date,
     setDate,
-    inputError,
-    setInputError,
+    titleError,
+    authorError,
     thumbnail,
     setThumbnail,
     thumbnailError,
@@ -66,6 +61,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     handleSave,
     saving,
     saved,
+    thumbnailError: saveThumbnailError,
+    clearThumbnailError,
+    savedFileId,
   } = useAudioSave({
     audioUrl,
     audioFormat,
@@ -78,8 +76,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     validateInputs,
     convert,
     convertProgress,
-    setInputError,
-    setThumbnailError,
   });
 
   // For freezing waveform: listen to last animation frame from Waveform
@@ -93,14 +89,29 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     (window as any).MPEGMode = { MONO: 3, STEREO: 0, DUAL_CHANNEL: 2, JOINT_STEREO: 1 };
   }
 
+  // Navigate to library screen when file is saved
+  React.useEffect(() => {
+    if (saved && savedFileId && onNavigateToLibrary) {
+      const timer = setTimeout(() => {
+        onNavigateToLibrary(savedFileId);
+      }, 1000); // Show "Saved!" briefly before navigating
+      return () => clearTimeout(timer);
+    }
+  }, [saved, savedFileId, onNavigateToLibrary]);
+
   return (
     <div className="flex flex-col items-center p-4">
       <h2 className="text-xl font-bold mb-4 text-gray-700">Voice Recording</h2>
       {error && <div className="text-red-600 mb-2">{error}</div>}
-      {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
       {convertError && <div className="text-red-600 mb-2">{convertError}</div>}
-      {formatWarning && <div className="text-yellow-600 mb-2">{formatWarning}</div>}
-      {thumbnailError && <div className="text-red-600 mb-2">{thumbnailError}</div>}
+      
+      <Modal
+        isOpen={!!saveThumbnailError}
+        onClose={clearThumbnailError}
+        title="Thumbnail Error"
+        message={saveThumbnailError || ''}
+        type="alert"
+      />
       <div className="flex flex-col items-center w-full max-w-xs bg-white/70 rounded-3xl shadow-neumorph p-6 mb-6">
         <div className="flex flex-col items-center mb-4">
           <div className="w-20 h-20 flex items-center justify-center mb-2">
@@ -116,11 +127,15 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
             className={`w-14 h-14 rounded-full flex items-center justify-center shadow-neumorph text-2xl transition-all ${recording ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}
             onClick={recording ? stopRecording : startRecording}
           >
-            {recording ? <span className="text-3xl">&#10073;&#10073;</span> : <span className="text-3xl">&#9679;</span>}
+            {recording ? (
+              <span className="text-3xl">&#9632;</span> // Red square for stop
+            ) : (
+              <span className="text-3xl">&#9679;</span> // Green circle for record
+            )}
           </button>
         </div>
         <button
-          className="w-full bg-purple-400 text-white px-4 py-2 rounded-xl shadow-neumorph disabled:opacity-50"
+          className="w-full bg-purple-500 text-white px-4 py-2 rounded-xl shadow-neumorph disabled:opacity-50 hover:bg-purple-400"
           disabled={recording || !audioUrl || saving}
           onClick={handleSave}
         >
@@ -131,22 +146,32 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         )}
       </div>
       <div className="flex flex-col w-full max-w-xs gap-2 mt-2">
-        <input
-          className="border rounded-xl px-3 py-2 shadow-neumorph"
-          placeholder="Title (required)"
-          value={title}
-          maxLength={100}
-          onChange={e => setTitle(e.target.value)}
-          required
-        />
-        <input
-          className="border rounded-xl px-3 py-2 shadow-neumorph"
-          placeholder="Author (required)"
-          value={author}
-          maxLength={50}
-          onChange={e => setAuthor(e.target.value)}
-          required
-        />
+        <div>
+          <input
+            className={`border rounded-xl px-3 py-2 shadow-neumorph w-full ${
+              titleError ? 'border-red-500 bg-red-50 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500'
+            } focus:outline-none focus:ring-2`}
+            placeholder="Title (required)"
+            value={title}
+            maxLength={100}
+            onChange={e => setTitle(e.target.value)}
+            required
+          />
+          {titleError && <div className="text-red-600 text-sm mt-1">{titleError}</div>}
+        </div>
+        <div>
+          <input
+            className={`border rounded-xl px-3 py-2 shadow-neumorph w-full ${
+              authorError ? 'border-red-500 bg-red-50 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500'
+            } focus:outline-none focus:ring-2`}
+            placeholder="Author (required)"
+            value={author}
+            maxLength={50}
+            onChange={e => setAuthor(e.target.value)}
+            required
+          />
+          {authorError && <div className="text-red-600 text-sm mt-1">{authorError}</div>}
+        </div>
         <select
           className="border rounded-xl px-3 py-2 shadow-neumorph"
           value={category}

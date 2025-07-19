@@ -5,16 +5,18 @@ import { fetchRemoteFiles, extractDateFromFilename } from '../utils/githubUtils'
 import { formatReadableDate } from '../utils/date';
 import { processThumbnailForUpload } from '../utils/imageUtils';
 import DefaultThumbnail from './icons/DefaultThumbnail';
-import EyeIcon from './icons/EyeIcon';
+import PlayIcon from './icons/PlayIcon';
 import EditIcon from './icons/EditIcon';
 import DeleteIcon from './icons/DeleteIcon';
 import UploadIcon from './icons/UploadIcon';
 import CheckIcon from './icons/CheckIcon';
 import AudioIcon from './icons/AudioIcon';
 import VideoIcon from './icons/VideoIcon';
+import CloseIcon from './icons/CloseIcon';
 import EditFileModal from './EditFileModal';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
+import type { FileListProps } from '../types';
 
 // Helper to parse metadata from file name
 function parseMediaFileName(name: string) {
@@ -29,7 +31,7 @@ function parseMediaFileName(name: string) {
   };
 }
 
-const FileList: React.FC = () => {
+const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   const { modalState, showAlert, closeModal } = useModal();
   const [mediaFiles, setMediaFiles] = useState<any[]>([]);
   const [thumbnails, setThumbnails] = useState<Record<string, any>>({});
@@ -37,6 +39,7 @@ const FileList: React.FC = () => {
   const [editingFile, setEditingFile] = useState<any | null>(null);
   const [uploadState, setUploadState] = useState<Record<string, { status: string; progress: number; error?: string }>>({});
   const [loading, setLoading] = useState<boolean>(false);
+  const [highlightedId, setHighlightedId] = useState<string | null>(highlightId || null);
 
   const loadFiles = async () => {
     setLoading(true);
@@ -90,11 +93,19 @@ const FileList: React.FC = () => {
       // Combine all media files
       const allMediaFiles = [...enrichedLocalMedia, ...enrichedRemoteMedia];
       
-      // Sort by date (descending)
+      // Sort by date (descending), then by creation timestamp for same-day files
       allMediaFiles.sort((a: any, b: any) => {
         const dateA = extractDateFromFilename(a.name);
         const dateB = extractDateFromFilename(b.name);
-        return dateB.getTime() - dateA.getTime();
+        
+        // Primary sort: by date (descending)
+        const dateDiff = dateB.getTime() - dateA.getTime();
+        if (dateDiff !== 0) return dateDiff;
+        
+        // Secondary sort: by creation timestamp (descending) for same-day files
+        const createdA = a.created || 0;
+        const createdB = b.created || 0;
+        return createdB - createdA;
       });
       
       // Map thumbnails by base name (without extension)
@@ -131,6 +142,21 @@ const FileList: React.FC = () => {
   useEffect(() => {
     loadFiles();
   }, []);
+
+  // Update highlighted ID when prop changes
+  useEffect(() => {
+    setHighlightedId(highlightId || null);
+  }, [highlightId]);
+
+  // Scroll to highlighted item when it becomes available
+  useEffect(() => {
+    if (highlightedId && mediaFiles.length > 0) {
+      const element = document.getElementById(`file-${highlightedId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [highlightedId, mediaFiles]);
 
   const handleDelete = async (id: string) => {
     await deleteFile(id);
@@ -239,8 +265,18 @@ const FileList: React.FC = () => {
           const thumb = thumbnails[baseName];
           const upload = uploadState[file.id] || { status: 'pending', progress: 0 };
           
+          const isHighlighted = highlightedId === file.id;
+          
           return (
-            <div key={file.id} className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+            <div 
+              key={file.id} 
+              id={`file-${file.id}`}
+              className={`bg-white rounded-xl shadow-md border overflow-hidden transition-all duration-500 ${
+                isHighlighted 
+                  ? 'border-purple-500 bg-purple-50 shadow-lg ring-2 ring-purple-200' 
+                  : 'border-gray-100'
+              }`}
+            >
               {/* Main File Info */}
               <div className="p-4">
                 <div className="flex items-start gap-4">
@@ -276,7 +312,7 @@ const FileList: React.FC = () => {
                       className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
                       title="Preview"
                     >
-                      <EyeIcon width={16} height={16} />
+                      <PlayIcon width={16} height={16} />
                     </button>
                     
                     {!file.uploaded && (
@@ -342,7 +378,7 @@ const FileList: React.FC = () => {
                       {upload.status === 'pending' && (
                         <button 
                           onClick={() => handleUpload(file)}
-                          className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-purple-400 text-white hover:bg-purple-500 transition-colors"
+                          className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-purple-500 text-white hover:bg-purple-400 transition-colors"
                         >
                           Upload
                         </button>
@@ -397,10 +433,11 @@ const FileList: React.FC = () => {
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full relative">
             <button 
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-xl"
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
               onClick={() => setPreview(null)}
+              title="Close"
             >
-              ×
+              <CloseIcon width={20} height={20} />
             </button>
             <h3 className="font-bold mb-4 pr-8">{preview.name}</h3>
             {preview.type === 'audio' ? (
@@ -416,10 +453,14 @@ const FileList: React.FC = () => {
       {editingFile && (
         <EditFileModal
           file={editingFile}
+          thumbnail={thumbnails[editingFile.name.replace(/\.[^.]+$/, '')]}
           onClose={() => setEditingFile(null)}
-          onSave={() => {
+          onSave={(fileId) => {
             loadFiles();
             setEditingFile(null);
+            if (fileId) {
+              setHighlightedId(fileId);
+            }
           }}
         />
       )}

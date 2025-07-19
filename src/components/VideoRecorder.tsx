@@ -235,7 +235,7 @@ const VideoRecorder: React.FC = () => {
         )}
       </div>
       <button
-        className="bg-purple-400 text-white px-4 py-2 rounded"
+        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-400"
         disabled={recording || !mediaBlob || saving}
         onClick={handleSave}
       >

@@ -260,7 +260,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
             <button
               onClick={addCategory}
               disabled={!newCategoryName.trim()}
-              className="px-3 py-2 bg-purple-400 text-white rounded text-sm hover:bg-purple-500 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-2 bg-purple-500 text-white rounded text-sm hover:bg-purple-400 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               Add
             </button>
@@ -278,7 +278,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
 
       <button
         onClick={handleSave}
-        className="w-full bg-purple-400 text-white px-4 py-2 rounded font-medium hover:bg-purple-500 transition-colors"
+        className="w-full bg-purple-500 text-white px-4 py-2 rounded font-medium hover:bg-purple-400 transition-colors"
       >
         Save Settings
       </button>

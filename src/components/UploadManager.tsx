@@ -64,7 +64,7 @@ const UploadManager: React.FC = () => {
               </div>
               <div className="flex gap-2 justify-end mt-1">
                 {state.status === 'pending' && (
-                  <button className="text-xs text-purple-600 hover:bg-purple-100 rounded-full px-3 py-1 transition" onClick={() => startUpload(file)}>
+                  <button className={`text-xs text-purple-600 hover:bg-purple-400 rounded-full px-3 py-1 transition bg-purple-500 text-white`} onClick={() => startUpload(file)}>
                     Upload
                   </button>
                 )}

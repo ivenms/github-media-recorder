@@ -6,29 +6,43 @@ export function useAudioForm() {
   const [author, setAuthor] = useState('');
   const [category, setCategory] = useState(() => getMediaCategories()[0].id);
   const [date, setDate] = useState('');
-  const [inputError, setInputError] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [authorError, setAuthorError] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
 
   const validateInputs = () => {
-    if (!title.trim() || !author.trim()) {
-      setInputError('Title and Author are required.');
-      return false;
+    let isValid = true;
+    
+    // Reset errors
+    setTitleError(null);
+    setAuthorError(null);
+    
+    // Validate title
+    if (!title.trim()) {
+      setTitleError('Title is required.');
+      isValid = false;
+    } else if (title.length > 100) {
+      setTitleError('Title cannot exceed 100 characters.');
+      isValid = false;
+    } else if (title.includes('_')) {
+      setTitleError('Underscore ( _ ) is not allowed in Title.');
+      isValid = false;
     }
-    if (title.length > 100) {
-      setInputError('Title cannot exceed 100 characters.');
-      return false;
+    
+    // Validate author
+    if (!author.trim()) {
+      setAuthorError('Author is required.');
+      isValid = false;
+    } else if (author.length > 50) {
+      setAuthorError('Author cannot exceed 50 characters.');
+      isValid = false;
+    } else if (author.includes('_')) {
+      setAuthorError('Underscore ( _ ) is not allowed in Author.');
+      isValid = false;
     }
-    if (author.length > 50) {
-      setInputError('Author cannot exceed 50 characters.');
-      return false;
-    }
-    if (title.includes('_') || author.includes('_')) {
-      setInputError('Underscore ( _ ) is not allowed in Title or Author.');
-      return false;
-    }
-    setInputError(null);
-    return true;
+    
+    return isValid;
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,8 +67,8 @@ export function useAudioForm() {
     setCategory,
     date,
     setDate,
-    inputError,
-    setInputError,
+    titleError,
+    authorError,
     thumbnail,
     setThumbnail,
     thumbnailError,
