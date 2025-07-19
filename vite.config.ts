@@ -44,14 +44,27 @@ export default defineConfig(({ mode }) => {
     ],
     define: {
       global: 'globalThis',
+      // Add Node.js process polyfill for FFmpeg
+      'process.env': JSON.stringify(process.env),
+    },
+    resolve: {
+      alias: {
+        // Add crypto polyfill for FFmpeg
+        crypto: 'crypto-js',
+      },
     },
     optimizeDeps: {
       exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
     },
     build: {
+      target: 'esnext',
       rollupOptions: {
-        // Skip FFmpeg bundling in CI environments
-        external: process.env.CI ? ['@ffmpeg/ffmpeg', '@ffmpeg/util'] : [],
+        output: {
+          manualChunks: {
+            // Separate FFmpeg into its own chunk
+            ffmpeg: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
+          },
+        },
       },
     },
     server: {

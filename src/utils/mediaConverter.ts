@@ -6,12 +6,17 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 
 const ffmpeg = new FFmpeg();
-await ffmpeg.load();
+let ffmpegLoaded = false;
+
+async function ensureFFmpegLoaded() {
+  if (!ffmpegLoaded) {
+    await ffmpeg.load();
+    ffmpegLoaded = true;
+  }
+}
 
 export async function convertToMp3(input: Uint8Array, onProgress?: (p: number) => void): Promise<Uint8Array> {
-  if (!ffmpeg.loaded) {
-    await ffmpeg.load();
-  }
+  await ensureFFmpegLoaded();
   if (onProgress) {
     ffmpeg.on('progress', ({ progress }: { progress: number }) => onProgress(progress));
   }
@@ -22,9 +27,7 @@ export async function convertToMp3(input: Uint8Array, onProgress?: (p: number) =
 }
 
 export async function convertToMp4(input: Uint8Array, onProgress?: (p: number) => void): Promise<Uint8Array> {
-  if (!ffmpeg.loaded) {
-    await ffmpeg.load();
-  }
+  await ensureFFmpegLoaded();
   if (onProgress) {
     ffmpeg.on('progress', ({ progress }: { progress: number }) => onProgress(progress));
   }
