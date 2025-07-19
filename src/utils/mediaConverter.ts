@@ -3,33 +3,35 @@
 // - Convert video to MP4
 // - Handle progress and errors
 
-import { FFmpeg } from '@ffmpeg/ffmpeg';
+let ffmpeg: any = null;
 
-const ffmpeg = new FFmpeg();
-await ffmpeg.load();
-
-export async function convertToMp3(input: Uint8Array, onProgress?: (p: number) => void): Promise<Uint8Array> {
-  if (!ffmpeg.loaded) {
+async function getFFmpeg() {
+  if (!ffmpeg) {
+    const { FFmpeg } = await import('@ffmpeg/ffmpeg');
+    ffmpeg = new FFmpeg();
     await ffmpeg.load();
   }
+  return ffmpeg;
+}
+
+export async function convertToMp3(input: Uint8Array, onProgress?: (p: number) => void): Promise<Uint8Array> {
+  const ffmpegInstance = await getFFmpeg();
   if (onProgress) {
-    ffmpeg.on('progress', ({ progress }) => onProgress(progress));
+    ffmpegInstance.on('progress', ({ progress }: { progress: number }) => onProgress(progress));
   }
-  await ffmpeg.writeFile('input.webm', input);
-  await ffmpeg.exec(['-i', 'input.webm', '-vn', '-ar', '44100', '-ac', '2', '-b:a', '192k', 'output.mp3']);
-  const fileData = await ffmpeg.readFile('output.mp3');
+  await ffmpegInstance.writeFile('input.webm', input);
+  await ffmpegInstance.exec(['-i', 'input.webm', '-vn', '-ar', '44100', '-ac', '2', '-b:a', '192k', 'output.mp3']);
+  const fileData = await ffmpegInstance.readFile('output.mp3');
   return fileData instanceof Uint8Array ? fileData : new Uint8Array([...fileData].map(c => c.charCodeAt(0)));
 }
 
 export async function convertToMp4(input: Uint8Array, onProgress?: (p: number) => void): Promise<Uint8Array> {
-  if (!ffmpeg.loaded) {
-    await ffmpeg.load();
-  }
+  const ffmpegInstance = await getFFmpeg();
   if (onProgress) {
-    ffmpeg.on('progress', ({ progress }) => onProgress(progress));
+    ffmpegInstance.on('progress', ({ progress }: { progress: number }) => onProgress(progress));
   }
-  await ffmpeg.writeFile('input.webm', input);
-  await ffmpeg.exec([
+  await ffmpegInstance.writeFile('input.webm', input);
+  await ffmpegInstance.exec([
     '-i', 'input.webm',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
@@ -37,6 +39,6 @@ export async function convertToMp4(input: Uint8Array, onProgress?: (p: number) =
     '-pix_fmt', 'yuv420p',
     'output.mp4',
   ]);
-  const fileData = await ffmpeg.readFile('output.mp4');
+  const fileData = await ffmpegInstance.readFile('output.mp4');
   return fileData instanceof Uint8Array ? fileData : new Uint8Array([...fileData].map(c => c.charCodeAt(0)));
 } 
