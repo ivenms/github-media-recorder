@@ -15,8 +15,8 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
         manifest: {
-          name: 'Mobile Recorder PWA',
-          short_name: 'Recorder',
+          name: 'Github Media Recorder for Mobiles',
+          short_name: 'Media Recorder',
           description: 'Record and upload audio/video files',
           start_url: baseUrl,
           display: 'standalone',

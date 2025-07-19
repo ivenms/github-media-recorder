@@ -1,4 +1,4 @@
-# Mobile Recorder PWA
+# Github Media Recorder App for Mobile
 
 A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4, and uploading to a GitHub repository. Features secure GitHub Personal Access Token authentication, installable PWA functionality, and automatic deployment to GitHub Pages.
 

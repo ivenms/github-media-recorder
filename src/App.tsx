@@ -8,8 +8,8 @@ import BottomMenu from './components/BottomMenu';
 import DesktopAlert from './components/DesktopAlert';
 import TokenSetup from './components/TokenSetup';
 import Modal from './components/Modal';
-import { isAuthenticated, checkTokenValidity, clearTokenData } from './utils/tokenAuth';
 import { useModal } from './hooks/useModal';
+import { useAuth } from './hooks/useAuth';
 
 const SETTINGS_KEY = 'githubSettings';
 
@@ -18,50 +18,15 @@ const App: React.FC = () => {
   // Mobile-first layout, bottom nav, responsive
   // Show InstallPrompt, main content, and bottom nav
   const [screen, setScreen] = React.useState<'home' | 'record' | 'library' | 'settings'>('home');
-  const [authenticated, setAuthenticated] = React.useState<boolean>(false);
-  const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [highlightFileId, setHighlightFileId] = React.useState<string | undefined>(undefined);
   const { modalState, showAlert, closeModal } = useModal();
+  const { authenticated, isLoading, setAuthenticated } = useAuth(showAlert);
   const [audioFormat, setAudioFormat] = React.useState<'mp3' | 'wav'>(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
     if (saved) return (JSON.parse(saved).audioFormat as 'mp3' | 'wav') || 'mp3';
     return 'mp3';
   });
 
-  // Check token validity on app load
-  React.useEffect(() => {
-    const checkAuth = async () => {
-      // First check if user has basic auth data
-      if (!isAuthenticated()) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // Validate token with GitHub API
-        const tokenResult = await checkTokenValidity();
-        
-        if (tokenResult.isValid) {
-          setAuthenticated(true);
-        } else {
-          // Token is invalid or expired, clear data
-          clearTokenData();
-          setAuthenticated(false);
-          
-          if (tokenResult.isExpired) {
-            showAlert('Your GitHub token has expired. Please enter a new token to continue.', 'Token Expired');
-          }
-        }
-      } catch (error) {
-        console.error('Token validation error:', error);
-        setAuthenticated(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
 
   // Sync audioFormat to localStorage when changed
   React.useEffect(() => {

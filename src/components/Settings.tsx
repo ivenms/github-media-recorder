@@ -3,6 +3,7 @@ import type { AppSettings, SettingsProps, MediaCategory } from '../types';
 import { getStoredUsername, clearTokenData } from '../utils/tokenAuth';
 import { LOCALSTORAGE_KEYS, DEFAULT_MEDIA_CATEGORIES } from '../utils/appConfig';
 import Modal from './Modal';
+import Header from './Header';
 import { useModal } from '../hooks/useModal';
 
 const getInitialSettings = (): AppSettings => {
@@ -111,8 +112,9 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Settings</h2>
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Settings" />
+      <div className="p-4 max-w-md mx-auto">
       
       {/* GitHub Account Section */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
@@ -299,6 +301,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
         confirmText={modalState.confirmText}
         cancelText={modalState.cancelText}
       />
+      </div>
     </div>
   );
 };

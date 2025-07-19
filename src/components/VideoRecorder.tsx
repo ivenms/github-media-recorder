@@ -6,6 +6,7 @@ import { getMediaCategories } from '../utils/appConfig';
 import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
 import { getTodayDateString, isFutureDate } from '../utils/date';
+import Header from './Header';
 
 const VideoRecorder: React.FC = () => {
   const mediaCategories = getMediaCategories();
@@ -147,8 +148,9 @@ const VideoRecorder: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center p-4">
-      <h2 className="text-lg font-bold mb-2">Video Recorder</h2>
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Video Recorder" />
+      <div className="flex flex-col items-center p-4">
       {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
       {thumbnailError && <div className="text-red-600 mb-2">{thumbnailError}</div>}
       <div className="w-full h-48 bg-gray-300 rounded mb-4 flex items-center justify-center">
@@ -241,6 +243,7 @@ const VideoRecorder: React.FC = () => {
       >
         {saving ? (convertProgress > 0 && convertProgress < 1 ? `Converting... ${(convertProgress * 100).toFixed(0)}%` : 'Saving...') : saved ? 'Saved!' : 'Save'}
       </button>
+      </div>
     </div>
   );
 };

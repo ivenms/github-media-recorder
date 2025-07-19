@@ -1,9 +1,6 @@
 import React from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
-
-function isMobile() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-}
+import { isMobile } from '../utils/device';
 
 const DesktopAlert: React.FC = () => {
   if (isMobile()) return null;

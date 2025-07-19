@@ -15,6 +15,7 @@ import { getMediaCategories } from '../utils/appConfig';
 import MicIcon from './icons/MicIcon';
 import Waveform from './Waveform';
 import Modal from './Modal';
+import Header from './Header';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { useAudioForm } from '../hooks/useAudioForm';
 import { useAudioSave } from '../hooks/useAudioSave';
@@ -100,8 +101,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateTo
   }, [saved, savedFileId, onNavigateToLibrary]);
 
   return (
-    <div className="flex flex-col items-center p-4">
-      <h2 className="text-xl font-bold mb-4 text-gray-700">Voice Recording</h2>
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Voice Recording" />
+      <div className="flex flex-col items-center p-4">
       {error && <div className="text-red-600 mb-2">{error}</div>}
       {convertError && <div className="text-red-600 mb-2">{convertError}</div>}
       
@@ -199,6 +201,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateTo
           className="border rounded-xl px-3 py-2 shadow-neumorph"
           onChange={handleThumbnailChange}
         />
+      </div>
       </div>
     </div>
   );

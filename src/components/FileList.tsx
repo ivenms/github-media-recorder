@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { listFiles, deleteFile } from '../utils/fileUtils';
+import { listFiles, deleteFile, saveFile, parseMediaFileName } from '../utils/fileUtils';
 import { uploadFile, uploadThumbnail } from '../utils/uploadUtils';
 import { fetchRemoteFiles, extractDateFromFilename } from '../utils/githubUtils';
 import { formatReadableDate } from '../utils/date';
@@ -14,22 +14,11 @@ import AudioIcon from './icons/AudioIcon';
 import VideoIcon from './icons/VideoIcon';
 import CloseIcon from './icons/CloseIcon';
 import EditFileModal from './EditFileModal';
+import AddMediaModal from './AddMediaModal';
 import Modal from './Modal';
+import Header from './Header';
 import { useModal } from '../hooks/useModal';
 import type { FileListProps } from '../types';
-
-// Helper to parse metadata from file name
-function parseMediaFileName(name: string) {
-  // Expected: Category_Title_Author_Date.extension
-  const match = name.match(/^([^_]+)_([^_]+)_([^_]+)_([0-9]{4}-[0-9]{2}-[0-9]{2})\.[^.]+$/);
-  if (!match) return null;
-  return {
-    category: match[1],
-    title: match[2],
-    author: match[3],
-    date: match[4],
-  };
-}
 
 const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   const { modalState, showAlert, closeModal } = useModal();
@@ -37,6 +26,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   const [thumbnails, setThumbnails] = useState<Record<string, any>>({});
   const [preview, setPreview] = useState<any | null>(null);
   const [editingFile, setEditingFile] = useState<any | null>(null);
+  const [showAddMediaModal, setShowAddMediaModal] = useState<boolean>(false);
   const [uploadState, setUploadState] = useState<Record<string, { status: string; progress: number; error?: string }>>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightId || null);
@@ -234,31 +224,49 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
     handleUpload(file);
   };
 
+  const handleAddMedia = () => {
+    setShowAddMediaModal(true);
+  };
+
+
   return (
-    <div className="p-4 relative">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-bold">Media Library</h2>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={loadFiles}
-            disabled={loading}
-            className="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-50"
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50">
+      <Header title="Media Library" />
       
-      {loading && (
-        <div className="fixed inset-0 flex items-center justify-center z-40" style={{ background: 'linear-gradient(135deg, #e0e7ef 0%, #f7faff 100%)' }}>
-          <div className="flex flex-col items-center gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <div className="text-gray-600 font-medium">Loading files from repository...</div>
+      {/* Action Buttons Row - Hide when loading */}
+      {!loading && (
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={loadFiles}
+              className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:shadow-md transition-all shadow-sm border border-gray-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button
+              onClick={handleAddMedia}
+              className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-purple-500/95 backdrop-blur-sm text-white hover:bg-purple-600 hover:shadow-lg transition-all shadow-md"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Media
+            </button>
           </div>
         </div>
       )}
       
-      <div className="space-y-4">
+      <div className="p-4">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+            <div className="text-gray-600 font-medium">Loading files from repository...</div>
+          </div>
+        ) : (
+          <div className="space-y-4">
         {mediaFiles.map((file) => {
           const meta: any = parseMediaFileName(file.name) || {};
           const baseName = file.name.replace(/\.[^.]+$/, '');
@@ -427,7 +435,10 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             </div>
           );
         })}
+          </div>
+        )}
       </div>
+      
       {/* Preview Modal */}
       {preview && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
@@ -461,6 +472,17 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             if (fileId) {
               setHighlightedId(fileId);
             }
+          }}
+        />
+      )}
+
+      {/* Add Media Modal */}
+      {showAddMediaModal && (
+        <AddMediaModal
+          onClose={() => setShowAddMediaModal(false)}
+          onSave={() => {
+            loadFiles();
+            setShowAddMediaModal(false);
           }}
         />
       )}

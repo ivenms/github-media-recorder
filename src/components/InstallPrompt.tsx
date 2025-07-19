@@ -1,15 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
-// Utility: Detect mobile device and platform
-function getMobilePlatform() {
-  const ua = navigator.userAgent;
-  if (/android/i.test(ua)) return 'android';
-  if (/iphone|ipad|ipod/i.test(ua)) {
-    if (/crios/i.test(ua)) return 'ios-chrome';
-    return 'ios-safari';
-  }
-  return null;
-}
+import { getMobilePlatform } from '../utils/device';
 
 // InstallPrompt: Show PWA install prompt and status
 const InstallPrompt: React.FC = () => {
