@@ -47,12 +47,6 @@ export default defineConfig(({ mode }) => {
       // Add Node.js process polyfill for FFmpeg
       'process.env': JSON.stringify(process.env),
     },
-    resolve: {
-      alias: {
-        // Add crypto polyfill for FFmpeg
-        crypto: 'crypto-js',
-      },
-    },
     optimizeDeps: {
       exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
     },
