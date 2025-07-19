@@ -213,7 +213,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
               placeholder="Enter media title"
               maxLength={100}
               required
@@ -228,7 +228,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
               type="text"
               value={formData.author}
               onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
               placeholder="Enter author name"
               maxLength={50}
               required
@@ -242,7 +242,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
             >
               {getMediaCategories().map((category) => (
                 <option key={category.id} value={category.id}>
@@ -266,7 +266,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
                   setFormData({ ...formData, date: selectedDate });
                 }
               }}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
               required
             />
           </div>

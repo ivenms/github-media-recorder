@@ -101,7 +101,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
               required
             />
           </div>
@@ -114,7 +114,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
               type="text"
               value={formData.author}
               onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
               required
             />
           </div>
@@ -126,7 +126,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
             <select
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
             >
               {getMediaCategories().map((category) => (
                 <option key={category.id} value={category.id}>
@@ -150,7 +150,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
                   setFormData({ ...formData, date: selectedDate });
                 }
               }}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
               required
             />
           </div>

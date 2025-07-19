@@ -1,4 +1,4 @@
-// Utility for image processing: crop, scale, and convert to JPG
+// Utility for image processing: crop, scale, convert to JPG, and app icon handling
 
 export interface ImageProcessOptions {
   width: number;
@@ -158,3 +158,28 @@ export async function processThumbnailForUpload(
     filename: processedFilename
   };
 }
+
+// ============================================================================
+// App Icon Utilities
+// ============================================================================
+
+/**
+ * Gets the app icon URL with proper base path handling
+ * @returns The full URL to the app icon
+ */
+export const getAppIconUrl = (): string => {
+  return `${import.meta.env.BASE_URL}icon.svg`;
+};
+
+/**
+ * Gets the app icon URL with fallback handling
+ * @param fallback Optional fallback icon URL
+ * @returns The app icon URL or fallback
+ */
+export const getAppIconUrlWithFallback = (fallback?: string): string => {
+  try {
+    return getAppIconUrl();
+  } catch {
+    return fallback || '/icon.svg';
+  }
+};

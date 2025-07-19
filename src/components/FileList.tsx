@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { listFiles, deleteFile, saveFile, parseMediaFileName } from '../utils/fileUtils';
+import { listFiles, deleteFile, parseMediaFileName } from '../utils/fileUtils';
 import { uploadFile, uploadThumbnail } from '../utils/uploadUtils';
 import { fetchRemoteFiles, extractDateFromFilename } from '../utils/githubUtils';
 import { formatReadableDate } from '../utils/date';
@@ -29,10 +29,12 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   const [showAddMediaModal, setShowAddMediaModal] = useState<boolean>(false);
   const [uploadState, setUploadState] = useState<Record<string, { status: string; progress: number; error?: string }>>({});
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightId || null);
 
   const loadFiles = async () => {
     setLoading(true);
+    setError(null);
     try {
       // Fetch local files
       const localFiles = await listFiles();
@@ -40,7 +42,15 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       const localThumbs = localFiles.filter((f: any) => f.type === 'thumbnail');
       
       // Fetch remote files
-      const remoteFiles = await fetchRemoteFiles();
+      let remoteFiles: any[] = [];
+      try {
+        remoteFiles = await fetchRemoteFiles();
+      } catch (remoteError: any) {
+        console.error('Failed to fetch remote files:', remoteError);
+        setError(`Repository access failed: ${remoteError.message || 'Check your GitHub settings and repository configuration'}`);
+        // Continue with local files only
+      }
+      
       const remoteMedia = remoteFiles.filter((f: any) => f.type === 'audio' || f.type === 'video');
       const remoteThumbs = remoteFiles.filter((f: any) => f.type === 'thumbnail');
       
@@ -266,7 +276,31 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             <div className="text-gray-600 font-medium">Loading files from repository...</div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <>
+            {/* Error Message */}
+            {error && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-medium text-red-800 mb-1">Repository Error</h3>
+                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-xs text-red-600 mt-2">Showing local files only. Check your GitHub settings to view remote files.</p>
+                  </div>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-red-400 hover:text-red-600 p-1"
+                    title="Dismiss"
+                  >
+                    <CloseIcon width={16} height={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-4">
         {mediaFiles.map((file) => {
           const meta: any = parseMediaFileName(file.name) || {};
           const baseName = file.name.replace(/\.[^.]+$/, '');
@@ -435,7 +469,8 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             </div>
           );
         })}
-          </div>
+            </div>
+          </>
         )}
       </div>
       

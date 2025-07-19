@@ -13,16 +13,21 @@ export default defineConfig(({ mode }) => {
       react(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg', 'icons/*.png'],
         manifest: {
           name: 'Github Media Recorder for Mobiles',
           short_name: 'Media Recorder',
           description: 'Record and upload audio/video files',
           start_url: baseUrl,
           display: 'standalone',
-          theme_color: '#000000',
+          theme_color: '#667eea',
           background_color: '#ffffff',
           icons: [
+            {
+              src: `${baseUrl}icon.svg`.replace(/\/+/g, '/'),
+              sizes: 'any',
+              type: 'image/svg+xml',
+            },
             {
               src: `${baseUrl}icons/icon-192x192.png`.replace(/\/+/g, '/'),
               sizes: '192x192',

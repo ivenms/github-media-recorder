@@ -1,6 +1,7 @@
 import React from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { isMobile } from '../utils/device';
+import { getAppIconUrl } from '../utils/imageUtils';
 
 const DesktopAlert: React.FC = () => {
   if (isMobile()) return null;
@@ -22,6 +23,9 @@ const DesktopAlert: React.FC = () => {
         className="bg-purple-100 border border-purple-400 rounded-lg shadow-xl flex flex-col items-center p-8 max-w-sm"
         style={{ pointerEvents: 'auto' }} // Ensure alert box is interactive
       >
+        <div className="mb-4">
+          <img src={getAppIconUrl()} alt="GitHub Media Recorder" className="w-16 h-16" />
+        </div>
         <div className="text-lg font-semibold text-purple-800 mb-2 text-center">
           For best experience, open this app on your mobile device!
         </div>

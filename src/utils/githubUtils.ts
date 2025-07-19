@@ -81,12 +81,32 @@ function parseRemoteFile(file: GitHubFile, basePath: string): RemoteFile | null 
 export async function fetchRemoteFiles(): Promise<RemoteFile[]> {
   const config = getGitHubConfig();
   if (!config) {
-    console.log('GitHub config not available, skipping remote files');
-    return [];
+    throw new Error('GitHub configuration not found. Please check your settings.');
   }
   
   try {
     const files: RemoteFile[] = [];
+    
+    // First, validate that the repository exists
+    console.log('Validating repository:', `${config.owner}/${config.repo}`);
+    const repoResponse = await fetch(
+      `https://api.github.com/repos/${config.owner}/${config.repo}`,
+      {
+        headers: { Authorization: `Bearer ${config.token}` }
+      }
+    );
+    
+    if (!repoResponse.ok) {
+      if (repoResponse.status === 404) {
+        throw new Error(`Repository '${config.owner}/${config.repo}' not found. Please check the repository name and your access permissions.`);
+      } else if (repoResponse.status === 401) {
+        throw new Error('Invalid GitHub token or insufficient permissions');
+      } else if (repoResponse.status === 403) {
+        throw new Error('GitHub API rate limit exceeded or repository access denied');
+      } else {
+        throw new Error(`Failed to access repository: ${repoResponse.status} ${repoResponse.statusText}`);
+      }
+    }
     
     // Fetch media files
     console.log('Fetching media files from:', config.path);
@@ -107,8 +127,14 @@ export async function fetchRemoteFiles(): Promise<RemoteFile[]> {
           }
         });
       }
-    } else if (mediaResponse.status !== 404) {
-      console.error('Failed to fetch media files:', mediaResponse.status);
+    } else if (mediaResponse.status === 404) {
+      console.log('Media path not found (404), continuing...');
+    } else if (mediaResponse.status === 401) {
+      throw new Error('Invalid GitHub token or insufficient permissions');
+    } else if (mediaResponse.status === 403) {
+      throw new Error('GitHub API rate limit exceeded or repository access denied');
+    } else {
+      throw new Error(`Failed to access repository: ${mediaResponse.status} ${mediaResponse.statusText}`);
     }
     
     // Fetch thumbnail files
@@ -130,15 +156,21 @@ export async function fetchRemoteFiles(): Promise<RemoteFile[]> {
           }
         });
       }
-    } else if (thumbnailResponse.status !== 404) {
-      console.error('Failed to fetch thumbnail files:', thumbnailResponse.status);
+    } else if (thumbnailResponse.status === 404) {
+      console.log('Thumbnail path not found (404), continuing...');
+    } else if (thumbnailResponse.status === 401) {
+      throw new Error('Invalid GitHub token or insufficient permissions');
+    } else if (thumbnailResponse.status === 403) {
+      throw new Error('GitHub API rate limit exceeded or repository access denied');
+    } else {
+      throw new Error(`Failed to access repository: ${thumbnailResponse.status} ${thumbnailResponse.statusText}`);
     }
     
     console.log(`Fetched ${files.length} remote files`);
     return files;
   } catch (error) {
     console.error('Error fetching remote files:', error);
-    return [];
+    throw error; // Re-throw to be caught by FileList component
   }
 }
 

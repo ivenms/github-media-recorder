@@ -3,6 +3,7 @@ import type { TokenSetupProps } from '../types';
 import { LOCALSTORAGE_KEYS } from '../utils/appConfig';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
+import { getAppIconUrl } from '../utils/imageUtils';
 
 const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
   const { modalState, showAlert, closeModal } = useModal();
@@ -50,10 +51,13 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-start justify-center bg-gray-50 px-3 pt-8 pb-4">
-      <div className="w-full space-y-3 md:space-y-6">
+    <div className="min-h-screen bg-gray-50 px-3 py-4 md:py-8">
+      <div className="w-full max-w-2xl mx-auto space-y-3 md:space-y-6">
         <div className="text-center">
           <div className="mb-3 md:mb-4">
+            <div className="flex justify-center mb-4">
+              <img src={getAppIconUrl()} alt="GitHub Media Recorder" className="w-20 h-20 md:w-24 md:h-24" />
+            </div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 break-words">
               Github Media Recorder for Mobile
             </h1>
@@ -138,7 +142,7 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 placeholder="ghp_xxx..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm md:text-base min-w-0 box-border"
+                className="w-full border border-gray-300 rounded-lg px-3 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base min-w-0 box-border"
                 required
               />
               <p className="text-sm text-gray-500 mt-1 break-words">

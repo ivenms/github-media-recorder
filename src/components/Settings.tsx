@@ -144,7 +144,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
             value={settings.repo}
             onChange={handleChange}
             placeholder="my-media-repo"
-            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
           />
         </label>
         
@@ -156,7 +156,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
             value={settings.path || ''}
             onChange={handleChange}
             placeholder="media/"
-            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
           />
           <span className="text-xs text-gray-500 mt-1 block">Path in repository where media files will be uploaded</span>
         </label>
@@ -169,7 +169,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
             value={settings.thumbnailPath || ''}
             onChange={handleChange}
             placeholder="thumbnails/"
-            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
           />
           <span className="text-xs text-gray-500 mt-1 block">Path in repository where thumbnail files will be uploaded</span>
         </label>
@@ -184,7 +184,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
               onChange={handleChange}
               min="50"
               max="1920"
-              className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
             />
             <span className="text-xs text-gray-500 mt-1 block">Width in pixels</span>
           </label>
@@ -198,7 +198,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
               onChange={handleChange}
               min="50"
               max="1080"
-              className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
             />
             <span className="text-xs text-gray-500 mt-1 block">Height in pixels</span>
           </label>
@@ -214,7 +214,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
             name="audioFormat"
             value={audioFormat}
             onChange={(e) => setAudioFormat(e.target.value as 'mp3' | 'wav')}
-            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
           >
             <option value="mp3">MP3 (Compressed)</option>
             <option value="wav">WAV (Uncompressed)</option>
@@ -257,7 +257,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
               onChange={(e) => setNewCategoryName(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addCategory()}
               placeholder="Category name"
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="flex-1 border border-gray-300 rounded px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
             <button
               onClick={addCategory}
