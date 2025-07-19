@@ -48,6 +48,12 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       exclude: ['@ffmpeg/ffmpeg', '@ffmpeg/util'],
     },
+    build: {
+      rollupOptions: {
+        // Skip FFmpeg bundling in CI environments
+        external: process.env.CI ? ['@ffmpeg/ffmpeg', '@ffmpeg/util'] : [],
+      },
+    },
     server: {
       allowedHosts: ['.ngrok-free.app'],
     },
