@@ -1,4 +1,5 @@
 // Utility for image processing: crop, scale, convert to JPG, and app icon handling
+import { useSettingsStore } from '../stores/settingsStore';
 
 export interface ImageProcessOptions {
   width: number;
@@ -100,17 +101,17 @@ export function createThumbnailFilename(originalFilename: string): string {
 }
 
 /**
- * Get thumbnail dimensions from settings
- * @returns Object with width and height from localStorage
+ * Get thumbnail dimensions from settings store
+ * @returns Object with width and height from SettingsStore
  */
 export function getThumbnailDimensions(): { width: number; height: number } {
   try {
-    const saved = localStorage.getItem('github-media-recorder-settings');
-    if (saved) {
-      const settings = JSON.parse(saved);
+    const settingsState = useSettingsStore.getState();
+    
+    if (settingsState.appSettings) {
       return {
-        width: settings.thumbnailWidth || 320,
-        height: settings.thumbnailHeight || 240
+        width: settingsState.appSettings.thumbnailWidth || 320,
+        height: settingsState.appSettings.thumbnailHeight || 240
       };
     }
   } catch (error) {

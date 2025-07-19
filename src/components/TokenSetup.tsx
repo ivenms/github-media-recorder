@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import type { TokenSetupProps } from '../types';
-import { LOCALSTORAGE_KEYS } from '../utils/appConfig';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
 import { getAppIconUrl } from '../utils/imageUtils';
+import { useAuthStore } from '../stores/authStore';
 
 const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
   const { modalState, showAlert, closeModal } = useModal();
+  const { login } = useAuthStore();
   const [token, setToken] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
@@ -29,10 +30,8 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
       if (response.ok) {
         const userData = await response.json();
         
-        // Store token, user data, and timestamp
-        localStorage.setItem(LOCALSTORAGE_KEYS.githubToken, token);
-        localStorage.setItem(LOCALSTORAGE_KEYS.githubUsername, userData.login);
-        localStorage.setItem('github_token_timestamp', Date.now().toString());
+        // Store in AuthStore
+        login({ token, owner: userData.login, repo: '' }, userData);
         
         onSuccess();
       } else {

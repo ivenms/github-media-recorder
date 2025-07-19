@@ -1,31 +1,32 @@
 // Utility for fetching files from GitHub repository
-import type { AppSettings, FileRecord } from '../types';
-import { getStoredToken, getStoredUsername } from './tokenAuth';
-import { LOCALSTORAGE_KEYS } from './appConfig';
+import type { FileRecord } from '../types';
+import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
 
 function getGitHubConfig() {
-  const token = getStoredToken();
-  const username = getStoredUsername();
-  const raw = localStorage.getItem(LOCALSTORAGE_KEYS.githubSettings);
+  const authState = useAuthStore.getState();
+  const settingsState = useSettingsStore.getState();
   
-  if (!token || !username || !raw) {
+  if (!authState.isAuthenticated || !authState.githubConfig || !settingsState.appSettings) {
     return null;
   }
   
-  try {
-    const settings: AppSettings = JSON.parse(raw);
-    return {
-      token,
-      owner: username,
-      repo: settings.repo,
-      path: settings.path.endsWith('/') ? settings.path : settings.path + '/',
-      thumbnailPath: settings.thumbnailPath.endsWith('/') ? settings.thumbnailPath : settings.thumbnailPath + '/',
-      thumbnailWidth: settings.thumbnailWidth || 320,
-      thumbnailHeight: settings.thumbnailHeight || 240
-    };
-  } catch {
+  const { githubConfig } = authState;
+  const { appSettings } = settingsState;
+  
+  if (!githubConfig.token || !githubConfig.owner || !appSettings.repo) {
     return null;
   }
+  
+  return {
+    token: githubConfig.token,
+    owner: githubConfig.owner,
+    repo: appSettings.repo,
+    path: appSettings.path.endsWith('/') ? appSettings.path : appSettings.path + '/',
+    thumbnailPath: appSettings.thumbnailPath.endsWith('/') ? appSettings.thumbnailPath : appSettings.thumbnailPath + '/',
+    thumbnailWidth: appSettings.thumbnailWidth || 320,
+    thumbnailHeight: appSettings.thumbnailHeight || 240
+  };
 }
 
 interface GitHubFile {

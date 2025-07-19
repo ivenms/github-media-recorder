@@ -1,47 +1,36 @@
 // Utility for uploading files to GitHub
 // - Uses GitHub REST API to upload to a repo
-// - Reads token from tokenAuth, settings from localStorage
+// - Gets configuration from Zustand stores
 // - Uploads to configured directory
 // - Supports progress callback
 
-import type { AppSettings, GitHubConfig, CreateTreeBody, CreateCommitBody } from '../types';
-import { getStoredToken, getStoredUsername } from './tokenAuth';
-import { LOCALSTORAGE_KEYS } from './appConfig';
-
-function getAppSettings(): AppSettings | null {
-  const raw = localStorage.getItem(LOCALSTORAGE_KEYS.githubSettings);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw);
-    return {
-      repo: parsed.repo || '',
-      path: parsed.path || 'media/',
-      thumbnailPath: parsed.thumbnailPath || 'thumbnails/',
-      thumbnailWidth: parsed.thumbnailWidth || 320,
-      thumbnailHeight: parsed.thumbnailHeight || 240
-    };
-  } catch {
-    return null;
-  }
-}
+import type { GitHubConfig, CreateTreeBody, CreateCommitBody } from '../types';
+import { useAuthStore } from '../stores/authStore';
+import { useSettingsStore } from '../stores/settingsStore';
 
 function getUploadConfig() {
-  const token = getStoredToken();
-  const username = getStoredUsername();
-  const settings = getAppSettings();
+  const authState = useAuthStore.getState();
+  const settingsState = useSettingsStore.getState();
   
-  if (!token || !username || !settings?.repo) {
+  if (!authState.isAuthenticated || !authState.githubConfig || !settingsState.appSettings) {
+    return null;
+  }
+  
+  const { githubConfig } = authState;
+  const { appSettings } = settingsState;
+  
+  if (!githubConfig.token || !githubConfig.owner || !appSettings.repo) {
     return null;
   }
   
   return {
-    token,
-    owner: username,
-    repo: settings.repo,
-    path: settings.path.endsWith('/') ? settings.path : settings.path + '/',
-    thumbnailPath: settings.thumbnailPath.endsWith('/') ? settings.thumbnailPath : settings.thumbnailPath + '/',
-    thumbnailWidth: settings.thumbnailWidth,
-    thumbnailHeight: settings.thumbnailHeight
+    token: githubConfig.token,
+    owner: githubConfig.owner,
+    repo: appSettings.repo,
+    path: appSettings.path.endsWith('/') ? appSettings.path : appSettings.path + '/',
+    thumbnailPath: appSettings.thumbnailPath.endsWith('/') ? appSettings.thumbnailPath : appSettings.thumbnailPath + '/',
+    thumbnailWidth: appSettings.thumbnailWidth,
+    thumbnailHeight: appSettings.thumbnailHeight
   };
 }
 

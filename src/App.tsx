@@ -10,45 +10,22 @@ import TokenSetup from './components/TokenSetup';
 import Modal from './components/Modal';
 import { useModal } from './hooks/useModal';
 import { useAuth } from './hooks/useAuth';
+import { useSettingsStore } from './stores/settingsStore';
+import { useUIStore } from './stores/uiStore';
 
-const SETTINGS_KEY = 'githubSettings';
 
 const App: React.FC = () => {
-  // State: navigation (audio, video, files, upload)
-  // Mobile-first layout, bottom nav, responsive
-  // Show InstallPrompt, main content, and bottom nav
-  const [screen, setScreen] = React.useState<'home' | 'record' | 'library' | 'settings'>('home');
-  const [highlightFileId, setHighlightFileId] = React.useState<string | undefined>(undefined);
+  // Global state management
+  const { audioFormat, setAudioFormat } = useSettingsStore();
+  const { currentScreen, highlightFileId, setScreen } = useUIStore();
   const { modalState, showAlert, closeModal } = useModal();
   const { authenticated, isLoading, setAuthenticated } = useAuth(showAlert);
-  const [audioFormat, setAudioFormat] = React.useState<'mp3' | 'wav'>(() => {
-    const saved = localStorage.getItem(SETTINGS_KEY);
-    if (saved) return (JSON.parse(saved).audioFormat as 'mp3' | 'wav') || 'mp3';
-    return 'mp3';
-  });
 
-
-  // Sync audioFormat to localStorage when changed
-  React.useEffect(() => {
-    const saved = localStorage.getItem(SETTINGS_KEY);
-    const settings = saved ? JSON.parse(saved) : {};
-    if (settings.audioFormat !== audioFormat) {
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...settings, audioFormat }));
-    }
-  }, [audioFormat]);
 
   // Handle navigation to library with optional highlight
   const handleNavigateToLibrary = React.useCallback((highlightId?: string) => {
-    setHighlightFileId(highlightId);
-    setScreen('library');
-  }, []);
-
-  // Clear highlight when navigating away from library
-  React.useEffect(() => {
-    if (screen !== 'library') {
-      setHighlightFileId(undefined);
-    }
-  }, [screen]);
+    setScreen('library', highlightId);
+  }, [setScreen]);
 
   // Show loading while checking authentication
   if (isLoading) {
@@ -72,17 +49,18 @@ const App: React.FC = () => {
       <DesktopAlert />
       <InstallPrompt />
       <main className="flex-1 overflow-y-auto pb-20">
-        {screen === 'home' && <AudioRecorder audioFormat={audioFormat} onNavigateToLibrary={handleNavigateToLibrary} />}
-        {screen === 'record' && <VideoRecorder />}
-        {screen === 'library' && <FileList highlightId={highlightFileId} />}
-        {screen === 'settings' && <Settings audioFormat={audioFormat} setAudioFormat={setAudioFormat} onLogout={() => setAuthenticated(false)} />}
+        {currentScreen === 'audio' && <AudioRecorder audioFormat={audioFormat} onNavigateToLibrary={handleNavigateToLibrary} />}
+        {currentScreen === 'video' && <VideoRecorder />}
+        {currentScreen === 'library' && <FileList highlightId={highlightFileId} />}
+        {currentScreen === 'settings' && <Settings audioFormat={audioFormat} setAudioFormat={setAudioFormat} onLogout={() => setAuthenticated(false)} />}
       </main>
       <BottomMenu
-        active={screen}
+        active={currentScreen === 'audio' ? 'home' : currentScreen === 'video' ? 'record' : currentScreen}
         onNavigate={(key) => {
-          if (key === 'home' || key === 'record' || key === 'library' || key === 'settings') {
-            setScreen(key);
-          }
+          if (key === 'home') setScreen('audio');
+          else if (key === 'record') setScreen('video');
+          else if (key === 'library') setScreen('library');
+          else if (key === 'settings') setScreen('settings');
         }}
       />
       

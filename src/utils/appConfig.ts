@@ -6,7 +6,8 @@ export const LOCALSTORAGE_KEYS = {
   githubSettings: 'githubSettings', // Added SETTINGS_KEY here
 };
 
-import type { MediaCategory, AppSettings } from '../types';
+import type { MediaCategory } from '../types';
+import { useSettingsStore } from '../stores/settingsStore';
 
 export const DEFAULT_MEDIA_CATEGORIES: MediaCategory[] = [
   { id: 'Music', name: 'Music' },
@@ -18,15 +19,13 @@ export const DEFAULT_MEDIA_CATEGORIES: MediaCategory[] = [
 // Backward compatibility export
 export const MEDIA_CATEGORIES = DEFAULT_MEDIA_CATEGORIES;
 
-// Get categories from settings or use defaults
+// Get categories from settings store or use defaults
 export function getMediaCategories(): MediaCategory[] {
   try {
-    const settings = localStorage.getItem(LOCALSTORAGE_KEYS.githubSettings);
-    if (settings) {
-      const parsed: AppSettings = JSON.parse(settings);
-      if (parsed.customCategories && parsed.customCategories.length > 0) {
-        return parsed.customCategories;
-      }
+    const settingsState = useSettingsStore.getState();
+    
+    if (settingsState.appSettings?.customCategories && settingsState.appSettings.customCategories.length > 0) {
+      return settingsState.appSettings.customCategories;
     }
   } catch (error) {
     console.warn('Failed to load custom categories:', error);

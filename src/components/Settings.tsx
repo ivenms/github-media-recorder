@@ -1,24 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import type { AppSettings, SettingsProps, MediaCategory } from '../types';
 import { getStoredUsername, clearTokenData } from '../utils/tokenAuth';
-import { LOCALSTORAGE_KEYS, DEFAULT_MEDIA_CATEGORIES } from '../utils/appConfig';
+import { DEFAULT_MEDIA_CATEGORIES } from '../utils/appConfig';
 import Modal from './Modal';
 import Header from './Header';
 import { useModal } from '../hooks/useModal';
+import { useSettingsStore } from '../stores/settingsStore';
+import { useAuthStore } from '../stores/authStore';
 
 const getInitialSettings = (): AppSettings => {
-  const saved = localStorage.getItem(LOCALSTORAGE_KEYS.githubSettings);
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    return {
-      repo: parsed.repo || '',
-      path: parsed.path || 'media/',
-      thumbnailPath: parsed.thumbnailPath || 'thumbnails/',
-      thumbnailWidth: parsed.thumbnailWidth || 320,
-      thumbnailHeight: parsed.thumbnailHeight || 240,
-      customCategories: parsed.customCategories || DEFAULT_MEDIA_CATEGORIES.slice()
-    };
-  }
+  // Default settings - the store will load persisted data
   return { 
     repo: '', 
     path: 'media/', 
@@ -31,15 +22,22 @@ const getInitialSettings = (): AppSettings => {
 
 const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogout }) => {
   const { modalState, showConfirm, closeModal } = useModal();
-  const [settings, setSettings] = useState<AppSettings>(getInitialSettings());
+  const { appSettings, setAppSettings } = useSettingsStore();
+  const { userInfo, logout: authLogout } = useAuthStore();
+  
+  const [settings, setSettings] = useState<AppSettings>(appSettings || getInitialSettings());
   const [status, setStatus] = useState<string>('');
-  const [username, setUsername] = useState<string>('');
   const [newCategoryName, setNewCategoryName] = useState<string>('');
 
   useEffect(() => {
-    setSettings(getInitialSettings());
-    setUsername(getStoredUsername() || '');
-  }, []);
+    if (appSettings) {
+      setSettings(appSettings);
+    } else {
+      const initialSettings = getInitialSettings();
+      setSettings(initialSettings);
+      setAppSettings(initialSettings);
+    }
+  }, [appSettings, setAppSettings]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -50,7 +48,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
   };
 
   const handleSave = () => {
-    localStorage.setItem(LOCALSTORAGE_KEYS.githubSettings, JSON.stringify(settings));
+    setAppSettings(settings);
     setStatus('Settings saved!');
     setTimeout(() => setStatus(''), 2000);
   };
@@ -60,6 +58,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
       'Are you sure you want to logout? You will need to enter your GitHub token again.',
       () => {
         clearTokenData();
+        authLogout();
         onLogout();
       },
       'Confirm Logout',
@@ -122,7 +121,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
         <div className="flex items-center justify-between">
           <div>
             <span className="text-sm text-gray-600">Logged in as:</span>
-            <div className="font-semibold text-gray-900">{username}</div>
+            <div className="font-semibold text-gray-900">{userInfo?.login || userInfo?.name || getStoredUsername() || 'Unknown'}</div>
           </div>
           <button
             onClick={handleLogout}

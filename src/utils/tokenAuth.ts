@@ -1,4 +1,4 @@
-import { LOCALSTORAGE_KEYS } from './appConfig';
+import { useAuthStore } from '../stores/authStore';
 
 // Token validation and management utilities
 
@@ -48,16 +48,39 @@ export async function validateToken(token: string): Promise<TokenValidationResul
 }
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(LOCALSTORAGE_KEYS.githubToken);
+  try {
+    const authState = useAuthStore.getState();
+    if (authState.isAuthenticated && authState.githubConfig?.token) {
+      return authState.githubConfig.token;
+    }
+  } catch (error) {
+    console.error('Failed to get token from AuthStore:', error);
+  }
+  
+  return null;
 }
 
 export function getStoredUsername(): string | null {
-  return localStorage.getItem(LOCALSTORAGE_KEYS.githubUsername);
+  try {
+    const authState = useAuthStore.getState();
+    if (authState.isAuthenticated && authState.githubConfig?.owner) {
+      return authState.githubConfig.owner;
+    }
+  } catch (error) {
+    console.error('Failed to get username from AuthStore:', error);
+  }
+  
+  return null;
 }
 
 export function getTokenTimestamp(): number | null {
-  const timestamp = localStorage.getItem('github_token_timestamp');
-  return timestamp ? parseInt(timestamp, 10) : null;
+  try {
+    const authState = useAuthStore.getState();
+    return authState.tokenTimestamp;
+  } catch (error) {
+    console.error('Failed to get token timestamp from AuthStore:', error);
+    return null;
+  }
 }
 
 export function isTokenLikelyExpired(): boolean {
@@ -94,15 +117,21 @@ export async function checkTokenValidity(): Promise<TokenValidationResult> {
 }
 
 export function clearTokenData(): void {
-  localStorage.removeItem(LOCALSTORAGE_KEYS.githubToken);
-  localStorage.removeItem(LOCALSTORAGE_KEYS.githubUsername);
-  localStorage.removeItem('github_token_timestamp');
+  try {
+    const authStore = useAuthStore.getState();
+    authStore.logout();
+  } catch (error) {
+    console.error('Failed to clear AuthStore:', error);
+  }
 }
 
 export function storeTokenData(token: string, username: string): void {
-  localStorage.setItem(LOCALSTORAGE_KEYS.githubToken, token);
-  localStorage.setItem(LOCALSTORAGE_KEYS.githubUsername, username);
-  localStorage.setItem('github_token_timestamp', Date.now().toString());
+  try {
+    const authStore = useAuthStore.getState();
+    authStore.login({ token, owner: username, repo: '' });
+  } catch (error) {
+    console.error('Failed to store in AuthStore:', error);
+  }
 }
 
 export function isAuthenticated(): boolean {

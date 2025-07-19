@@ -1,42 +1,29 @@
-import React, { useEffect, useState } from 'react';
-import { listFiles } from '../utils/fileUtils';
+import React, { useEffect } from 'react';
 import { uploadFile } from '../utils/uploadUtils';
-import type { UploadState, FileRecord } from '../types';
+import { useFilesStore } from '../stores/filesStore';
+import type { FileRecord } from '../types';
 
 const UploadManager: React.FC = () => {
-  const [files, setFiles] = useState<FileRecord[]>([]);
-  const [uploadState, setUploadState] = useState<UploadState>({});
-
-  const loadFiles = async () => {
-    const f = await listFiles();
-    setFiles(f);
-  };
+  const { files, uploadState, loadFiles, setUploadProgress } = useFilesStore();
 
   useEffect(() => {
     loadFiles();
-  }, []);
+  }, [loadFiles]);
 
   const startUpload = async (file: FileRecord) => {
-    setUploadState((s) => ({
-      ...s,
-      [file.id]: { status: 'uploading', progress: 0 },
-    }));
+    setUploadProgress(file.id, { status: 'uploading', progress: 0 });
+    
     try {
       await uploadFile(file.file!, (p) => {
-        setUploadState((s) => ({
-          ...s,
-          [file.id]: { ...s[file.id], progress: p, status: 'uploading' },
-        }));
+        setUploadProgress(file.id, { status: 'uploading', progress: p });
       });
-      setUploadState((s) => ({
-        ...s,
-        [file.id]: { status: 'success', progress: 1 },
-      }));
+      setUploadProgress(file.id, { status: 'success', progress: 1 });
     } catch (e: unknown) {
-      setUploadState((s) => ({
-        ...s,
-        [file.id]: { status: 'error', progress: s[file.id]?.progress || 0, error: e instanceof Error ? e.message : 'Upload failed' },
-      }));
+      setUploadProgress(file.id, { 
+        status: 'error', 
+        progress: uploadState[file.id]?.progress || 0, 
+        error: e instanceof Error ? e.message : 'Upload failed' 
+      });
     }
   };
 

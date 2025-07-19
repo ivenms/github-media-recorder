@@ -23,7 +23,7 @@ A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4
 - **Settings**
   - Configure repository and upload path
   - Choose preferred audio format (MP3/WAV)
-  - Settings are persisted in localStorage
+  - Settings are persisted using Zustand stores with automatic persistence
 - **PWA & Mobile-First**
   - Installable as a PWA, with offline support and background sync
   - Mobile-first UI with a fixed bottom navigation bar (Home, Record, Library, Settings)
@@ -33,6 +33,7 @@ A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4
 - React 19+ (TypeScript)
 - Vite
 - Tailwind CSS
+- Zustand (state management with persistence)
 - FFmpeg.js (for media conversion)
 - GitHub API
 - Service Worker, Web App Manifest
@@ -66,7 +67,7 @@ The app will guide you through creating a Personal Access Token on first launch:
 
 1. The app will show detailed instructions when you first run it
 2. You'll need to create a token with `repo` scope
-3. The token is stored securely in your browser's local storage
+3. The token is stored securely using Zustand's persistent storage
 
 ## Deployment
 
@@ -112,13 +113,15 @@ The built files will be in the `dist/` directory.
 src/
   components/      # UI components (recorders, file list, upload manager, settings, navigation, icons, waveform)
   hooks/           # Custom React hooks (media recording, file conversion, PWA install)
+  stores/          # Zustand stores (auth, settings, files, UI state management)
   utils/           # Utilities (file management, media conversion, upload logic)
   types/           # TypeScript types (files, settings, upload state)
 public/
   icons/
 ```
 
-## Main Components & Hooks
+## Main Components, Hooks & Stores
+**Components:**
 - `AudioRecorder` – Record audio, add metadata, convert and save
 - `VideoRecorder` – Record video, add metadata, convert and save
 - `FileList` – List, preview, delete, and share files
@@ -126,17 +129,36 @@ public/
 - `Settings` – Configure GitHub and audio format
 - `BottomMenu` – Mobile navigation bar
 - `Waveform` – Audio waveform visualization
-- `useMediaRecorder` – Custom hook for media recording
-- `useFileConverter` – Custom hook for file conversion (FFmpeg.js)
-- `usePWAInstall` – (Planned) Custom hook for PWA install prompt
+
+**Custom Hooks:**
+- `useMediaRecorder` – Media recording functionality
+- `useFileConverter` – File conversion using FFmpeg.js
+- `usePWAInstall` – PWA install prompt management
+
+**Zustand Stores:**
+- `useAuthStore` – GitHub authentication state and user info
+- `useSettingsStore` – App settings and audio format preferences
+- `useFilesStore` – File management and upload progress tracking
+- `useUIStore` – Navigation state and modal management
 
 ## Configuration
-- **GitHub Settings:**
+All settings are managed through Zustand stores with automatic persistence:
+
+- **Authentication (AuthStore):**
   - Personal Access Token (with repo permissions)
-  - Repository Owner
-  - Repository Name
-- **Audio Format:**
-  - Choose between MP3 and WAV for audio recordings
+  - Repository Owner and Name
+  - User information and token timestamp
+- **App Settings (SettingsStore):**
+  - Audio format preference (MP3/WAV)
+  - Repository upload paths
+  - Thumbnail dimensions
+  - Custom media categories
+- **File Management (FilesStore):**
+  - Local file storage and metadata
+  - Upload progress tracking
+- **UI State (UIStore):**
+  - Navigation state
+  - Modal management
 
 ## License
 MIT

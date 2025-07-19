@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { listFiles, deleteFile, parseMediaFileName } from '../utils/fileUtils';
+import { listFiles, parseMediaFileName } from '../utils/fileUtils';
 import { uploadFile, uploadThumbnail } from '../utils/uploadUtils';
-import { fetchRemoteFiles, extractDateFromFilename } from '../utils/githubUtils';
+import { fetchRemoteFiles } from '../utils/githubUtils';
 import { formatReadableDate } from '../utils/date';
 import { processThumbnailForUpload } from '../utils/imageUtils';
 import DefaultThumbnail from './icons/DefaultThumbnail';
@@ -18,30 +18,39 @@ import AddMediaModal from './AddMediaModal';
 import Modal from './Modal';
 import Header from './Header';
 import { useModal } from '../hooks/useModal';
-import type { FileListProps, FileRecord, UploadProgress, EnhancedFileRecord } from '../types';
+import { useFilesStore } from '../stores/filesStore';
+import type { FileListProps, FileRecord, EnhancedFileRecord } from '../types';
 
 const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   const { modalState, showAlert, closeModal } = useModal();
-  const [mediaFiles, setMediaFiles] = useState<EnhancedFileRecord[]>([]);
+  const { 
+    files: mediaFiles, 
+    uploadState, 
+    isLoading: loading, 
+    loadFiles, 
+    removeFile, 
+    setUploadProgress,
+    refreshFiles 
+  } = useFilesStore();
+  
   const [thumbnails, setThumbnails] = useState<Record<string, FileRecord>>({});
   const [preview, setPreview] = useState<FileRecord | null>(null);
   const [editingFile, setEditingFile] = useState<FileRecord | null>(null);
   const [showAddMediaModal, setShowAddMediaModal] = useState<boolean>(false);
-  const [uploadState, setUploadState] = useState<Record<string, UploadProgress>>({});
-  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightId || null);
 
-  const loadFiles = async () => {
-    setLoading(true);
+  const loadFilesWithThumbnails = React.useCallback(async () => {
     setError(null);
     try {
-      // Fetch local files
+      // Load files using store
+      await loadFiles();
+      
+      // Fetch local files for thumbnails
       const localFiles = await listFiles();
-      const localMedia = localFiles.filter((f) => f.type === 'audio' || f.type === 'video');
       const localThumbs = localFiles.filter((f) => f.type === 'thumbnail');
       
-      // Fetch remote files
+      // Fetch remote files for thumbnails
       let remoteFiles: FileRecord[] = [];
       try {
         remoteFiles = await fetchRemoteFiles();
@@ -51,62 +60,11 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
         // Continue with local files only
       }
       
-      const remoteMedia = remoteFiles.filter((f) => f.type === 'audio' || f.type === 'video');
       const remoteThumbs = remoteFiles.filter((f) => f.type === 'thumbnail');
-      
-      // Create sets for quick lookup
-      const remoteMediaNames = new Set(remoteMedia.map(f => f.name));
       const remoteThumbnailNames = new Set(remoteThumbs.map(f => f.name));
       
-      // Separate local files: keep only those NOT uploaded yet
-      const localOnlyMedia = localMedia.filter((localFile) => !remoteMediaNames.has(localFile.name));
+      // Keep only local thumbnails not uploaded yet
       const localOnlyThumbs = localThumbs.filter((localThumb) => !remoteThumbnailNames.has(localThumb.name));
-      
-      // Clean up local files that have been uploaded
-      const uploadedLocalMedia = localMedia.filter((localFile) => remoteMediaNames.has(localFile.name));
-      const uploadedLocalThumbs = localThumbs.filter((localThumb) => remoteThumbnailNames.has(localThumb.name));
-      
-      // Remove uploaded files from local storage
-      for (const uploadedFile of [...uploadedLocalMedia, ...uploadedLocalThumbs]) {
-        try {
-          await deleteFile(uploadedFile.id);
-          console.log('Cleaned up uploaded local file:', uploadedFile.name);
-        } catch (error) {
-          console.error('Failed to clean up local file:', uploadedFile.name, error);
-        }
-      }
-      
-      // Mark local files as not uploaded
-      const enrichedLocalMedia = localOnlyMedia.map((localFile) => ({
-        ...localFile,
-        uploaded: false,
-        isLocal: true
-      }));
-      
-      // Mark remote files as uploaded
-      const enrichedRemoteMedia = remoteMedia.map((remoteFile) => ({
-        ...remoteFile,
-        uploaded: true,
-        isLocal: false
-      }));
-      
-      // Combine all media files
-      const allMediaFiles = [...enrichedLocalMedia, ...enrichedRemoteMedia];
-      
-      // Sort by date (descending), then by creation timestamp for same-day files
-      allMediaFiles.sort((a: EnhancedFileRecord, b: EnhancedFileRecord) => {
-        const dateA = extractDateFromFilename(a.name);
-        const dateB = extractDateFromFilename(b.name);
-        
-        // Primary sort: by date (descending)
-        const dateDiff = dateB.getTime() - dateA.getTime();
-        if (dateDiff !== 0) return dateDiff;
-        
-        // Secondary sort: by creation timestamp (descending) for same-day files
-        const createdA = a.created || 0;
-        const createdB = b.created || 0;
-        return createdB - createdA;
-      });
       
       // Map thumbnails by base name (without extension)
       const thumbMap: Record<string, FileRecord & {isLocal: boolean}> = {};
@@ -123,25 +81,15 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
         thumbMap[base] = { ...thumb, isLocal: false };
       });
       
-      console.log('Files loaded:', { 
-        localMedia: enrichedLocalMedia.length, 
-        remoteMedia: enrichedRemoteMedia.length,
-        localThumbs: localOnlyThumbs.length,
-        remoteThumbs: remoteThumbs.length 
-      });
-      
-      setMediaFiles(allMediaFiles);
       setThumbnails(thumbMap);
     } catch (error) {
       console.error('Error loading files:', error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [loadFiles]);
 
   useEffect(() => {
-    loadFiles();
-  }, []);
+    loadFilesWithThumbnails();
+  }, [loadFilesWithThumbnails]);
 
   // Update highlighted ID when prop changes
   useEffect(() => {
@@ -159,8 +107,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   }, [highlightedId, mediaFiles]);
 
   const handleDelete = async (id: string) => {
-    await deleteFile(id);
-    loadFiles();
+    await removeFile(id);
   };
 
   const handleEdit = (file: EnhancedFileRecord) => {
@@ -173,18 +120,12 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       return;
     }
 
-    setUploadState((prev) => ({
-      ...prev,
-      [file.id]: { status: 'uploading', progress: 0 }
-    }));
+    setUploadProgress(file.id, { status: 'uploading', progress: 0 });
 
     try {
       // Upload the main media file
       await uploadFile(file.file, (progress) => {
-        setUploadState((prev) => ({
-          ...prev,
-          [file.id]: { status: 'uploading', progress: progress * 0.7 } // 70% for main file
-        }));
+        setUploadProgress(file.id, { status: 'uploading', progress: progress * 0.7 }); // 70% for main file
       }, file.name);
 
       // Check if there's a thumbnail to upload
@@ -202,10 +143,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
           
           console.log('Uploading processed thumbnail:', processedFilename);
           await uploadThumbnail(processedThumbnail, (progress) => {
-            setUploadState((prev) => ({
-              ...prev,
-              [file.id]: { status: 'uploading', progress: 0.7 + (progress * 0.3) } // 30% for thumbnail
-            }));
+            setUploadProgress(file.id, { status: 'uploading', progress: 0.7 + (progress * 0.3) }); // 30% for thumbnail
           }, processedFilename);
         } catch (error) {
           console.error('Error processing thumbnail:', error);
@@ -213,20 +151,18 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
         }
       }
 
-      setUploadState((prev) => ({
-        ...prev,
-        [file.id]: { status: 'success', progress: 1 }
-      }));
+      setUploadProgress(file.id, { status: 'success', progress: 1 });
       
       // Refresh file list to show updated state and clean up local files
       setTimeout(() => {
-        loadFiles();
+        refreshFiles();
       }, 1000);
     } catch (error: unknown) {
-      setUploadState((prev) => ({
-        ...prev,
-        [file.id]: { status: 'error', progress: 0, error: error instanceof Error ? error.message : 'Upload failed' }
-      }));
+      setUploadProgress(file.id, { 
+        status: 'error', 
+        progress: 0, 
+        error: error instanceof Error ? error.message : 'Upload failed' 
+      });
     }
   };
 
@@ -248,7 +184,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <button
-              onClick={loadFiles}
+              onClick={loadFilesWithThumbnails}
               className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:shadow-md transition-all shadow-sm border border-gray-200"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -502,7 +438,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
           thumbnail={thumbnails[editingFile.name.replace(/\.[^.]+$/, '')]?.url}
           onClose={() => setEditingFile(null)}
           onSave={(fileId) => {
-            loadFiles();
+            loadFilesWithThumbnails();
             setEditingFile(null);
             if (fileId) {
               setHighlightedId(fileId);
@@ -516,7 +452,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
         <AddMediaModal
           onClose={() => setShowAddMediaModal(false)}
           onSave={() => {
-            loadFiles();
+            loadFilesWithThumbnails();
             setShowAddMediaModal(false);
           }}
         />
