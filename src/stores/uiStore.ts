@@ -1,37 +1,5 @@
 import { create } from 'zustand';
-
-type Screen = 'audio' | 'video' | 'library' | 'settings';
-
-interface UIState {
-  // Navigation state
-  currentScreen: Screen;
-  previousScreen: Screen | null;
-  highlightFileId?: string;
-
-  // Modal state
-  modal: {
-    isOpen: boolean;
-    type: 'alert' | 'confirm' | 'edit' | null;
-    title?: string;
-    message?: string;
-    data?: unknown;
-    onConfirm?: () => void;
-    onCancel?: () => void;
-  };
-
-  // Loading states
-  isUploading: boolean;
-  isProcessing: boolean;
-
-  // Actions
-  setScreen: (screen: Screen, highlightId?: string) => void;
-  goBack: () => void;
-  openModal: (modal: Partial<UIState['modal']>) => void;
-  closeModal: () => void;
-  setUploading: (uploading: boolean) => void;
-  setProcessing: (processing: boolean) => void;
-  reset: () => void;
-}
+import type { Screen, UIState } from '../types';
 
 export const useUIStore = create<UIState>((set, get) => ({
   currentScreen: 'audio',

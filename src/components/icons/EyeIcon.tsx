@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface EyeIconProps {
-  className?: string;
-  width?: number;
-  height?: number;
-}
+import type { EyeIconProps } from '../../types';
 
 const EyeIcon: React.FC<EyeIconProps> = ({ className = '', width = 18, height = 18 }) => {
   return (

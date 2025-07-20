@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface EditIconProps {
-  className?: string;
-  width?: number;
-  height?: number;
-}
+import type { EditIconProps } from '../../types';
 
 const EditIcon: React.FC<EditIconProps> = ({ className = '', width = 18, height = 18 }) => {
   return (

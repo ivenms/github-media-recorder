@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface PlayIconProps {
-  width?: number;
-  height?: number;
-  className?: string;
-}
+import type { PlayIconProps } from '../../types';
 
 const PlayIcon: React.FC<PlayIconProps> = ({ width = 24, height = 24, className = '' }) => {
   return (

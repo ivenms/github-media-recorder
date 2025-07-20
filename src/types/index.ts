@@ -1,3 +1,7 @@
+// ============================================================================
+// Core Application Types
+// ============================================================================
+
 // Media file types
 export type MediaType = 'audio' | 'video';
 
@@ -51,40 +55,6 @@ export interface UploadState {
   };
 }
 
-// Props for AudioRecorder
-export interface AudioRecorderProps {
-  audioFormat: 'mp3' | 'wav';
-  onNavigateToLibrary?: (highlightId?: string) => void;
-}
-
-// Props for FileList
-export interface FileListProps {
-  highlightId?: string;
-}
-
-// Props for Settings
-export interface SettingsProps {
-  audioFormat: 'mp3' | 'wav';
-  setAudioFormat: (format: 'mp3' | 'wav') => void;
-  onLogout: () => void;
-}
-
-// Props for TokenSetup
-export interface TokenSetupProps {
-  onSuccess: () => void;
-}
-
-
-// Options for useMediaRecorder hook
-export interface UseMediaRecorderOptions {
-  audio?: boolean;
-  video?: boolean;
-  mimeType?: string;
-}
-
-// TODO: Define more specific types for fileUtils and mediaConverter if needed
-// TODO: Add types for FileList and VideoRecorder if props are added in the future 
-
 export type MediaCategory = {
   id: string;
   name: string;
@@ -95,13 +65,6 @@ export interface ParsedMediaFileName {
   title: string;
   author: string;
   date: string;
-}
-
-export interface EditFileModalProps {
-  file: FileRecord;
-  onClose: () => void;
-  onSave: (fileId?: string) => void;
-  thumbnail?: string;
 }
 
 export interface ThumbnailFile {
@@ -141,13 +104,22 @@ export interface FileRecord extends FileMetadata {
   id: string;
   file: Blob;
   url?: string;
+  base64Data?: string; // For persistent storage
 }
 
-export interface GitHubConfig {
+// Basic GitHub auth config (stored in auth store)
+export interface GitHubAuthConfig {
   token: string;
   owner: string;
   repo: string;
-  path?: string;
+}
+
+// Full GitHub config (combines auth + settings for utils)
+export interface GitHubConfig extends GitHubAuthConfig {
+  path: string;
+  thumbnailPath: string;
+  thumbnailWidth: number;
+  thumbnailHeight: number;
 }
 
 export interface GitTreeItem {
@@ -171,3 +143,19 @@ export interface CreateCommitBody {
 export interface EnhancedFileRecord extends FileRecord {
   isLocal: boolean;
 }
+
+// ============================================================================
+// Re-exports from organized type files
+// ============================================================================
+
+// Hook types
+export * from './hooks';
+
+// Component types  
+export * from './components';
+
+// Utility types
+export * from './utils';
+
+// Store types
+export * from './stores';

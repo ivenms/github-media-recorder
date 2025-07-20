@@ -1,11 +1,5 @@
 import React from 'react';
-
-interface HeaderProps {
-  title: string;
-  children?: React.ReactNode;
-  showBackButton?: boolean;
-  onBackClick?: () => void;
-}
+import type { HeaderProps } from '../types';
 
 const Header: React.FC<HeaderProps> = ({ 
   title, 

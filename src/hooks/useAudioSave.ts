@@ -1,21 +1,9 @@
 import { useState } from 'react';
-import { saveFile, decodeWebmToPCM, encodeWAV, formatMediaFileName, convertImageToJpg } from '../utils/fileUtils';
+import { decodeWebmToPCM, encodeWAV, formatMediaFileName, convertImageToJpg } from '../utils/fileUtils';
 import { getMediaCategories } from '../utils/appConfig';
-import type { ConvertType } from './useFileConverter';
-
-interface UseAudioSaveParams {
-  audioUrl: string | null;
-  audioFormat: string;
-  title: string;
-  author: string;
-  category: string;
-  date: string;
-  duration: number;
-  thumbnail: File | null;
-  validateInputs: () => boolean;
-  convert: (type: ConvertType, input: Uint8Array) => Promise<Uint8Array | null>;
-  convertProgress?: number;
-}
+import { useFilesStore } from '../stores/filesStore';
+import { canStoreFile, isStorageNearCapacity } from '../utils/storageQuota';
+import type { UseAudioSaveParams } from '../types';
 
 export function useAudioSave({
   audioUrl,
@@ -34,18 +22,46 @@ export function useAudioSave({
   const [error, setError] = useState<string | null>(null);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   const [savedFileId, setSavedFileId] = useState<string | null>(null);
+  const { saveFile } = useFilesStore();
 
   const handleSave = async () => {
     if (!audioUrl) return;
     if (!validateInputs()) return;
+    
     setSaving(true);
-    // Fetch the blob from the audioUrl
-    const response = await fetch(audioUrl);
-    const blob = await response.blob();
-    let outBlob = blob;
-    let outMime = blob.type;
-    let ext = 'webm';
+    setError(null);
+    
     try {
+      // Check storage capacity before processing
+      const storageStatus = await isStorageNearCapacity();
+      if (storageStatus.critical) {
+        setError('Storage is critically low. Please free up some space before saving.');
+        setSaving(false);
+        return;
+      }
+      
+      if (storageStatus.warning) {
+        console.warn('Storage usage is high. Consider cleaning up files.');
+      }
+      
+      // Fetch the blob from the audioUrl
+      const response = await fetch(audioUrl);
+      const blob = await response.blob();
+      
+      // Check if we can store the original file
+      const canStore = await canStoreFile(blob.size);
+      if (!canStore) {
+        setError('Not enough storage space available. Please free up some space and try again.');
+        setSaving(false);
+        return;
+      }
+      
+      let outBlob = blob;
+      let outMime = blob.type;
+      let ext = 'webm';
+      
+      // Process audio conversion
+      try {
       if (audioFormat === 'wav' || audioFormat === 'mp3') {
         const { channelData, sampleRate } = await decodeWebmToPCM(blob);
         if (audioFormat === 'wav') {
@@ -62,11 +78,19 @@ export function useAudioSave({
           ext = 'mp3';
         }
       }
-    } catch (err) {
-      setError('Conversion failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
-      setSaving(false);
-      return;
-    }
+      } catch (conversionErr) {
+        setError('Conversion failed: ' + (conversionErr instanceof Error ? conversionErr.message : 'Unknown error'));
+        setSaving(false);
+        return;
+      }
+      
+      // Final check after conversion (converted file might be different size)
+      const finalCanStore = await canStoreFile(outBlob.size);
+      if (!finalCanStore) {
+        setError('Converted file is too large for available storage space.');
+        setSaving(false);
+        return;
+      }
     // Format date
     const fileDate = date ? date : new Date().toISOString().slice(0, 10);
     const catObj = getMediaCategories().find(c => c.id === category);
@@ -78,7 +102,7 @@ export function useAudioSave({
       date: fileDate,
       extension: ext,
     });
-    const fileId = await saveFile(outBlob, {
+    const fileRecord = await saveFile(outBlob, {
       name: outName,
       type: 'audio',
       mimeType: outMime,
@@ -86,7 +110,7 @@ export function useAudioSave({
       duration,
       created: Date.now(),
     });
-    setSavedFileId(fileId);
+    setSavedFileId(fileRecord.id);
     // Handle thumbnail save
     if (thumbnail) {
       try {
@@ -97,15 +121,20 @@ export function useAudioSave({
           type: 'thumbnail',
           mimeType: 'image/jpeg',
           size: jpgBlob.size,
+          duration: 0,
           created: Date.now(),
         });
       } catch {
         setThumbnailError('Thumbnail conversion failed.');
       }
     }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError('Failed to save audio: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      setSaving(false);
+    }
   };
 
   const clearThumbnailError = () => setThumbnailError(null);

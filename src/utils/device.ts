@@ -1,4 +1,5 @@
 // Device detection utilities
+import type { MobilePlatform } from '../types';
 
 export function isMobile(): boolean {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -7,8 +8,6 @@ export function isMobile(): boolean {
 export function isDesktop(): boolean {
   return !isMobile();
 }
-
-export type MobilePlatform = 'android' | 'ios-safari' | 'ios-chrome' | null;
 
 export function getMobilePlatform(): MobilePlatform {
   const ua = navigator.userAgent;

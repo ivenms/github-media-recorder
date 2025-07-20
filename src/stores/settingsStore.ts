@@ -1,18 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AppSettings } from '../types';
-
-interface SettingsState {
-  // App settings
-  audioFormat: 'mp3' | 'wav';
-  appSettings: AppSettings | null;
-
-  // Actions
-  setAudioFormat: (format: 'mp3' | 'wav') => void;
-  setAppSettings: (settings: AppSettings) => void;
-  updateAppSettings: (settings: Partial<AppSettings>) => void;
-  reset: () => void;
-}
+import type { AppSettings, SettingsState } from '../types';
 
 const defaultAppSettings: AppSettings = {
   repo: '',

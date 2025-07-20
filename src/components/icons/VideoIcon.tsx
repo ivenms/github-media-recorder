@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface VideoIconProps {
-  className?: string;
-  width?: number;
-  height?: number;
-}
+import type { VideoIconProps } from '../../types';
 
 const VideoIcon: React.FC<VideoIconProps> = ({ className = '', width = 16, height = 16 }) => {
   return (

@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { listFiles, parseMediaFileName } from '../utils/fileUtils';
-import { uploadFile, uploadThumbnail } from '../utils/uploadUtils';
-import { fetchRemoteFiles } from '../utils/githubUtils';
+import { parseMediaFileName } from '../utils/fileUtils';
 import { formatReadableDate } from '../utils/date';
-import { processThumbnailForUpload } from '../utils/imageUtils';
 import DefaultThumbnail from './icons/DefaultThumbnail';
 import PlayIcon from './icons/PlayIcon';
 import EditIcon from './icons/EditIcon';
@@ -17,79 +14,33 @@ import EditFileModal from './EditFileModal';
 import AddMediaModal from './AddMediaModal';
 import Modal from './Modal';
 import Header from './Header';
+import GitHubImage from './GitHubImage';
+import GitHubMedia from './GitHubMedia';
 import { useModal } from '../hooks/useModal';
-import { useFilesStore } from '../stores/filesStore';
+import { useCombinedFiles } from '../hooks/useCombinedFiles';
+import { useUploadManager } from '../hooks/useUploadManager';
 import type { FileListProps, FileRecord, EnhancedFileRecord } from '../types';
 
 const FileList: React.FC<FileListProps> = ({ highlightId }) => {
-  const { modalState, showAlert, closeModal } = useModal();
+  const { modalState, closeModal } = useModal();
   const { 
     files: mediaFiles, 
+    thumbnails,
     uploadState, 
     isLoading: loading, 
-    loadFiles, 
+    remoteError,
+    loadFilesWithThumbnails,
+    refreshAllFiles,
     removeFile, 
-    setUploadProgress,
-    refreshFiles 
-  } = useFilesStore();
+    setRemoteError
+  } = useCombinedFiles();
   
-  const [thumbnails, setThumbnails] = useState<Record<string, FileRecord>>({});
+  // Use upload manager for all upload-related business logic
+  const { uploadFile: uploadWithManagement, retryUpload } = useUploadManager();
   const [preview, setPreview] = useState<FileRecord | null>(null);
   const [editingFile, setEditingFile] = useState<FileRecord | null>(null);
   const [showAddMediaModal, setShowAddMediaModal] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightId || null);
-
-  const loadFilesWithThumbnails = React.useCallback(async () => {
-    setError(null);
-    try {
-      // Load files using store
-      await loadFiles();
-      
-      // Fetch local files for thumbnails
-      const localFiles = await listFiles();
-      const localThumbs = localFiles.filter((f) => f.type === 'thumbnail');
-      
-      // Fetch remote files for thumbnails
-      let remoteFiles: FileRecord[] = [];
-      try {
-        remoteFiles = await fetchRemoteFiles();
-      } catch (remoteError: unknown) {
-        console.error('Failed to fetch remote files:', remoteError);
-        setError(`Repository access failed: ${remoteError instanceof Error ? remoteError.message : 'Check your GitHub settings and repository configuration'}`);
-        // Continue with local files only
-      }
-      
-      const remoteThumbs = remoteFiles.filter((f) => f.type === 'thumbnail');
-      const remoteThumbnailNames = new Set(remoteThumbs.map(f => f.name));
-      
-      // Keep only local thumbnails not uploaded yet
-      const localOnlyThumbs = localThumbs.filter((localThumb) => !remoteThumbnailNames.has(localThumb.name));
-      
-      // Map thumbnails by base name (without extension)
-      const thumbMap: Record<string, FileRecord & {isLocal: boolean}> = {};
-      
-      // Add local thumbnails (for local files only)
-      localOnlyThumbs.forEach((thumb: FileRecord) => {
-        const base = thumb.name.replace(/\.[^.]+$/, '');
-        thumbMap[base] = { ...thumb, isLocal: true };
-      });
-      
-      // Add remote thumbnails (for remote files)
-      remoteThumbs.forEach((thumb: FileRecord) => {
-        const base = thumb.name.replace(/\.[^.]+$/, '');
-        thumbMap[base] = { ...thumb, isLocal: false };
-      });
-      
-      setThumbnails(thumbMap);
-    } catch (error) {
-      console.error('Error loading files:', error);
-    }
-  }, [loadFiles]);
-
-  useEffect(() => {
-    loadFilesWithThumbnails();
-  }, [loadFilesWithThumbnails]);
 
   // Update highlighted ID when prop changes
   useEffect(() => {
@@ -115,59 +66,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   };
 
   const handleUpload = async (file: EnhancedFileRecord) => {
-    if (!file.file) {
-      showAlert('File data not available for upload.', 'Upload Error');
-      return;
-    }
-
-    setUploadProgress(file.id, { status: 'uploading', progress: 0 });
-
-    try {
-      // Upload the main media file
-      await uploadFile(file.file, (progress) => {
-        setUploadProgress(file.id, { status: 'uploading', progress: progress * 0.7 }); // 70% for main file
-      }, file.name);
-
-      // Check if there's a thumbnail to upload
-      const baseName = file.name.replace(/\.[^.]+$/, '');
-      const thumbnail = thumbnails[baseName];
-      
-      if (thumbnail && thumbnail.file) {
-        try {
-          // Process thumbnail: crop, scale, convert to JPG
-          const mediaFileName = file.name;
-          const { blob: processedThumbnail, filename: processedFilename } = await processThumbnailForUpload(
-            thumbnail.file,
-            mediaFileName
-          );
-          
-          console.log('Uploading processed thumbnail:', processedFilename);
-          await uploadThumbnail(processedThumbnail, (progress) => {
-            setUploadProgress(file.id, { status: 'uploading', progress: 0.7 + (progress * 0.3) }); // 30% for thumbnail
-          }, processedFilename);
-        } catch (error) {
-          console.error('Error processing thumbnail:', error);
-          // Continue without thumbnail if processing fails
-        }
-      }
-
-      setUploadProgress(file.id, { status: 'success', progress: 1 });
-      
-      // Refresh file list to show updated state and clean up local files
-      setTimeout(() => {
-        refreshFiles();
-      }, 1000);
-    } catch (error: unknown) {
-      setUploadProgress(file.id, { 
-        status: 'error', 
-        progress: 0, 
-        error: error instanceof Error ? error.message : 'Upload failed' 
-      });
-    }
-  };
-
-  const retryUpload = (file: EnhancedFileRecord) => {
-    handleUpload(file);
+    await uploadWithManagement(file);
   };
 
   const handleAddMedia = () => {
@@ -184,7 +83,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <button
-              onClick={loadFilesWithThumbnails}
+              onClick={refreshAllFiles}
               className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:shadow-md transition-all shadow-sm border border-gray-200"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +113,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
         ) : (
           <>
             {/* Error Message */}
-            {error && (
+            {remoteError && (
               <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-start gap-3">
                   <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,11 +121,11 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
                   </svg>
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-red-800 mb-1">Repository Error</h3>
-                    <p className="text-sm text-red-700">{error}</p>
+                    <p className="text-sm text-red-700">{remoteError}</p>
                     <p className="text-xs text-red-600 mt-2">Showing local files only. Check your GitHub settings to view remote files.</p>
                   </div>
                   <button
-                    onClick={() => setError(null)}
+                    onClick={() => setRemoteError(null)}
                     className="text-red-400 hover:text-red-600 p-1"
                     title="Dismiss"
                   >
@@ -247,7 +146,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
           
           return (
             <div 
-              key={file.id} 
+              key={`${file.id}-${file.isLocal ? 'local' : 'remote'}`} 
               id={`file-${file.id}`}
               className={`bg-white rounded-xl shadow-md border overflow-hidden transition-all duration-500 ${
                 isHighlighted 
@@ -262,11 +161,21 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
                   <div className="flex-shrink-0">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
                       {thumb && ((file.isLocal && (thumb as FileRecord & {isLocal: boolean}).isLocal) || (!file.isLocal && !(thumb as FileRecord & {isLocal: boolean}).isLocal)) ? (
-                        <img
-                          src={thumb.url}
-                          alt="thumbnail"
-                          className="w-full h-full object-cover"
-                        />
+                        // For local thumbnails, use direct URL; for remote, use GitHubImage
+                        file.isLocal ? (
+                          <img
+                            src={thumb.url}
+                            alt="thumbnail"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <GitHubImage
+                            filePath={thumb.url || ''}
+                            alt="thumbnail"
+                            className="w-full h-full object-cover"
+                            fallback={<DefaultThumbnail className="w-8 h-8 text-gray-400" />}
+                          />
+                        )
                       ) : (
                         <DefaultThumbnail className="w-8 h-8 text-gray-400" />
                       )}
@@ -422,10 +331,24 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
               <CloseIcon width={20} height={20} />
             </button>
             <h3 className="font-bold mb-4 pr-8">{preview.name}</h3>
-            {preview.type === 'audio' ? (
-              <audio src={preview.url} controls className="w-full" />
+            {/* Use GitHubMedia for remote files, direct src for local files */}
+            {(preview as EnhancedFileRecord).isLocal ? (
+              preview.type === 'audio' ? (
+                <audio src={preview.url} controls className="w-full" />
+              ) : (
+                <video src={preview.url} controls className="w-full max-h-64 rounded" />
+              )
             ) : (
-              <video src={preview.url} controls className="w-full max-h-64 rounded" />
+              <GitHubMedia
+                filePath={preview.url || ''}
+                type={preview.type as 'audio' | 'video'}
+                className="w-full max-h-64 rounded"
+                fallback={
+                  <div className="w-full h-32 bg-gray-200 rounded flex items-center justify-center">
+                    <span className="text-gray-500">Unable to load media</span>
+                  </div>
+                }
+              />
             )}
           </div>
         </div>
@@ -435,10 +358,9 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       {editingFile && (
         <EditFileModal
           file={editingFile}
-          thumbnail={thumbnails[editingFile.name.replace(/\.[^.]+$/, '')]?.url}
+          thumbnail={thumbnails[editingFile.name.replace(/\.[^.]+$/, '')]?.url || undefined}
           onClose={() => setEditingFile(null)}
           onSave={(fileId) => {
-            loadFilesWithThumbnails();
             setEditingFile(null);
             if (fileId) {
               setHighlightedId(fileId);

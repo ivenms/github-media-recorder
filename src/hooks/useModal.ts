@@ -1,17 +1,8 @@
 import { useState, useCallback } from 'react';
-
-interface ModalState {
-  isOpen: boolean;
-  title?: string;
-  message: string;
-  type: 'alert' | 'confirm';
-  confirmText?: string;
-  cancelText?: string;
-  onConfirm?: () => void;
-}
+import type { UseModalState } from '../types';
 
 export function useModal() {
-  const [modalState, setModalState] = useState<ModalState>({
+  const [modalState, setModalState] = useState<UseModalState>({
     isOpen: false,
     message: '',
     type: 'alert',

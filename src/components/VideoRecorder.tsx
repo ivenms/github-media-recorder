@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
-import { saveFile } from '../utils/fileUtils';
+import { useFilesStore } from '../stores/filesStore';
 import { useFileConverter } from '../hooks/useFileConverter';
 import { getMediaCategories } from '../utils/appConfig';
 import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
 import { getTodayDateString, isFutureDate } from '../utils/date';
+import { canStoreFile, isStorageNearCapacity, validateFileSize } from '../utils/storageQuota';
 import Header from './Header';
 
 const VideoRecorder: React.FC = () => {
@@ -27,6 +28,7 @@ const VideoRecorder: React.FC = () => {
   } = useMediaRecorder({ video: true, audio: true });
 
   const { convert, progress: convertProgress, error: convertError } = useFileConverter();
+  const { saveFile } = useFilesStore();
 
   // For video, use videoUrl/videoBlob if available, else fallback to audioUrl/audioBlob
   const mediaUrl = (videoUrl as string) || (audioUrl as string) || null;
@@ -74,7 +76,7 @@ const VideoRecorder: React.FC = () => {
     return true;
   };
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setThumbnailError(null);
     const file = e.target.files?.[0];
     if (file) {
@@ -83,30 +85,73 @@ const VideoRecorder: React.FC = () => {
         setThumbnail(null);
         return;
       }
-      setThumbnail(file);
+      
+      try {
+        await validateFileSize(file, 'thumbnail');
+        setThumbnail(file);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Thumbnail validation failed';
+        setThumbnailError(errorMessage);
+        setThumbnail(null);
+        // Clear the file input
+        e.target.value = '';
+      }
     }
   };
 
   const handleSave = async () => {
     if (!mediaBlob) return;
     if (!validateInputs()) return;
+    
     setSaving(true);
-    let outBlob = mediaBlob;
-    let outMime = mediaBlob.type;
-    let ext = 'webm';
+    setInputError(null);
+    
     try {
-      // Convert to MP4 using useFileConverter hook
-      const arrayBuffer = await mediaBlob.arrayBuffer();
-      const uint8 = new Uint8Array(arrayBuffer);
-      const mp4Data = await convert('mp4', uint8);
-      if (!mp4Data) throw new Error('MP4 conversion failed');
-      outBlob = new Blob([mp4Data], { type: 'video/mp4' });
-      outMime = 'video/mp4';
-      ext = 'mp4';
-    } catch (err) {
-      // fallback: save original if conversion fails
-      console.error('MP4 conversion failed:', err);
-    }
+      // Check storage capacity before processing
+      const storageStatus = await isStorageNearCapacity();
+      if (storageStatus.critical) {
+        setInputError('Storage is critically low. Please free up some space before saving.');
+        setSaving(false);
+        return;
+      }
+      
+      if (storageStatus.warning) {
+        console.warn('Storage usage is high. Consider cleaning up files.');
+      }
+      
+      // Check if we can store the original file
+      const canStore = await canStoreFile(mediaBlob.size);
+      if (!canStore) {
+        setInputError('Not enough storage space available. Please free up some space and try again.');
+        setSaving(false);
+        return;
+      }
+      
+      let outBlob = mediaBlob;
+      let outMime = mediaBlob.type;
+      let ext = 'webm';
+      
+      try {
+        // Convert to MP4 using useFileConverter hook
+        const arrayBuffer = await mediaBlob.arrayBuffer();
+        const uint8 = new Uint8Array(arrayBuffer);
+        const mp4Data = await convert('mp4', uint8);
+        if (!mp4Data) throw new Error('MP4 conversion failed');
+        outBlob = new Blob([mp4Data], { type: 'video/mp4' });
+        outMime = 'video/mp4';
+        ext = 'mp4';
+        
+        // Final check after conversion (converted file might be different size)
+        const finalCanStore = await canStoreFile(outBlob.size);
+        if (!finalCanStore) {
+          setInputError('Converted file is too large for available storage space.');
+          setSaving(false);
+          return;
+        }
+      } catch (conversionErr) {
+        // fallback: save original if conversion fails
+        console.error('MP4 conversion failed:', conversionErr);
+      }
     // Format date
     const fileDate = date ? date : new Date().toISOString().slice(0, 10);
     const catObj = mediaCategories.find(c => c.id === category);
@@ -136,15 +181,20 @@ const VideoRecorder: React.FC = () => {
           type: 'thumbnail',
           mimeType: 'image/jpeg',
           size: jpgBlob.size,
+          duration: 0,
           created: Date.now(),
         });
       } catch {
         setThumbnailError('Thumbnail conversion failed.');
       }
     }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setInputError('Failed to save video: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      setSaving(false);
+    }
   };
 
   return (

@@ -1,13 +1,7 @@
 import { useAuthStore } from '../stores/authStore';
+import type { TokenValidationResult } from '../types';
 
 // Token validation and management utilities
-
-export interface TokenValidationResult {
-  isValid: boolean;
-  isExpired: boolean;
-  username?: string;
-  error?: string;
-}
 
 export async function validateToken(token: string): Promise<TokenValidationResult> {
   try {

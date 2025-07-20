@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface CloseIconProps {
-  width?: number;
-  height?: number;
-  className?: string;
-}
+import type { CloseIconProps } from '../../types';
 
 const CloseIcon: React.FC<CloseIconProps> = ({ 
   width = 24, 

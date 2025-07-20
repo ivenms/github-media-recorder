@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface CheckIconProps {
-  className?: string;
-  width?: number;
-  height?: number;
-}
+import type { CheckIconProps } from '../../types';
 
 const CheckIcon: React.FC<CheckIconProps> = ({ className = '', width = 16, height = 16 }) => {
   return (

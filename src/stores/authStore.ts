@@ -1,24 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { GitHubConfig } from '../types';
-
-interface AuthState {
-  // Authentication state
-  isAuthenticated: boolean;
-  githubConfig: GitHubConfig | null;
-  userInfo: {
-    login?: string;
-    name?: string;
-    avatar_url?: string;
-  } | null;
-  tokenTimestamp: number | null;
-
-  // Actions
-  login: (config: GitHubConfig, userInfo?: unknown) => void;
-  logout: () => void;
-  updateConfig: (config: Partial<GitHubConfig>) => void;
-  setUserInfo: (userInfo: unknown) => void;
-}
+import type { GitHubAuthConfig, AuthState } from '../types';
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -28,7 +10,7 @@ export const useAuthStore = create<AuthState>()(
       userInfo: null,
       tokenTimestamp: null,
 
-      login: (config: GitHubConfig, userInfo?: unknown) => {
+      login: (config: GitHubAuthConfig, userInfo?: unknown) => {
         set({
           isAuthenticated: true,
           githubConfig: config,
@@ -46,7 +28,7 @@ export const useAuthStore = create<AuthState>()(
         });
       },
 
-      updateConfig: (newConfig: Partial<GitHubConfig>) => {
+      updateConfig: (newConfig: Partial<GitHubAuthConfig>) => {
         const currentConfig = get().githubConfig;
         if (currentConfig) {
           set({

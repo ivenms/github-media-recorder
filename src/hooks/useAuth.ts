@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { isAuthenticated, checkTokenValidity, clearTokenData } from '../utils/tokenAuth';
 import { isMobile } from '../utils/device';
-
-export interface UseAuthReturn {
-  authenticated: boolean;
-  isLoading: boolean;
-  setAuthenticated: (value: boolean) => void;
-}
+import type { UseAuthReturn } from '../types';
 
 export function useAuth(showAlert?: (message: string, title: string) => void): UseAuthReturn {
   const [authenticated, setAuthenticated] = useState<boolean>(false);

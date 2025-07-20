@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface UploadIconProps {
-  className?: string;
-  width?: number;
-  height?: number;
-}
+import type { UploadIconProps } from '../../types';
 
 const UploadIcon: React.FC<UploadIconProps> = ({ className = '', width = 16, height = 16 }) => {
   return (

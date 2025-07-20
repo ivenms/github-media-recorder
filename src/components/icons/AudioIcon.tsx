@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface AudioIconProps {
-  className?: string;
-  width?: number;
-  height?: number;
-}
+import type { AudioIconProps } from '../../types';
 
 const AudioIcon: React.FC<AudioIconProps> = ({ className = '', width = 16, height = 16 }) => {
   return (

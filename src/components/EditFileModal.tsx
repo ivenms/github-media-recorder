@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { getMediaCategories } from '../utils/appConfig';
 import { getTodayDateString, isFutureDate } from '../utils/date';
-import { updateFile, saveFile, parseMediaFileName } from '../utils/fileUtils';
+import { parseMediaFileName } from '../utils/fileUtils';
+import { validateFileSize, formatBytes, FILE_LIMITS } from '../utils/storageQuota';
+import { useFilesStore } from '../stores/filesStore';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
 import CloseIcon from './icons/CloseIcon';
@@ -9,6 +11,7 @@ import type { ParsedMediaFileName, EditFileModalProps } from '../types';
 
 const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, thumbnail }) => {
   const { modalState, showAlert, closeModal } = useModal();
+  const { updateFileWithThumbnail } = useFilesStore();
   const meta: ParsedMediaFileName | null = parseMediaFileName(file.name);
   const [formData, setFormData] = useState({
     title: meta?.title || '',
@@ -21,12 +24,20 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
     thumbnail || null
   );
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      setThumbnailFile(file);
-      const url = URL.createObjectURL(file);
-      setThumbnailPreview(url);
+      try {
+        await validateFileSize(file, 'thumbnail');
+        setThumbnailFile(file);
+        const url = URL.createObjectURL(file);
+        setThumbnailPreview(url);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Thumbnail validation failed';
+        showAlert(errorMessage, 'Thumbnail Error');
+        // Clear the file input
+        e.target.value = '';
+      }
     }
   };
 
@@ -38,32 +49,8 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
       const extension = file.name.split('.').pop();
       const newName = `${formData.category}_${formData.title}_${formData.author}_${formData.date}.${extension}`;
       
-      // Update the file metadata in IndexedDB
-      await updateFile(file.id, {
-        name: newName
-      });
-      
-      // Handle thumbnail update if a new file was selected
-      if (thumbnailFile) {
-        const baseName = newName.replace(/\.[^.]+$/, '');
-        const thumbnailName = `${baseName}.jpg`;
-        
-        await saveFile(thumbnailFile, {
-          name: thumbnailName,
-          type: 'thumbnail',
-          mimeType: 'image/jpeg',
-          size: thumbnailFile.size,
-          created: Date.now()
-        });
-      } else if (thumbnail && file.name !== newName) {
-        // If filename changed but no new thumbnail uploaded, update existing thumbnail name to match
-        const oldBaseName = file.name.replace(/\.[^.]+$/, '');
-        const newBaseName = newName.replace(/\.[^.]+$/, '');
-        
-        if (oldBaseName !== newBaseName) {
-          // Note: thumbnail update logic would need to be implemented
-        }
-      }
+      // Update the file using store method
+      await updateFileWithThumbnail(file.id, newName, thumbnailFile);
       
       showAlert('File metadata updated successfully!', 'Success');
       onSave(file.id);
@@ -176,7 +163,8 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
                 className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
               />
               <p className="text-xs text-gray-500">
-                {thumbnail ? 'Upload a new thumbnail to replace the current one (optional)' : 'Upload a thumbnail image (optional)'}
+                {thumbnail ? 'Upload a new thumbnail to replace the current one (optional)' : 'Upload a thumbnail image (optional)'}<br/>
+                Max size: {formatBytes(FILE_LIMITS.MAX_THUMBNAIL_SIZE)}
               </p>
             </div>
           </div>

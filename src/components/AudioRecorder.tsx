@@ -13,6 +13,7 @@ if (typeof window !== 'undefined' && !(window as Window & {BitStream?: unknown})
 import type { AudioRecorderProps } from '../types';
 import { getMediaCategories } from '../utils/appConfig';
 import MicIcon from './icons/MicIcon';
+import RecordIcon from './icons/RecordIcon';
 import Waveform from './Waveform';
 import Modal from './Modal';
 import Header from './Header';
@@ -119,13 +120,17 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateTo
         </div>
         <div className="flex gap-4 mb-4">
           <button
-            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-neumorph text-2xl transition-all ${recording ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}
+            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-neumorph text-2xl transition-all ${recording ? 'bg-red-500 text-white' : ''}`}
             onClick={recording ? stopRecording : startRecording}
           >
             {recording ? (
               <span className="text-3xl">&#9632;</span> // Red square for stop
             ) : (
-              <span className="text-3xl">&#9679;</span> // Green circle for record
+              <RecordIcon 
+                width={32} 
+                height={32} 
+                className="transition-colors"
+              />
             )}
           </button>
         </div>

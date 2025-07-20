@@ -210,6 +210,46 @@ export function parseMediaFileName(name: string): ParsedMediaFileName | null {
 }
 
 /**
+ * Sorts files by date (newest first) with proper fallback logic.
+ * 1. Extract date from filename if available
+ * 2. Fall back to created timestamp
+ * 3. For same dates, use created timestamp as tiebreaker
+ */
+export function sortFilesByDate<T extends { name: string; created?: number; isLocal?: boolean }>(files: T[]): T[] {
+  return files.sort((a, b) => {
+    // Helper function to get sort date for a file
+    const getSortDate = (file: T): number => {
+      // First try to get date from filename
+      const parsedName = parseMediaFileName(file.name);
+      if (parsedName?.date) {
+        const fileDate = new Date(parsedName.date).getTime();
+        // If file has date in name, use it, but add created timestamp as tiebreaker for same-day files
+        return fileDate + (file.created || 0) / 1000000; // Add microseconds for tiebreaker
+      }
+      
+      // Fall back to created timestamp
+      return file.created || 0;
+    };
+    
+    const dateA = getSortDate(a);
+    const dateB = getSortDate(b);
+    
+    // Sort newest first (descending)
+    if (dateA !== dateB) {
+      return dateB - dateA;
+    }
+    
+    // If dates are exactly equal, prioritize local files (they're more recent)
+    if (a.isLocal !== b.isLocal) {
+      return a.isLocal ? -1 : 1;
+    }
+    
+    // Final fallback: use created timestamp for precise ordering
+    return (b.created || 0) - (a.created || 0);
+  });
+}
+
+/**
  * Formats a media file name as Category_Title_Author_Date.extension
  * - Removes non-alphanumeric, dash, and space characters
  * - Removes spaces

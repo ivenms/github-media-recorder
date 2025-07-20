@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
-import type { MediaType } from '../types';
+import type { MediaType, AddMediaModalProps } from '../types';
 import { getMediaCategories } from '../utils/appConfig';
 import { getTodayDateString, isFutureDate } from '../utils/date';
-import { saveFile } from '../utils/fileUtils';
+import { useFilesStore } from '../stores/filesStore';
 import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
+import { validateMultipleFiles, validateFileSize, getFileType, formatBytes, FILE_LIMITS } from '../utils/storageQuota';
 import Modal from './Modal';
 import { useModal } from '../hooks/useModal';
 import CloseIcon from './icons/CloseIcon';
 
-interface AddMediaModalProps {
-  onClose: () => void;
-  onSave: () => void;
-}
-
 const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
   const { modalState, showAlert, closeModal } = useModal();
+  const { saveFile } = useFilesStore();
   const [formData, setFormData] = useState({
     title: '',
     author: '',
@@ -27,13 +24,14 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
       const validFiles: File[] = [];
       const invalidFiles: string[] = [];
+      const oversizedFiles: string[] = [];
       
-      Array.from(files).forEach(file => {
+      for (const file of Array.from(files)) {
         // Check for specific supported formats
         const isValidFormat = 
           file.type === 'audio/mp3' || 
@@ -46,32 +44,66 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
           file.name.toLowerCase().endsWith('.wav') ||
           file.name.toLowerCase().endsWith('.mp4');
         
-        if (isValidFormat) {
-          validFiles.push(file);
-        } else {
+        if (!isValidFormat) {
           invalidFiles.push(file.name);
+          continue;
         }
-      });
+        
+        // Validate file size
+        try {
+          await validateFileSize(file, getFileType(file));
+          validFiles.push(file);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'File validation failed';
+          oversizedFiles.push(`${file.name}: ${errorMessage}`);
+        }
+      }
       
-      setSelectedFiles(validFiles);
+      // Validate total file selection
+      if (validFiles.length > 0) {
+        try {
+          await validateMultipleFiles(validFiles, getFileType);
+          setSelectedFiles(validFiles);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Storage validation failed';
+          showAlert(errorMessage, 'Storage Error');
+          return;
+        }
+      } else {
+        setSelectedFiles([]);
+      }
       
-      // Show error for invalid files
+      // Show errors
+      const errors: string[] = [];
+      
       if (invalidFiles.length > 0) {
-        const fileList = invalidFiles.join(', ');
-        showAlert(
-          `The following files are not supported: ${fileList}. Only MP3, WAV, and MP4 files are allowed.`,
-          'Unsupported File Format'
-        );
+        errors.push(`Unsupported files: ${invalidFiles.join(', ')}. Only MP3, WAV, and MP4 files are allowed.`);
+      }
+      
+      if (oversizedFiles.length > 0) {
+        errors.push(`Files too large: ${oversizedFiles.join('; ')}`);
+      }
+      
+      if (errors.length > 0) {
+        showAlert(errors.join('\n\n'), 'File Validation Error');
       }
     }
   };
 
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      setThumbnailFile(file);
-      const url = URL.createObjectURL(file);
-      setThumbnailPreview(url);
+      try {
+        await validateFileSize(file, 'thumbnail');
+        setThumbnailFile(file);
+        const url = URL.createObjectURL(file);
+        setThumbnailPreview(url);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Thumbnail validation failed';
+        showAlert(errorMessage, 'Thumbnail Error');
+        // Clear the file input
+        e.target.value = '';
+      }
     }
   };
 
@@ -143,6 +175,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
               type: 'thumbnail',
               mimeType: 'image/jpeg',
               size: jpgBlob.size,
+              duration: 0,
               created: Date.now(),
             });
           } catch (error) {
@@ -192,7 +225,8 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
               required
             />
             <p className="text-xs text-gray-500 mt-1">
-              Supported formats: MP3, WAV, MP4 only
+              Supported formats: MP3, WAV, MP4 only<br/>
+              Max size: {formatBytes(FILE_LIMITS.MAX_AUDIO_SIZE)} for audio, {formatBytes(FILE_LIMITS.MAX_VIDEO_SIZE)} for video
             </p>
             {selectedFiles.length > 0 && (
               <div className="mt-2">
@@ -296,7 +330,8 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
                 className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
               />
               <p className="text-xs text-gray-500">
-                Upload a thumbnail image (will be applied to all imported files)
+                Upload a thumbnail image (will be applied to all imported files)<br/>
+                Max size: {formatBytes(FILE_LIMITS.MAX_THUMBNAIL_SIZE)}
               </p>
             </div>
           </div>

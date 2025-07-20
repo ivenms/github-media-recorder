@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
 import { convertToMp3, convertToMp4 } from '../utils/mediaConverter';
-
-export type ConvertType = 'mp3' | 'mp4';
+import type { ConvertType } from '../types';
 
 export function useFileConverter() {
   const [progress, setProgress] = useState<number>(0);

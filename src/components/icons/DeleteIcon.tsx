@@ -1,10 +1,5 @@
 import React from 'react';
-
-interface DeleteIconProps {
-  className?: string;
-  width?: number;
-  height?: number;
-}
+import type { DeleteIconProps } from '../../types';
 
 const DeleteIcon: React.FC<DeleteIconProps> = ({ className = '', width = 18, height = 18 }) => {
   return (

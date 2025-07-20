@@ -1,14 +1,6 @@
 import React from 'react';
 import { useWaveformVisualizer } from '../hooks/useWaveformVisualizer';
-
-interface WaveformProps {
-  data?: number[]; // Array of amplitude values (0-1)
-  color?: string;
-  height?: number;
-  barWidth?: number;
-  gap?: number;
-  stream?: MediaStream;
-}
+import type { WaveformProps } from '../types';
 
 const DEFAULT_BARS = 32;
 

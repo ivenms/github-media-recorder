@@ -1,12 +1,6 @@
 // Utility for image processing: crop, scale, convert to JPG, and app icon handling
 import { useSettingsStore } from '../stores/settingsStore';
-
-export interface ImageProcessOptions {
-  width: number;
-  height: number;
-  quality?: number; // 0-1, default 0.9
-  format?: 'jpeg' | 'jpg'; // Always JPG for our use case
-}
+import type { ImageProcessOptions } from '../types';
 
 /**
  * Process an image: crop to aspect ratio, scale to dimensions, convert to JPG
