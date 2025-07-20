@@ -7,10 +7,12 @@ import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
 import { getTodayDateString, isFutureDate } from '../utils/date';
 import { canStoreFile, isStorageNearCapacity, validateFileSize } from '../utils/storageQuota';
+import type { VideoRecorderProps } from '../types';
+import { useUIStore } from '../stores/uiStore';
 import Header from './Header';
 import RecordIcon from './icons/RecordIcon';
 
-const VideoRecorder: React.FC = () => {
+const VideoRecorder: React.FC<VideoRecorderProps> = () => {
   const mediaCategories = getMediaCategories();
   const {
     recording,
@@ -55,6 +57,19 @@ const VideoRecorder: React.FC = () => {
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedFileId, setSavedFileId] = useState<string | null>(null);
+
+  const { setScreen } = useUIStore();
+
+  // Navigate to library screen when file is saved
+  useEffect(() => {
+    if (saved && savedFileId) {
+      const timer = setTimeout(() => {
+        setScreen('library', savedFileId);
+      }, 1000); // Show "Saved!" briefly before navigating
+      return () => clearTimeout(timer);
+    }
+  }, [saved, savedFileId, setScreen]);
 
   const validateInputs = () => {
     if (!title.trim() || !author.trim()) {
@@ -164,7 +179,7 @@ const VideoRecorder: React.FC = () => {
       date: fileDate,
       extension: ext,
     });
-    await saveFile(outBlob, {
+    const fileRecord = await saveFile(outBlob, {
       name: outName,
       type: 'video',
       mimeType: outMime,
@@ -172,6 +187,7 @@ const VideoRecorder: React.FC = () => {
       duration,
       created: Date.now(),
     });
+    setSavedFileId(fileRecord.id);
     // Handle thumbnail save
     if (thumbnail) {
       try {

@@ -12,6 +12,7 @@ if (typeof window !== 'undefined' && !(window as Window & {BitStream?: unknown})
 }
 import type { AudioRecorderProps } from '../types';
 import { getMediaCategories } from '../utils/appConfig';
+import { useUIStore } from '../stores/uiStore';
 import MicIcon from './icons/MicIcon';
 import RecordIcon from './icons/RecordIcon';
 import Waveform from './Waveform';
@@ -22,7 +23,7 @@ import { useAudioForm } from '../hooks/useAudioForm';
 import { useAudioSave } from '../hooks/useAudioSave';
 import { getTodayDateString, isFutureDate } from '../utils/date';
 
-const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateToLibrary }) => {
+const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const mediaCategories = getMediaCategories();
   // Recording logic
   const {
@@ -84,15 +85,17 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateTo
     (window as unknown as Window & {MPEGMode: object}).MPEGMode = { MONO: 3, STEREO: 0, DUAL_CHANNEL: 2, JOINT_STEREO: 1 };
   }
 
+  const { setScreen } = useUIStore();
+
   // Navigate to library screen when file is saved
   React.useEffect(() => {
-    if (saved && savedFileId && onNavigateToLibrary) {
+    if (saved && savedFileId) {
       const timer = setTimeout(() => {
-        onNavigateToLibrary(savedFileId);
+        setScreen('library', savedFileId);
       }, 1000); // Show "Saved!" briefly before navigating
       return () => clearTimeout(timer);
     }
-  }, [saved, savedFileId, onNavigateToLibrary]);
+  }, [saved, savedFileId, setScreen]);
 
   return (
     <div className="min-h-screen bg-gray-50">

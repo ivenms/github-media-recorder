@@ -68,8 +68,10 @@ export interface EyeIconProps extends IconProps {}
 // Props for AudioRecorder
 export interface AudioRecorderProps {
   audioFormat: 'mp3' | 'wav';
-  onNavigateToLibrary?: (highlightId?: string) => void;
 }
+
+// Props for VideoRecorder
+export type VideoRecorderProps = object;
 
 // Props for FileList
 export interface FileListProps {

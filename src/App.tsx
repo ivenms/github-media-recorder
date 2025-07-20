@@ -22,11 +22,6 @@ const App: React.FC = () => {
   const { authenticated, isLoading, setAuthenticated } = useAuth(showAlert);
 
 
-  // Handle navigation to library with optional highlight
-  const handleNavigateToLibrary = React.useCallback((highlightId?: string) => {
-    setScreen('library', highlightId);
-  }, [setScreen]);
-
   // Show loading while checking authentication
   if (isLoading) {
     return (
@@ -49,7 +44,7 @@ const App: React.FC = () => {
       <DesktopAlert />
       <InstallPrompt />
       <main className="flex-1 overflow-y-auto pb-20">
-        {currentScreen === 'audio' && <AudioRecorder audioFormat={audioFormat} onNavigateToLibrary={handleNavigateToLibrary} />}
+        {currentScreen === 'audio' && <AudioRecorder audioFormat={audioFormat} />}
         {currentScreen === 'video' && <VideoRecorder />}
         {currentScreen === 'library' && <FileList highlightId={highlightFileId} />}
         {currentScreen === 'settings' && <Settings audioFormat={audioFormat} setAudioFormat={setAudioFormat} onLogout={() => setAuthenticated(false)} />}
