@@ -3,7 +3,7 @@ import { uploadFile, uploadThumbnail } from '../utils/uploadUtils';
 import { processThumbnailForUpload } from '../utils/imageUtils';
 import { useCombinedFiles } from './useCombinedFiles';
 import { useGitStore } from '../stores/gitStore';
-import { useModal } from './useModal';
+import { useUIStore } from '../stores/uiStore';
 import type { EnhancedFileRecord, FileRecord, UseUploadManagerReturn } from '../types';
 
 /**
@@ -11,7 +11,7 @@ import type { EnhancedFileRecord, FileRecord, UseUploadManagerReturn } from '../
  * Handles the complete upload lifecycle including retry logic and state management
  */
 export function useUploadManager(): UseUploadManagerReturn {
-  const { showAlert } = useModal();
+  const { openModal } = useUIStore();
   const { invalidateCache } = useGitStore();
   const { 
     files,
@@ -123,7 +123,7 @@ export function useUploadManager(): UseUploadManagerReturn {
    */
   const uploadWithManagement = useCallback(async (file: EnhancedFileRecord): Promise<void> => {
     if (!file.file) {
-      showAlert('File data not available for upload.', 'Upload Error');
+      openModal({ type: 'alert', message: 'File data not available for upload.', title: 'Upload Error' });
       return;
     }
 
@@ -174,7 +174,7 @@ export function useUploadManager(): UseUploadManagerReturn {
       });
     }
   }, [
-    showAlert,
+    openModal,
     setUploadProgress,
     getCurrentThumbnails,
     cleanupAfterUpload,

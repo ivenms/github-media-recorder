@@ -4,7 +4,7 @@ import { getStoredUsername, clearTokenData } from '../utils/tokenAuth';
 import { DEFAULT_MEDIA_CATEGORIES } from '../utils/appConfig';
 import Modal from './Modal';
 import Header from './Header';
-import { useModal } from '../hooks/useModal';
+import { useUIStore } from '../stores/uiStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
 
@@ -21,7 +21,7 @@ const getInitialSettings = (): AppSettings => {
 };
 
 const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogout }) => {
-  const { modalState, showConfirm, closeModal } = useModal();
+  const { modal, openModal, closeModal } = useUIStore();
   const { appSettings, setAppSettings } = useSettingsStore();
   const { userInfo, logout: authLogout } = useAuthStore();
   
@@ -54,17 +54,18 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
   };
 
   const handleLogout = () => {
-    showConfirm(
-      'Are you sure you want to logout? You will need to enter your GitHub token again.',
-      () => {
+    openModal({
+      type: 'confirm',
+      title: 'Confirm Logout',
+      message: 'Are you sure you want to logout? You will need to enter your GitHub token again.',
+      confirmText: 'Logout',
+      cancelText: 'Cancel',
+      onConfirm: () => {
         clearTokenData();
         authLogout();
         onLogout();
-      },
-      'Confirm Logout',
-      'Logout',
-      'Cancel'
-    );
+      }
+    });
   };
 
   const addCategory = () => {
@@ -96,18 +97,19 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
   };
 
   const resetCategories = () => {
-    showConfirm(
-      'Reset to default categories? This will remove all custom categories.',
-      () => {
+    openModal({
+      type: 'confirm',
+      title: 'Reset Categories',
+      message: 'Reset to default categories? This will remove all custom categories.',
+      confirmText: 'Reset',
+      cancelText: 'Cancel',
+      onConfirm: () => {
         setSettings({
           ...settings,
           customCategories: DEFAULT_MEDIA_CATEGORIES.slice()
         });
-      },
-      'Reset Categories',
-      'Reset',
-      'Cancel'
-    );
+      }
+    });
   };
 
   return (
@@ -291,14 +293,14 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
       )}
       
       <Modal
-        isOpen={modalState.isOpen}
+        isOpen={modal.isOpen}
         onClose={closeModal}
-        onConfirm={modalState.onConfirm}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        confirmText={modalState.confirmText}
-        cancelText={modalState.cancelText}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message || ''}
+        type={modal.type || 'alert'}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
       />
       </div>
     </div>

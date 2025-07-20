@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import AudioRecorder from './components/AudioRecorder';
 import VideoRecorder from './components/VideoRecorder';
 import FileList from './components/FileList';
@@ -8,51 +8,19 @@ import BottomMenu from './components/BottomMenu';
 import DesktopAlert from './components/DesktopAlert';
 import TokenSetup from './components/TokenSetup';
 import Modal from './components/Modal';
-import { useModal } from './hooks/useModal';
 import { useAuth } from './hooks/useAuth';
 import { useSettingsStore } from './stores/settingsStore';
 import { useUIStore } from './stores/uiStore';
-import { audioWorkerService } from './services/audioWorkerService';
-import { videoWorkerService } from './services/videoWorkerService';
 
 
 const App: React.FC = () => {
   // Global state management
   const { audioFormat, setAudioFormat } = useSettingsStore();
-  const { currentScreen, highlightFileId, setScreen } = useUIStore();
-  const { modalState, showAlert, closeModal } = useModal();
-  const { authenticated, isLoading, setAuthenticated } = useAuth(showAlert);
+  const { currentScreen, highlightFileId, setScreen, modal, openModal, closeModal } = useUIStore();
+  const { authenticated, isLoading, setAuthenticated } = useAuth((message: string, title?: string) => 
+    openModal({ type: 'alert', message, title })
+  );
 
-  // Set up background processing callbacks
-  useEffect(() => {
-    const backgroundCallbacks = {
-      getCurrentScreen: () => currentScreen,
-      onComplete: () => {
-        showAlert({
-          type: 'success',
-          title: 'Conversion Complete',
-          message: 'Your media file has been successfully converted and saved!',
-          confirmText: 'View',
-          onConfirm: () => setScreen('library')
-        });
-      },
-      onError: (error: Error) => {
-        showAlert({
-          type: 'error',
-          title: 'Conversion Failed',
-          message: `Conversion failed: ${error.message}`
-        });
-      }
-    };
-
-    audioWorkerService.setBackgroundCallbacks(backgroundCallbacks);
-    videoWorkerService.setBackgroundCallbacks(backgroundCallbacks);
-
-    return () => {
-      audioWorkerService.setBackgroundCallbacks(null);
-      videoWorkerService.setBackgroundCallbacks(null);
-    };
-  }, [currentScreen, showAlert, setScreen]);
 
 
   // Show loading while checking authentication
@@ -93,14 +61,14 @@ const App: React.FC = () => {
       />
       
       <Modal
-        isOpen={modalState.isOpen}
+        isOpen={modal.isOpen}
         onClose={closeModal}
-        onConfirm={modalState.onConfirm}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        confirmText={modalState.confirmText}
-        cancelText={modalState.cancelText}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message || ''}
+        type={modal.type || 'alert'}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
       />
     </div>
   );

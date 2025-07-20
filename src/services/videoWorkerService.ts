@@ -7,15 +7,39 @@ import type {
 } from '../types/workers';
 import type {
   VideoConversionResult,
-  VideoConversionCallback,
-  BackgroundProcessingCallbacks
+  VideoConversionCallback
 } from '../types/services';
+import { useUIStore } from '../stores/uiStore';
 
 class VideoWorkerService {
   private worker: Worker | null = null;
   private pendingConversions = new Map<string, VideoConversionCallback>();
   private isWorkerLoaded = false;
-  private backgroundCallbacks: BackgroundProcessingCallbacks | null = null;
+
+  // Show background alert if user is not on video screen
+  private showBackgroundAlert(type: 'success' | 'error', error?: Error): void {
+    const { currentScreen, openModal } = useUIStore.getState();
+    
+    if (currentScreen !== 'video') {
+      if (type === 'success') {
+        openModal({
+          type: 'success',
+          title: 'Video Conversion Complete',
+          message: 'Your video file has been successfully converted and saved!',
+          confirmText: 'View',
+          onConfirm: () => {
+            useUIStore.getState().setScreen('library');
+          }
+        });
+      } else {
+        openModal({
+          type: 'error', 
+          title: 'Video Conversion Failed',
+          message: `Video conversion failed: ${error?.message || 'Unknown error'}`
+        });
+      }
+    }
+  }
 
   // Initialize the worker (singleton pattern)
   private async initializeWorker(): Promise<void> {
@@ -63,13 +87,8 @@ class VideoWorkerService {
           callback.resolve(data);
           this.pendingConversions.delete(id);
           
-          // Check if user is off-screen and trigger background alert
-          if (this.backgroundCallbacks?.getCurrentScreen && this.backgroundCallbacks?.onComplete) {
-            const currentScreen = this.backgroundCallbacks.getCurrentScreen();
-            if (currentScreen !== 'video') {
-              this.backgroundCallbacks.onComplete(data);
-            }
-          }
+          // Show background alert if user is not on video screen
+          this.showBackgroundAlert('success');
         }
         break;
 
@@ -78,13 +97,8 @@ class VideoWorkerService {
         callback.reject(errorObj);
         this.pendingConversions.delete(id);
         
-        // Check if user is off-screen and trigger background alert
-        if (this.backgroundCallbacks?.getCurrentScreen && this.backgroundCallbacks?.onError) {
-          const currentScreen = this.backgroundCallbacks.getCurrentScreen();
-          if (currentScreen !== 'video') {
-            this.backgroundCallbacks.onError(errorObj);
-          }
-        }
+        // Show background alert if user is not on video screen
+        this.showBackgroundAlert('error', errorObj);
         break;
     }
   }
@@ -131,10 +145,6 @@ class VideoWorkerService {
     return this.pendingConversions.size;
   }
 
-  // Set background processing callbacks
-  setBackgroundCallbacks(callbacks: BackgroundProcessingCallbacks | null): void {
-    this.backgroundCallbacks = callbacks;
-  }
 
   // Cleanup (only call on app shutdown)
   destroy(): void {

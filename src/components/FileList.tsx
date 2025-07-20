@@ -16,13 +16,13 @@ import Modal from './Modal';
 import Header from './Header';
 import GitHubImage from './GitHubImage';
 import GitHubMedia from './GitHubMedia';
-import { useModal } from '../hooks/useModal';
+import { useUIStore } from '../stores/uiStore';
 import { useCombinedFiles } from '../hooks/useCombinedFiles';
 import { useUploadManager } from '../hooks/useUploadManager';
 import type { FileListProps, FileRecord, EnhancedFileRecord } from '../types';
 
 const FileList: React.FC<FileListProps> = ({ highlightId }) => {
-  const { modalState, closeModal } = useModal();
+  const { modal, closeModal } = useUIStore();
   const { 
     files: mediaFiles, 
     thumbnails,
@@ -381,14 +381,14 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       )}
       
       <Modal
-        isOpen={modalState.isOpen}
+        isOpen={modal.isOpen}
         onClose={closeModal}
-        onConfirm={modalState.onConfirm}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        confirmText={modalState.confirmText}
-        cancelText={modalState.cancelText}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message || ''}
+        type={modal.type || 'alert'}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
       />
     </div>
   );

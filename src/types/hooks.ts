@@ -25,24 +25,6 @@ export interface UseAudioSaveParams {
   convertProgress?: number;
 }
 
-// useModal hook
-export interface UseModalState {
-  isOpen: boolean;
-  title?: string;
-  message: string;
-  type: 'alert' | 'confirm' | 'success' | 'error';
-  confirmText?: string;
-  cancelText?: string;
-  onConfirm?: () => void;
-}
-
-export interface ShowAlertOptions {
-  type?: 'alert' | 'success' | 'error';
-  title?: string;
-  message: string;
-  confirmText?: string;
-  onConfirm?: () => void;
-}
 
 // Options for useMediaRecorder hook
 export interface UseMediaRecorderOptions {

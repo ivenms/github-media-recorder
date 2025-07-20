@@ -7,11 +7,11 @@ import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
 import { validateMultipleFiles, validateFileSize, getFileType, formatBytes, FILE_LIMITS } from '../utils/storageQuota';
 import Modal from './Modal';
-import { useModal } from '../hooks/useModal';
+import { useUIStore } from '../stores/uiStore';
 import CloseIcon from './icons/CloseIcon';
 
 const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
-  const { modalState, showAlert, closeModal } = useModal();
+  const { modal, openModal, closeModal } = useUIStore();
   const { saveFile } = useFilesStore();
   const [formData, setFormData] = useState({
     title: '',
@@ -66,7 +66,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
           setSelectedFiles(validFiles);
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Storage validation failed';
-          showAlert(errorMessage, 'Storage Error');
+          openModal({ type: 'alert', message: errorMessage, title: 'Storage Error' });
           return;
         }
       } else {
@@ -85,7 +85,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
       }
       
       if (errors.length > 0) {
-        showAlert(errors.join('\n\n'), 'File Validation Error');
+        openModal({ type: 'alert', message: errors.join('\n\n'), title: 'File Validation Error' });
       }
     }
   };
@@ -100,7 +100,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
         setThumbnailPreview(url);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Thumbnail validation failed';
-        showAlert(errorMessage, 'Thumbnail Error');
+        openModal({ type: 'alert', message: errorMessage, title: 'Thumbnail Error' });
         // Clear the file input
         e.target.value = '';
       }
@@ -111,12 +111,12 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
     e.preventDefault();
     
     if (selectedFiles.length === 0) {
-      showAlert('Please select at least one media file.', 'No Files Selected');
+      openModal({ type: 'alert', message: 'Please select at least one media file.', title: 'No Files Selected' });
       return;
     }
 
     if (!formData.title.trim() || !formData.author.trim()) {
-      showAlert('Title and Author are required.', 'Missing Information');
+      openModal({ type: 'alert', message: 'Title and Author are required.', title: 'Missing Information' });
       return;
     }
 
@@ -184,14 +184,15 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
         }
       }
       
-      showAlert(
-        `Successfully imported ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}!`, 
-        'Import Complete'
-      );
+      openModal({ 
+        type: 'success', 
+        message: `Successfully imported ${selectedFiles.length} file${selectedFiles.length > 1 ? 's' : ''}!`, 
+        title: 'Import Complete' 
+      });
       onSave();
     } catch (error) {
       console.error('Error importing files:', error);
-      showAlert('Failed to import files. Please try again.', 'Import Error');
+      openModal({ type: 'error', message: 'Failed to import files. Please try again.', title: 'Import Error' });
     } finally {
       setIsUploading(false);
     }
@@ -357,14 +358,14 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
       </div>
       
       <Modal
-        isOpen={modalState.isOpen}
+        isOpen={modal.isOpen}
         onClose={closeModal}
-        onConfirm={modalState.onConfirm}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        confirmText={modalState.confirmText}
-        cancelText={modalState.cancelText}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message || ''}
+        type={modal.type || 'alert'}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
       />
     </div>
   );

@@ -5,12 +5,12 @@ import { parseMediaFileName } from '../utils/fileUtils';
 import { validateFileSize, formatBytes, FILE_LIMITS } from '../utils/storageQuota';
 import { useFilesStore } from '../stores/filesStore';
 import Modal from './Modal';
-import { useModal } from '../hooks/useModal';
+import { useUIStore } from '../stores/uiStore';
 import CloseIcon from './icons/CloseIcon';
 import type { ParsedMediaFileName, EditFileModalProps } from '../types';
 
 const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, thumbnail }) => {
-  const { modalState, showAlert, closeModal } = useModal();
+  const { modal, openModal, closeModal } = useUIStore();
   const { updateFileWithThumbnail } = useFilesStore();
   const meta: ParsedMediaFileName | null = parseMediaFileName(file.name);
   const [formData, setFormData] = useState({
@@ -34,7 +34,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
         setThumbnailPreview(url);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Thumbnail validation failed';
-        showAlert(errorMessage, 'Thumbnail Error');
+        openModal({ type: 'alert', message: errorMessage, title: 'Thumbnail Error' });
         // Clear the file input
         e.target.value = '';
       }
@@ -52,11 +52,11 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
       // Update the file using store method
       await updateFileWithThumbnail(file.id, newName, thumbnailFile);
       
-      showAlert('File metadata updated successfully!', 'Success');
+      openModal({ type: 'success', message: 'File metadata updated successfully!', title: 'Success' });
       onSave(file.id);
     } catch (error) {
       console.error('Error updating file:', error);
-      showAlert('Failed to update file metadata. Please try again.', 'Error');
+      openModal({ type: 'error', message: 'Failed to update file metadata. Please try again.', title: 'Error' });
     }
   };
 
@@ -188,14 +188,14 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
       </div>
       
       <Modal
-        isOpen={modalState.isOpen}
+        isOpen={modal.isOpen}
         onClose={closeModal}
-        onConfirm={modalState.onConfirm}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        confirmText={modalState.confirmText}
-        cancelText={modalState.cancelText}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message || ''}
+        type={modal.type || 'alert'}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
       />
     </div>
   );

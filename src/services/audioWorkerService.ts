@@ -7,15 +7,39 @@ import type {
 } from '../types/workers';
 import type {
   AudioConversionResult,
-  AudioConversionCallback,
-  BackgroundProcessingCallbacks
+  AudioConversionCallback
 } from '../types/services';
+import { useUIStore } from '../stores/uiStore';
 
 class AudioWorkerService {
   private worker: Worker | null = null;
   private pendingConversions = new Map<string, AudioConversionCallback>();
   private isWorkerLoaded = false;
-  private backgroundCallbacks: BackgroundProcessingCallbacks | null = null;
+
+  // Show background alert if user is not on audio screen
+  private showBackgroundAlert(type: 'success' | 'error', error?: Error): void {
+    const { currentScreen, openModal } = useUIStore.getState();
+    
+    if (currentScreen !== 'audio') {
+      if (type === 'success') {
+        openModal({
+          type: 'success',
+          title: 'Audio Conversion Complete',
+          message: 'Your audio file has been successfully converted and saved!',
+          confirmText: 'View',
+          onConfirm: () => {
+            useUIStore.getState().setScreen('library');
+          }
+        });
+      } else {
+        openModal({
+          type: 'error', 
+          title: 'Audio Conversion Failed',
+          message: `Audio conversion failed: ${error?.message || 'Unknown error'}`
+        });
+      }
+    }
+  }
 
   // Initialize the worker (singleton pattern)
   private async initializeWorker(): Promise<void> {
@@ -62,13 +86,8 @@ class AudioWorkerService {
           callback.resolve(data);
           this.pendingConversions.delete(id);
           
-          // Check if user is off-screen and trigger background alert
-          if (this.backgroundCallbacks?.getCurrentScreen && this.backgroundCallbacks?.onComplete) {
-            const currentScreen = this.backgroundCallbacks.getCurrentScreen();
-            if (currentScreen !== 'audio') {
-              this.backgroundCallbacks.onComplete(data);
-            }
-          }
+          // Show background alert if user is not on audio screen
+          this.showBackgroundAlert('success');
         }
         break;
 
@@ -77,13 +96,8 @@ class AudioWorkerService {
         callback.reject(errorObj);
         this.pendingConversions.delete(id);
         
-        // Check if user is off-screen and trigger background alert
-        if (this.backgroundCallbacks?.getCurrentScreen && this.backgroundCallbacks?.onError) {
-          const currentScreen = this.backgroundCallbacks.getCurrentScreen();
-          if (currentScreen !== 'audio') {
-            this.backgroundCallbacks.onError(errorObj);
-          }
-        }
+        // Show background alert if user is not on audio screen
+        this.showBackgroundAlert('error', errorObj);
         break;
     }
   }
@@ -131,10 +145,6 @@ class AudioWorkerService {
     return this.pendingConversions.size;
   }
 
-  // Set background processing callbacks
-  setBackgroundCallbacks(callbacks: BackgroundProcessingCallbacks | null): void {
-    this.backgroundCallbacks = callbacks;
-  }
 
   // Cleanup (only call on app shutdown)
   destroy(): void {
