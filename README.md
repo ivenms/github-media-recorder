@@ -1,5 +1,7 @@
 # Github Media Recorder App for Mobile
 
+> **Note:** This application serves as the backend for the [@ivenms/react-github-media-library](https://github.com/ivenms/react-github-media-library) library. If you are looking for a React component library to integrate GitHub-based media recording and management into your app, please visit the [react-github-media-library repository](https://github.com/ivenms/react-github-media-library).
+
 A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4, and uploading to a GitHub repository. Features secure GitHub Personal Access Token authentication, installable PWA functionality, and automatic deployment to GitHub Pages.
 
 ## Features
