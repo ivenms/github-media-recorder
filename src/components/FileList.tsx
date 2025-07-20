@@ -310,37 +310,79 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
         )}
       </div>
       
-      {/* Preview Modal */}
+      {/* Preview Modal - Mini Player */}
       {preview && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full relative">
-            <button 
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-              onClick={() => setPreview(null)}
-              title="Close"
-            >
-              <CloseIcon width={20} height={20} />
-            </button>
-            <h3 className="font-bold mb-4 pr-8">{preview.name}</h3>
-            {/* Use GitHubMedia for remote files, direct src for local files */}
-            {(preview as EnhancedFileRecord).isLocal ? (
-              preview.type === 'audio' ? (
-                <audio src={preview.url} controls className="w-full" />
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50">
+          {/* Backdrop - Click to close */}
+          <div 
+            className="absolute inset-0" 
+            onClick={() => setPreview(null)}
+          />
+          
+          {/* Mini Player - Bottom aligned, full width, above BottomMenu */}
+          <div className="absolute bottom-0 left-0 right-0 pb-20 bg-gradient-to-t from-purple-900 via-purple-800 to-purple-700 text-white shadow-2xl">
+            {/* Header with close button */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-purple-600/30">
+              <div className="flex-1">
+                <h3 className="font-semibold text-base truncate">
+                  {(() => {
+                    const meta = parseMediaFileName(preview.name);
+                    return meta?.title || preview.name.replace(/\.[^.]+$/, '');
+                  })()}
+                </h3>
+                {(() => {
+                  const meta = parseMediaFileName(preview.name);
+                  return meta?.author && (
+                    <p className="text-sm text-purple-200 mt-0.5">by {meta.author}</p>
+                  );
+                })()}
+              </div>
+              <button 
+                className="p-1.5 bg-white text-purple-600 hover:bg-gray-100 rounded-full transition-colors ml-3 flex items-center justify-center"
+                onClick={() => setPreview(null)}
+                title="Close"
+              >
+                <CloseIcon width={20} height={20} />
+              </button>
+            </div>
+            
+            {/* Media Player */}
+            <div className="px-2 pt-0 pb-6">
+              {/* Use GitHubMedia for remote files, direct src for local files */}
+              {(preview as EnhancedFileRecord).isLocal ? (
+                preview.type === 'audio' ? (
+                  <audio 
+                    src={preview.url} 
+                    controls 
+                    className="w-full h-12 rounded-lg"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                  />
+                ) : (
+                  <video 
+                    src={preview.url} 
+                    controls 
+                    className="w-full max-h-80 rounded-lg shadow-xl"
+                  />
+                )
               ) : (
-                <video src={preview.url} controls className="w-full max-h-64 rounded" />
-              )
-            ) : (
-              <GitHubMedia
-                filePath={preview.url || ''}
-                type={preview.type as 'audio' | 'video'}
-                className="w-full max-h-64 rounded"
-                fallback={
-                  <div className="w-full h-32 bg-gray-200 rounded flex items-center justify-center">
-                    <span className="text-gray-500">Unable to load media</span>
-                  </div>
-                }
-              />
-            )}
+                <GitHubMedia
+                  filePath={preview.url || ''}
+                  type={preview.type as 'audio' | 'video'}
+                  className={preview.type === 'audio' ? 
+                    "w-full h-12 rounded-lg" : 
+                    "w-full max-h-80 rounded-lg shadow-xl"
+                  }
+                  fallback={
+                    <div className="w-full h-32 bg-purple-600/30 rounded-lg flex items-center justify-center">
+                      <span className="text-purple-200">Unable to load media</span>
+                    </div>
+                  }
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
