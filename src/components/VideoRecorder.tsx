@@ -8,6 +8,7 @@ import { convertImageToJpg } from '../utils/fileUtils';
 import { getTodayDateString, isFutureDate } from '../utils/date';
 import { canStoreFile, isStorageNearCapacity, validateFileSize } from '../utils/storageQuota';
 import Header from './Header';
+import RecordIcon from './icons/RecordIcon';
 
 const VideoRecorder: React.FC = () => {
   const mediaCategories = getMediaCategories();
@@ -260,30 +261,33 @@ const VideoRecorder: React.FC = () => {
       <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
       {error && <div className="text-red-600 mb-2">{error}</div>}
       {convertError && <div className="text-red-600 mb-2">{convertError}</div>}
-      <div className="flex gap-2 mb-4">
-        {!recording && (
-          <button
-            className="w-14 h-14 rounded-full bg-green-500 text-white text-2xl flex items-center justify-center shadow-neumorph transition-all"
-            onClick={start}
-          >
-            ●
-          </button>
-        )}
+      <div className="flex items-center justify-center gap-4 mb-6">
+        {/* Main record/stop button */}
+        <button
+          className="w-16 h-16 rounded-full shadow-neumorph transition-all overflow-hidden p-0 border-0 bg-transparent"
+          onClick={recording ? stop : start}
+        >
+          <RecordIcon 
+            width={64} 
+            height={64} 
+            className="transition-colors w-full h-full"
+            state={recording ? 'recording' : 'idle'}
+          />
+        </button>
+        
+        {/* Pause/Resume button - only show when recording */}
         {recording && (
-          <>
-            <button
-              className="w-14 h-14 rounded-full bg-red-500 text-white text-2xl flex items-center justify-center shadow-neumorph transition-all"
-              onClick={stop}
-            >
-              ■
-            </button>
-            <button
-              className="w-10 h-10 rounded-full bg-yellow-500 text-white text-lg flex items-center justify-center"
-              onClick={paused ? resume : pause}
-            >
-              {paused ? '▶' : '⏸'}
-            </button>
-          </>
+          <button
+            className="w-16 h-16 rounded-full shadow-neumorph transition-all overflow-hidden p-0 border-0 bg-transparent"
+            onClick={paused ? resume : pause}
+          >
+            <RecordIcon 
+              width={64} 
+              height={64} 
+              className="transition-colors w-full h-full"
+              state={paused ? "play" : "paused"}
+            />
+          </button>
         )}
       </div>
       <button

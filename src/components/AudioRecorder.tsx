@@ -120,18 +120,15 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat, onNavigateTo
         </div>
         <div className="flex gap-4 mb-4">
           <button
-            className={`w-14 h-14 rounded-full flex items-center justify-center shadow-neumorph text-2xl transition-all ${recording ? 'bg-red-500 text-white' : ''}`}
+            className="w-14 h-14 rounded-full shadow-neumorph transition-all overflow-hidden p-0 border-0 bg-transparent"
             onClick={recording ? stopRecording : startRecording}
           >
-            {recording ? (
-              <span className="text-3xl">&#9632;</span> // Red square for stop
-            ) : (
-              <RecordIcon 
-                width={32} 
-                height={32} 
-                className="transition-colors"
-              />
-            )}
+            <RecordIcon 
+              width={56} 
+              height={56} 
+              className="transition-colors w-full h-full"
+              state={recording ? 'recording' : 'idle'}
+            />
           </button>
         </div>
         <button
