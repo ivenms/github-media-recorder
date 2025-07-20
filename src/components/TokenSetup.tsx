@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import type { TokenSetupProps } from '../types';
 import Modal from './Modal';
-import { useModal } from '../hooks/useModal';
+import { useUIStore } from '../stores/uiStore';
 import { getAppIconUrl } from '../utils/imageUtils';
 import { useAuthStore } from '../stores/authStore';
 
 const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
-  const { modalState, showAlert, closeModal } = useModal();
+  const { modal, openModal, closeModal } = useUIStore();
   const { login } = useAuthStore();
   const [token, setToken] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -36,14 +36,26 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
         onSuccess();
       } else {
         if (response.status === 401) {
-          showAlert('Invalid token. Please check your Personal Access Token and make sure it has the correct permissions.', 'Invalid Token');
+          openModal({ 
+            type: 'alert', 
+            message: 'Invalid token. Please check your Personal Access Token and make sure it has the correct permissions.', 
+            title: 'Invalid Token' 
+          });
         } else {
-          showAlert('Failed to verify token. Please try again.', 'Verification Failed');
+          openModal({ 
+            type: 'alert', 
+            message: 'Failed to verify token. Please try again.', 
+            title: 'Verification Failed' 
+          });
         }
       }
     } catch (error) {
       console.error('Token verification failed:', error);
-      showAlert('Network error. Please check your connection and try again.', 'Network Error');
+      openModal({ 
+        type: 'alert', 
+        message: 'Network error. Please check your connection and try again.', 
+        title: 'Network Error' 
+      });
     } finally {
       setIsVerifying(false);
     }
@@ -197,14 +209,14 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
       </div>
       
       <Modal
-        isOpen={modalState.isOpen}
+        isOpen={modal.isOpen}
         onClose={closeModal}
-        onConfirm={modalState.onConfirm}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        confirmText={modalState.confirmText}
-        cancelText={modalState.cancelText}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message || ''}
+        type={modal.type || 'alert'}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
       />
     </div>
   );

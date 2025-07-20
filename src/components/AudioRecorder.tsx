@@ -45,11 +45,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     handleThumbnailChange,
   } = useAudioForm();
 
-  // Background processing states
-  const [workerProgress, setWorkerProgress] = useState(0);
-  const [workerPhase, setWorkerPhase] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [workerError, setWorkerError] = useState<string | null>(null);
   
   // Save states
   const [saving, setSaving] = useState(false);
@@ -58,7 +53,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const [saveProgress, setSaveProgress] = useState(0);
   const [savePhase, setSavePhase] = useState<string>('');
   const [saveThumbnailError, setSaveThumbnailError] = useState<string | null>(null);
-  const [inputError, setInputError] = useState<string | null>(null);
 
   const { setScreen, openModal } = useUIStore();
   const { saveFile } = useFilesStore();
@@ -80,7 +74,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     if (!validateInputs()) return;
     
     setSaving(true);
-    setInputError(null);
     setSaveProgress(0);
     setSavePhase('Initializing...');
     
@@ -91,7 +84,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
       
       const storageStatus = await isStorageNearCapacity();
       if (storageStatus.critical) {
-        setInputError('Storage is critically low. Please free up some space before saving.');
+        openModal({
+          type: 'error',
+          title: 'Storage Error',
+          message: 'Storage is critically low. Please free up some space before saving.',
+          confirmText: 'OK'
+        });
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
@@ -114,7 +112,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
       // Check if we can store the original file
       const canStore = await canStoreFile(blob.size);
       if (!canStore) {
-        setInputError('Not enough storage space available. Please free up some space and try again.');
+        openModal({
+          type: 'error',
+          title: 'Storage Error',
+          message: 'Not enough storage space available. Please free up some space and try again.',
+          confirmText: 'OK'
+        });
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
@@ -156,15 +159,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
             setSaveProgress(35);
             
             // Convert using Web Worker Service (handles its own progress reporting 35-65%)
-            setIsProcessing(true);
-            setWorkerError(null);
             
             const conversionResult = await audioWorkerService.convertAudio(
               uint8,
               'mp3',
-              (progress, phase) => {
-                setWorkerProgress(progress);
-                setWorkerPhase(phase);
+              (progress) => {
                 // Map worker progress to save progress (35-65% range)
                 if (progress >= 0 && progress <= 100) {
                   const mappedProgress = 35 + (progress * 0.3);
@@ -172,8 +171,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
                 }
               }
             );
-            
-            setIsProcessing(false);
             setSaveProgress(65);
             
             outBlob = new Blob([conversionResult.convertedData], { type: 'audio/mp3' });
@@ -189,7 +186,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         // Final check after conversion (converted file might be different size)
         const finalCanStore = await canStoreFile(outBlob.size);
         if (!finalCanStore) {
-          setInputError('Converted file is too large for available storage space.');
+          openModal({
+            type: 'error',
+            title: 'Storage Error',
+            message: 'Converted file is too large for available storage space.',
+            confirmText: 'OK'
+          });
           setSaving(false);
           setSaveProgress(0);
           setSavePhase('');
@@ -200,11 +202,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         console.error('Audio conversion failed:', conversionErr);
         const errorMessage = conversionErr instanceof Error ? conversionErr.message : 'Unknown conversion error';
         
-        setIsProcessing(false);
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
-        setWorkerError(errorMessage);
         
         openModal({
           type: 'alert',
@@ -288,7 +288,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         setSavePhase('');
       }, 2000);
     } catch (err) {
-      setInputError('Failed to save audio: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      openModal({
+        type: 'error',
+        title: 'Audio Save Failed',
+        message: `Failed to save audio recording.\n\nError: ${err instanceof Error ? err.message : 'Unknown error'}\n\nPlease try saving again or check your device's storage and permissions.`,
+        confirmText: 'OK'
+      });
       setSaving(false);
       setSaveProgress(0);
       setSavePhase('');
@@ -300,8 +305,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
       <Header title="Voice Recording" />
       <div className="flex flex-col items-center p-4">
       {error && <div className="text-red-600 mb-2">{error}</div>}
-      {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
-      {workerError && <div className="text-red-600 mb-2">Conversion error: {workerError}</div>}
       
       <Modal
         isOpen={!!saveThumbnailError}
@@ -333,32 +336,18 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
             />
           </button>
         </div>
-        {/* Comprehensive progress bar during save operation */}
+        {/* Progress bar during save operation */}
         {saving && (
           <div className="w-full mb-4">
             <div className="text-sm text-gray-600 mb-2 text-center">
-              {savePhase} {saveProgress > 0 && `${saveProgress}%`}
+              Processing...
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
-                className="bg-purple-500 h-3 rounded-full transition-all duration-500 ease-out"
+                className="bg-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${saveProgress}%` }}
               />
             </div>
-            {/* Web Worker conversion sub-progress when available */}
-            {isProcessing && audioFormat === 'mp3' && (
-              <div className="mt-2">
-                <div className="text-xs text-gray-500 mb-1">
-                  Web Worker: {workerPhase || 'Processing...'}
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-1">
-                  <div 
-                    className="bg-purple-300 h-1 rounded-full transition-all duration-300"
-                    style={{ width: `${workerProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
           </div>
         )}
         

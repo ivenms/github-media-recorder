@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { uploadFile } from '../utils/uploadUtils';
 import { useFilesStore } from '../stores/filesStore';
+import { useUIStore } from '../stores/uiStore';
 import type { FileRecord } from '../types';
 
 const UploadManager: React.FC = () => {
   const { files, uploadState, loadFiles, setUploadProgress } = useFilesStore();
+  const { openModal } = useUIStore();
 
   useEffect(() => {
     loadFiles();
@@ -29,6 +31,15 @@ const UploadManager: React.FC = () => {
 
   const retryUpload = (file: FileRecord) => {
     startUpload(file);
+  };
+
+  const showErrorDetails = (error: string) => {
+    openModal({
+      type: 'error',
+      title: 'Upload Error',
+      message: error,
+      confirmText: 'OK'
+    });
   };
 
   return (
@@ -60,7 +71,13 @@ const UploadManager: React.FC = () => {
                     <button className="text-xs text-red-600 hover:bg-red-100 rounded-full px-3 py-1 transition" onClick={() => retryUpload(file)}>
                       Retry
                     </button>
-                    <span className="text-xs text-red-500 ml-2">{state.error}</span>
+                    <button 
+                      className="text-xs text-red-500 ml-2 underline hover:text-red-700" 
+                      onClick={() => showErrorDetails(state.error || 'Unknown error')}
+                      title="Click to see error details"
+                    >
+                      View Error
+                    </button>
                   </>
                 )}
                 {state.status === 'success' && (

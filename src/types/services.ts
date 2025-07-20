@@ -30,3 +30,4 @@ export interface AudioConversionCallback {
   reject: (error: Error) => void;
   onProgress?: (progress: number, phase: string) => void;
 }
+

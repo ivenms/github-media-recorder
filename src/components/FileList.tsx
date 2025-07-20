@@ -16,13 +16,13 @@ import Modal from './Modal';
 import Header from './Header';
 import GitHubImage from './GitHubImage';
 import GitHubMedia from './GitHubMedia';
-import { useModal } from '../hooks/useModal';
+import { useUIStore } from '../stores/uiStore';
 import { useCombinedFiles } from '../hooks/useCombinedFiles';
 import { useUploadManager } from '../hooks/useUploadManager';
 import type { FileListProps, FileRecord, EnhancedFileRecord } from '../types';
 
 const FileList: React.FC<FileListProps> = ({ highlightId }) => {
-  const { modalState, closeModal } = useModal();
+  const { modal, closeModal, openModal } = useUIStore();
   const { 
     files: mediaFiles, 
     thumbnails,
@@ -56,6 +56,22 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       }
     }
   }, [highlightedId, mediaFiles]);
+
+  // Show error modal when remoteError is set
+  useEffect(() => {
+    if (remoteError) {
+      openModal({
+        type: 'error',
+        title: 'Repository Error',
+        message: `${remoteError}\n\nShowing local files only. Check your GitHub settings to view remote files.`,
+        confirmText: 'OK',
+        onConfirm: () => {
+          setRemoteError(null);
+          closeModal();
+        }
+      });
+    }
+  }, [remoteError, openModal, closeModal, setRemoteError]);
 
   const handleDelete = async (id: string) => {
     await removeFile(id);
@@ -111,32 +127,8 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             <div className="text-gray-600 font-medium">Loading files from repository...</div>
           </div>
         ) : (
-          <>
-            {/* Error Message */}
-            {remoteError && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-red-800 mb-1">Repository Error</h3>
-                    <p className="text-sm text-red-700">{remoteError}</p>
-                    <p className="text-xs text-red-600 mt-2">Showing local files only. Check your GitHub settings to view remote files.</p>
-                  </div>
-                  <button
-                    onClick={() => setRemoteError(null)}
-                    className="text-red-400 hover:text-red-600 p-1"
-                    title="Dismiss"
-                  >
-                    <CloseIcon width={16} height={16} />
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-4">
-        {mediaFiles.map((file) => {
+          <div className="space-y-4">
+            {mediaFiles.map((file) => {
           const meta = parseMediaFileName(file.name) || { title: '', author: '', category: '', date: '' };
           const baseName = file.name.replace(/\.[^.]+$/, '');
           const thumb = thumbnails[baseName];
@@ -314,42 +306,83 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             </div>
           );
         })}
-            </div>
-          </>
+          </div>
         )}
       </div>
       
-      {/* Preview Modal */}
+      {/* Preview Modal - Mini Player */}
       {preview && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full relative">
-            <button 
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-              onClick={() => setPreview(null)}
-              title="Close"
-            >
-              <CloseIcon width={20} height={20} />
-            </button>
-            <h3 className="font-bold mb-4 pr-8">{preview.name}</h3>
-            {/* Use GitHubMedia for remote files, direct src for local files */}
-            {(preview as EnhancedFileRecord).isLocal ? (
-              preview.type === 'audio' ? (
-                <audio src={preview.url} controls className="w-full" />
+        <div className="fixed inset-0 bg-black bg-opacity-60 z-50">
+          {/* Backdrop - Click to close */}
+          <div 
+            className="absolute inset-0" 
+            onClick={() => setPreview(null)}
+          />
+          
+          {/* Mini Player - Bottom aligned, full width, above BottomMenu */}
+          <div className="absolute bottom-0 left-0 right-0 pb-20 bg-gradient-to-t from-purple-900 via-purple-800 to-purple-700 text-white shadow-2xl">
+            {/* Header with close button */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-purple-600/30">
+              <div className="flex-1">
+                <h3 className="font-semibold text-base truncate">
+                  {(() => {
+                    const meta = parseMediaFileName(preview.name);
+                    return meta?.title || preview.name.replace(/\.[^.]+$/, '');
+                  })()}
+                </h3>
+                {(() => {
+                  const meta = parseMediaFileName(preview.name);
+                  return meta?.author && (
+                    <p className="text-sm text-purple-200 mt-0.5">by {meta.author}</p>
+                  );
+                })()}
+              </div>
+              <button 
+                className="p-1.5 bg-white text-purple-600 hover:bg-gray-100 rounded-full transition-colors ml-3 flex items-center justify-center"
+                onClick={() => setPreview(null)}
+                title="Close"
+              >
+                <CloseIcon width={20} height={20} />
+              </button>
+            </div>
+            
+            {/* Media Player */}
+            <div className="px-2 pt-0 pb-6">
+              {/* Use GitHubMedia for remote files, direct src for local files */}
+              {(preview as EnhancedFileRecord).isLocal ? (
+                preview.type === 'audio' ? (
+                  <audio 
+                    src={preview.url} 
+                    controls 
+                    className="w-full h-12 rounded-lg"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                  />
+                ) : (
+                  <video 
+                    src={preview.url} 
+                    controls 
+                    className="w-full max-h-80 rounded-lg shadow-xl"
+                  />
+                )
               ) : (
-                <video src={preview.url} controls className="w-full max-h-64 rounded" />
-              )
-            ) : (
-              <GitHubMedia
-                filePath={preview.url || ''}
-                type={preview.type as 'audio' | 'video'}
-                className="w-full max-h-64 rounded"
-                fallback={
-                  <div className="w-full h-32 bg-gray-200 rounded flex items-center justify-center">
-                    <span className="text-gray-500">Unable to load media</span>
-                  </div>
-                }
-              />
-            )}
+                <GitHubMedia
+                  filePath={preview.url || ''}
+                  type={preview.type as 'audio' | 'video'}
+                  className={preview.type === 'audio' ? 
+                    "w-full h-12 rounded-lg" : 
+                    "w-full max-h-80 rounded-lg shadow-xl"
+                  }
+                  fallback={
+                    <div className="w-full h-32 bg-purple-600/30 rounded-lg flex items-center justify-center">
+                      <span className="text-purple-200">Unable to load media</span>
+                    </div>
+                  }
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -381,14 +414,14 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       )}
       
       <Modal
-        isOpen={modalState.isOpen}
+        isOpen={modal.isOpen}
         onClose={closeModal}
-        onConfirm={modalState.onConfirm}
-        title={modalState.title}
-        message={modalState.message}
-        type={modalState.type}
-        confirmText={modalState.confirmText}
-        cancelText={modalState.cancelText}
+        onConfirm={modal.onConfirm}
+        title={modal.title}
+        message={modal.message || ''}
+        type={modal.type || 'alert'}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
       />
     </div>
   );

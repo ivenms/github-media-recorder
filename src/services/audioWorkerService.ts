@@ -7,13 +7,39 @@ import type {
 } from '../types/workers';
 import type {
   AudioConversionResult,
-  AudioConversionCallback 
+  AudioConversionCallback
 } from '../types/services';
+import { useUIStore } from '../stores/uiStore';
 
 class AudioWorkerService {
   private worker: Worker | null = null;
   private pendingConversions = new Map<string, AudioConversionCallback>();
   private isWorkerLoaded = false;
+
+  // Show background alert if user is not on audio screen
+  private showBackgroundAlert(type: 'success' | 'error', error?: Error): void {
+    const { currentScreen, openModal } = useUIStore.getState();
+    
+    if (currentScreen !== 'audio') {
+      if (type === 'success') {
+        openModal({
+          type: 'success',
+          title: 'Audio Conversion Complete',
+          message: 'Your audio file has been successfully converted and saved!',
+          confirmText: 'View',
+          onConfirm: () => {
+            useUIStore.getState().setScreen('library');
+          }
+        });
+      } else {
+        openModal({
+          type: 'error', 
+          title: 'Audio Conversion Failed',
+          message: `Audio conversion failed: ${error?.message || 'Unknown error'}`
+        });
+      }
+    }
+  }
 
   // Initialize the worker (singleton pattern)
   private async initializeWorker(): Promise<void> {
@@ -59,13 +85,21 @@ class AudioWorkerService {
         if (data) {
           callback.resolve(data);
           this.pendingConversions.delete(id);
+          
+          // Show background alert if user is not on audio screen
+          this.showBackgroundAlert('success');
         }
         break;
 
-      case 'error':
-        callback.reject(new Error(error || 'Unknown conversion error'));
+      case 'error': {
+        const errorObj = new Error(error || 'Unknown conversion error');
+        callback.reject(errorObj);
         this.pendingConversions.delete(id);
+        
+        // Show background alert if user is not on audio screen
+        this.showBackgroundAlert('error', errorObj);
         break;
+      }
     }
   }
 
@@ -111,6 +145,7 @@ class AudioWorkerService {
   getPendingConversionsCount(): number {
     return this.pendingConversions.size;
   }
+
 
   // Cleanup (only call on app shutdown)
   destroy(): void {

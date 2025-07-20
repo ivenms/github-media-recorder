@@ -7,13 +7,39 @@ import type {
 } from '../types/workers';
 import type {
   VideoConversionResult,
-  VideoConversionCallback 
+  VideoConversionCallback
 } from '../types/services';
+import { useUIStore } from '../stores/uiStore';
 
 class VideoWorkerService {
   private worker: Worker | null = null;
   private pendingConversions = new Map<string, VideoConversionCallback>();
   private isWorkerLoaded = false;
+
+  // Show background alert if user is not on video screen
+  private showBackgroundAlert(type: 'success' | 'error', error?: Error): void {
+    const { currentScreen, openModal } = useUIStore.getState();
+    
+    if (currentScreen !== 'video') {
+      if (type === 'success') {
+        openModal({
+          type: 'success',
+          title: 'Video Conversion Complete',
+          message: 'Your video file has been successfully converted and saved!',
+          confirmText: 'View',
+          onConfirm: () => {
+            useUIStore.getState().setScreen('library');
+          }
+        });
+      } else {
+        openModal({
+          type: 'error', 
+          title: 'Video Conversion Failed',
+          message: `Video conversion failed: ${error?.message || 'Unknown error'}`
+        });
+      }
+    }
+  }
 
   // Initialize the worker (singleton pattern)
   private async initializeWorker(): Promise<void> {
@@ -60,13 +86,21 @@ class VideoWorkerService {
         if (data) {
           callback.resolve(data);
           this.pendingConversions.delete(id);
+          
+          // Show background alert if user is not on video screen
+          this.showBackgroundAlert('success');
         }
         break;
 
-      case 'error':
-        callback.reject(new Error(error || 'Unknown conversion error'));
+      case 'error': {
+        const errorObj = new Error(error || 'Unknown conversion error');
+        callback.reject(errorObj);
         this.pendingConversions.delete(id);
+        
+        // Show background alert if user is not on video screen
+        this.showBackgroundAlert('error', errorObj);
         break;
+      }
     }
   }
 
@@ -111,6 +145,7 @@ class VideoWorkerService {
   getPendingConversionsCount(): number {
     return this.pendingConversions.size;
   }
+
 
   // Cleanup (only call on app shutdown)
   destroy(): void {

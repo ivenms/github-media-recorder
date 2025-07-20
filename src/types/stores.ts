@@ -58,9 +58,11 @@ export interface UIState {
   // Modal state
   modal: {
     isOpen: boolean;
-    type: 'alert' | 'confirm' | 'edit' | null;
+    type: 'alert' | 'confirm' | 'success' | 'error' | null;
     title?: string;
     message?: string;
+    confirmText?: string;
+    cancelText?: string;
     data?: unknown;
     onConfirm?: () => void;
     onCancel?: () => void;

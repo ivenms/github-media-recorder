@@ -30,10 +30,6 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
     stream,
   } = useMediaRecorder({ video: true, audio: true });
 
-  const [workerProgress, setWorkerProgress] = useState(0);
-  const [workerPhase, setWorkerPhase] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [workerError, setWorkerError] = useState<string | null>(null);
   const { saveFile } = useFilesStore();
 
   // For video, use videoUrl/videoBlob if available, else fallback to audioUrl/audioBlob
@@ -54,9 +50,8 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
   const [author, setAuthor] = useState('');
   const [category, setCategory] = useState(mediaCategories[0].id);
   const [date, setDate] = useState('');
-  const [inputError, setInputError] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
-  const [thumbnailError, setThumbnailError] = useState<string | null>(null);
+  const [inputError, setInputError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -98,12 +93,18 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
   };
 
   const handleThumbnailChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    setThumbnailError(null);
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        setThumbnailError('Please select a valid image file.');
+        openModal({
+          type: 'error',
+          title: 'Invalid File Type',
+          message: 'Please select a valid image file.',
+          confirmText: 'OK'
+        });
         setThumbnail(null);
+        // Clear the file input
+        e.target.value = '';
         return;
       }
       
@@ -112,7 +113,12 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
         setThumbnail(file);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Thumbnail validation failed';
-        setThumbnailError(errorMessage);
+        openModal({
+          type: 'error',
+          title: 'File Too Large',
+          message: errorMessage,
+          confirmText: 'OK'
+        });
         setThumbnail(null);
         // Clear the file input
         e.target.value = '';
@@ -136,7 +142,12 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
       
       const storageStatus = await isStorageNearCapacity();
       if (storageStatus.critical) {
-        setInputError('Storage is critically low. Please free up some space before saving.');
+        openModal({
+          type: 'error',
+          title: 'Storage Error',
+          message: 'Storage is critically low. Please free up some space before saving.',
+          confirmText: 'OK'
+        });
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
@@ -152,7 +163,12 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
       // Check if we can store the original file
       const canStore = await canStoreFile(mediaBlob.size);
       if (!canStore) {
-        setInputError('Not enough storage space available. Please free up some space and try again.');
+        openModal({
+          type: 'error',
+          title: 'Storage Error',
+          message: 'Not enough storage space available. Please free up some space and try again.',
+          confirmText: 'OK'
+        });
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
@@ -177,14 +193,10 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
         setSaveProgress(35);
         
         // Convert using Web Worker Service (handles its own progress reporting 35-65%)
-        setIsProcessing(true);
-        setWorkerError(null);
         
         const conversionResult = await videoWorkerService.convertVideo(
           uint8,
-          (progress, phase) => {
-            setWorkerProgress(progress);
-            setWorkerPhase(phase);
+          (progress) => {
             // Map worker progress to save progress (35-65% range)
             if (progress >= 0 && progress <= 100) {
               const mappedProgress = 35 + (progress * 0.3);
@@ -192,8 +204,6 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
             }
           }
         );
-        
-        setIsProcessing(false);
         
         setSaveProgress(65);
         outBlob = new Blob([conversionResult.convertedData], { type: 'video/mp4' });
@@ -204,7 +214,12 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
         // Final check after conversion (converted file might be different size)
         const finalCanStore = await canStoreFile(outBlob.size);
         if (!finalCanStore) {
-          setInputError('Converted file is too large for available storage space.');
+          openModal({
+            type: 'error',
+            title: 'Storage Error',
+            message: 'Converted file is too large for available storage space.',
+            confirmText: 'OK'
+          });
           setSaving(false);
           setSaveProgress(0);
           setSavePhase('');
@@ -215,11 +230,9 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
         console.error('MP4 conversion failed:', conversionErr);
         const errorMessage = conversionErr instanceof Error ? conversionErr.message : 'Unknown conversion error';
         
-        setIsProcessing(false);
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
-        setWorkerError(errorMessage);
         
         openModal({
           type: 'alert',
@@ -284,7 +297,12 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
           });
           setSaveProgress(97);
         } catch {
-          setThumbnailError('Thumbnail conversion failed.');
+          openModal({
+            type: 'error',
+            title: 'Thumbnail Error',
+            message: 'Thumbnail conversion failed.',
+            confirmText: 'OK'
+          });
         }
       } else {
         setSaveProgress(95);
@@ -302,7 +320,12 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
         setSavePhase('');
       }, 2000);
     } catch (err) {
-      setInputError('Failed to save video: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      openModal({
+        type: 'error',
+        title: 'Save Error',
+        message: 'Failed to save video: ' + (err instanceof Error ? err.message : 'Unknown error'),
+        confirmText: 'OK'
+      });
       setSaving(false);
       setSaveProgress(0);
       setSavePhase('');
@@ -314,7 +337,6 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
       <Header title="Video Recorder" />
       <div className="flex flex-col items-center p-4">
       {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
-      {thumbnailError && <div className="text-red-600 mb-2">{thumbnailError}</div>}
       <div className="w-full h-48 bg-gray-300 rounded mb-4 flex items-center justify-center">
         {recording && stream ? (
           <video ref={videoRef} autoPlay muted className="w-full h-48 object-contain rounded" />
@@ -371,7 +393,6 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
       </div>
       <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
       {error && <div className="text-red-600 mb-2">{error}</div>}
-      {workerError && <div className="text-red-600 mb-2">Conversion error: {workerError}</div>}
       <div className="flex items-center justify-center gap-4 mb-6">
         {/* Main record/stop button */}
         <button
@@ -402,32 +423,18 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
         )}
       </div>
       
-      {/* Comprehensive progress bar during save operation */}
+      {/* Progress bar during save operation */}
       {saving && (
         <div className="w-full max-w-md mb-4">
           <div className="text-sm text-gray-600 mb-2 text-center">
-            {savePhase} {saveProgress > 0 && `${saveProgress}%`}
+            Processing...
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
+          <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className="bg-purple-500 h-3 rounded-full transition-all duration-500 ease-out"
+              className="bg-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
               style={{ width: `${saveProgress}%` }}
             />
           </div>
-          {/* Web Worker conversion sub-progress when available */}
-          {isProcessing && savePhase.includes('Converting') && (
-            <div className="mt-2">
-              <div className="text-xs text-gray-500 mb-1">
-                Web Worker: {workerPhase || 'Processing...'}
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-1">
-                <div 
-                  className="bg-purple-300 h-1 rounded-full transition-all duration-300"
-                  style={{ width: `${((workerProgress - 35) / 30) * 100}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
       )}
       
