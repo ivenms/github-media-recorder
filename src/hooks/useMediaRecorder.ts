@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import type { UseMediaRecorderOptions } from '../types';
+import { getMobilePlatform } from '../utils/device';
 
 export function useMediaRecorder(options: UseMediaRecorderOptions) {
   const [recording, setRecording] = useState(false);
@@ -23,9 +24,51 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
     setVideoBlob(null);
     setDuration(0);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: options.audio, video: options.video });
+      // Configure video constraints to handle orientation properly
+      const videoConstraints = options.video ? (() => {
+        const platform = getMobilePlatform();
+        
+        if (platform === 'ios-safari') {
+          return {
+            facingMode: 'user',
+            // For iOS Safari, we need to be very specific about constraints
+            width: { exact: 640 },
+            height: { exact: 480 },
+          };
+        }
+        
+        return {
+          facingMode: 'user',
+          width: { ideal: 720 },
+          height: { ideal: 1280 },
+        };
+      })() : false;
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: options.audio, 
+        video: videoConstraints
+      });
       streamRef.current = stream;
-      const mimeType = options.mimeType || (options.audio && !options.video ? 'audio/webm' : 'video/webm');
+      
+      // Use iOS-compatible MIME types
+      let mimeType = options.mimeType;
+      if (!mimeType) {
+        const platform = getMobilePlatform();
+        
+        if (platform === 'ios-safari' && options.video) {
+          // Try iOS Safari compatible video formats
+          if (MediaRecorder.isTypeSupported('video/mp4')) {
+            mimeType = 'video/mp4';
+          } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+            mimeType = 'video/webm;codecs=vp8';
+          } else {
+            mimeType = 'video/webm';
+          }
+        } else {
+          mimeType = options.audio && !options.video ? 'audio/webm' : 'video/webm';
+        }
+      }
+      
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
@@ -34,6 +77,7 @@ export function useMediaRecorder(options: UseMediaRecorderOptions) {
       };
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: mimeType || 'video/webm' });
+        
         if (options.video) {
           setVideoBlob(blob);
           setVideoUrl(URL.createObjectURL(blob));

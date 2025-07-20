@@ -16,7 +16,7 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
   const [formData, setFormData] = useState({
     title: meta?.title || '',
     author: meta?.author || '',
-    date: meta?.date || new Date().toISOString().split('T')[0],
+    date: meta?.date || getTodayDateString(),
     category: meta?.category || 'Music',
   });
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);

@@ -76,6 +76,7 @@ async function convertToMp4(input: Uint8Array): Promise<Uint8Array> {
       progress: 30
     } as VideoProcessingResponse);
     
+    // Standard conversion without any rotation corrections
     await ffmpeg.exec([
       '-i', 'input.webm',
       '-c:v', 'libx264',

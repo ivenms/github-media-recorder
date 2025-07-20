@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { useFilesStore } from '../stores/filesStore';
+import { getMobilePlatform } from '../utils/device';
 import { videoWorkerService } from '../services/videoWorkerService';
 import { getMediaCategories } from '../utils/appConfig';
 import { formatMediaFileName } from '../utils/fileUtils';
@@ -36,11 +37,38 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
   const mediaUrl = (videoUrl as string) || (audioUrl as string) || null;
   const mediaBlob = (videoBlob as Blob) || (audioBlob as Blob) || null;
 
+  // Fix video orientation for iOS Safari when URL changes
+  useEffect(() => {
+    if (mediaUrl && videoRef.current) {
+      const video = videoRef.current;
+      const handleLoadedMetadata = () => {
+        // iOS Safari specific rotation fix
+        const platform = getMobilePlatform();
+        
+        if (platform === 'ios-safari' && video.videoWidth > video.videoHeight) {
+          // Video is landscape but was likely recorded in portrait on iOS Safari
+          // Apply counter-clockwise rotation to fix the anti-clockwise issue
+          video.style.transform = 'rotate(-90deg)';
+          video.style.transformOrigin = 'center';
+        } else {
+          // Non-iOS or correctly oriented video
+          video.style.transform = 'none';
+        }
+      };
+      video.addEventListener('loadedmetadata', handleLoadedMetadata);
+      return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    }
+  }, [mediaUrl]);
+
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     if (recording && stream && videoRef.current) {
       videoRef.current.srcObject = stream;
+      // Ensure inline playback on iOS
+      videoRef.current.setAttribute('playsInline', 'true');
+      videoRef.current.setAttribute('webkit-playsinline', 'true');
+      videoRef.current.muted = true;
     } else if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
@@ -49,7 +77,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [category, setCategory] = useState(mediaCategories[0].id);
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(getTodayDateString());
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [inputError, setInputError] = useState<string | null>(null);
 
@@ -337,11 +365,26 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
       <Header title="Video Recorder" />
       <div className="flex flex-col items-center p-4">
       {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
-      <div className="w-full h-48 bg-gray-300 rounded mb-4 flex items-center justify-center">
+      <div className="w-full h-48 bg-gray-300 rounded mb-4 flex items-center justify-center overflow-hidden">
         {recording && stream ? (
-          <video ref={videoRef} autoPlay muted className="w-full h-48 object-contain rounded" />
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            muted 
+            playsInline
+            webkit-playsinline="true"
+            x-webkit-airplay="disabled"
+            className="w-full h-full object-cover rounded" 
+          />
         ) : mediaUrl ? (
-          <video src={mediaUrl} controls className="w-full h-48 object-contain rounded" />
+          <video 
+            src={mediaUrl} 
+            controls 
+            playsInline
+            webkit-playsinline="true"
+            x-webkit-airplay="disabled"
+            className="w-full h-full object-cover rounded" 
+          />
         ) : (
           <span className="text-gray-500">{recording ? '[Recording...]' : '[Camera Preview]'}</span>
         )}
