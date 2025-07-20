@@ -68,3 +68,4 @@ export interface UseUploadManagerReturn {
   getCurrentFiles: () => import('./index').EnhancedFileRecord[];
   getCurrentThumbnails: () => Record<string, import('./index').FileRecord & {isLocal: boolean}>;
 }
+

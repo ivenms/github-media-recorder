@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useMediaRecorder } from '../hooks/useMediaRecorder';
 import { useFilesStore } from '../stores/filesStore';
-import { useFileConverter } from '../hooks/useFileConverter';
+import { videoWorkerService } from '../services/videoWorkerService';
 import { getMediaCategories } from '../utils/appConfig';
 import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
@@ -30,7 +30,10 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
     stream,
   } = useMediaRecorder({ video: true, audio: true });
 
-  const { convert, progress: convertProgress, error: convertError } = useFileConverter();
+  const [workerProgress, setWorkerProgress] = useState(0);
+  const [workerPhase, setWorkerPhase] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [workerError, setWorkerError] = useState<string | null>(null);
   const { saveFile } = useFilesStore();
 
   // For video, use videoUrl/videoBlob if available, else fallback to audioUrl/audioBlob
@@ -58,8 +61,10 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savedFileId, setSavedFileId] = useState<string | null>(null);
+  const [saveProgress, setSaveProgress] = useState(0);
+  const [savePhase, setSavePhase] = useState<string>('');
 
-  const { setScreen } = useUIStore();
+  const { setScreen, openModal } = useUIStore();
 
   // Navigate to library screen when file is saved
   useEffect(() => {
@@ -121,15 +126,24 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
     
     setSaving(true);
     setInputError(null);
+    setSaveProgress(0);
+    setSavePhase('Initializing...');
     
     try {
-      // Check storage capacity before processing
+      // Phase 1: Storage validation (0-20%)
+      setSavePhase('Checking storage...');
+      setSaveProgress(5);
+      
       const storageStatus = await isStorageNearCapacity();
       if (storageStatus.critical) {
         setInputError('Storage is critically low. Please free up some space before saving.');
         setSaving(false);
+        setSaveProgress(0);
+        setSavePhase('');
         return;
       }
+      
+      setSaveProgress(10);
       
       if (storageStatus.warning) {
         console.warn('Storage usage is high. Consider cleaning up files.');
@@ -140,77 +154,158 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
       if (!canStore) {
         setInputError('Not enough storage space available. Please free up some space and try again.');
         setSaving(false);
+        setSaveProgress(0);
+        setSavePhase('');
         return;
       }
+      
+      setSaveProgress(20);
       
       let outBlob = mediaBlob;
       let outMime = mediaBlob.type;
       let ext = 'webm';
       
       try {
-        // Convert to MP4 using useFileConverter hook
+        // Phase 2: Video conversion using Web Worker (20-70%)
+        setSavePhase('Preparing conversion...');
+        setSaveProgress(25);
+        
         const arrayBuffer = await mediaBlob.arrayBuffer();
+        setSaveProgress(30);
+        
         const uint8 = new Uint8Array(arrayBuffer);
-        const mp4Data = await convert('mp4', uint8);
-        if (!mp4Data) throw new Error('MP4 conversion failed');
-        outBlob = new Blob([mp4Data], { type: 'video/mp4' });
+        setSaveProgress(35);
+        
+        // Convert using Web Worker Service (handles its own progress reporting 35-65%)
+        setIsProcessing(true);
+        setWorkerError(null);
+        
+        const conversionResult = await videoWorkerService.convertVideo(
+          uint8,
+          (progress, phase) => {
+            setWorkerProgress(progress);
+            setWorkerPhase(phase);
+            // Map worker progress to save progress (35-65% range)
+            if (progress >= 0 && progress <= 100) {
+              const mappedProgress = 35 + (progress * 0.3);
+              setSaveProgress(Math.round(mappedProgress));
+            }
+          }
+        );
+        
+        setIsProcessing(false);
+        
+        setSaveProgress(65);
+        outBlob = new Blob([conversionResult.convertedData], { type: 'video/mp4' });
         outMime = 'video/mp4';
         ext = 'mp4';
+        setSaveProgress(70);
         
         // Final check after conversion (converted file might be different size)
         const finalCanStore = await canStoreFile(outBlob.size);
         if (!finalCanStore) {
           setInputError('Converted file is too large for available storage space.');
           setSaving(false);
+          setSaveProgress(0);
+          setSavePhase('');
           return;
         }
       } catch (conversionErr) {
-        // fallback: save original if conversion fails
+        // Halt execution and show error modal
         console.error('MP4 conversion failed:', conversionErr);
-      }
-    // Format date
-    const fileDate = date ? date : new Date().toISOString().slice(0, 10);
-    const catObj = mediaCategories.find(c => c.id === category);
-    const catName = catObj ? catObj.name : category;
-    const outName = formatMediaFileName({
-      category: catName,
-      title,
-      author,
-      date: fileDate,
-      extension: ext,
-    });
-    const fileRecord = await saveFile(outBlob, {
-      name: outName,
-      type: 'video',
-      mimeType: outMime,
-      size: outBlob.size,
-      duration,
-      created: Date.now(),
-    });
-    setSavedFileId(fileRecord.id);
-    // Handle thumbnail save
-    if (thumbnail) {
-      try {
-        const jpgBlob = await convertImageToJpg(thumbnail);
-        const thumbName = outName.replace(/\.[^.]+$/, '.jpg');
-        await saveFile(jpgBlob, {
-          name: thumbName,
-          type: 'thumbnail',
-          mimeType: 'image/jpeg',
-          size: jpgBlob.size,
-          duration: 0,
-          created: Date.now(),
+        const errorMessage = conversionErr instanceof Error ? conversionErr.message : 'Unknown conversion error';
+        
+        setIsProcessing(false);
+        setSaving(false);
+        setSaveProgress(0);
+        setSavePhase('');
+        setWorkerError(errorMessage);
+        
+        openModal({
+          type: 'alert',
+          title: 'Video Conversion Failed',
+          message: `Failed to convert video to MP4 format.\n\nError: ${errorMessage}\n\nPlease try recording again or check your device's available memory.`,
         });
-      } catch {
-        setThumbnailError('Thumbnail conversion failed.');
+        
+        return; // Halt execution - don't save anything
       }
-    }
+      // Phase 3: File preparation and saving (70-100%)
+      setSavePhase('Preparing file...');
+      setSaveProgress(72);
+      
+      const fileDate = date ? date : new Date().toISOString().slice(0, 10);
+      setSaveProgress(74);
+      
+      const catObj = mediaCategories.find(c => c.id === category);
+      const catName = catObj ? catObj.name : category;
+      setSaveProgress(76);
+      
+      const outName = formatMediaFileName({
+        category: catName,
+        title,
+        author,
+        date: fileDate,
+        extension: ext,
+      });
+      setSaveProgress(78);
+      
+      setSavePhase('Saving video file...');
+      setSaveProgress(80);
+      
+      const fileRecord = await saveFile(outBlob, {
+        name: outName,
+        type: 'video',
+        mimeType: outMime,
+        size: outBlob.size,
+        duration,
+        created: Date.now(),
+      });
+      setSavedFileId(fileRecord.id);
+      setSaveProgress(88);
+      
+      // Handle thumbnail save
+      if (thumbnail) {
+        try {
+          setSavePhase('Processing thumbnail...');
+          setSaveProgress(90);
+          
+          const jpgBlob = await convertImageToJpg(thumbnail);
+          setSaveProgress(93);
+          
+          setSavePhase('Saving thumbnail...');
+          const thumbName = outName.replace(/\.[^.]+$/, '.jpg');
+          await saveFile(jpgBlob, {
+            name: thumbName,
+            type: 'thumbnail',
+            mimeType: 'image/jpeg',
+            size: jpgBlob.size,
+            duration: 0,
+            created: Date.now(),
+          });
+          setSaveProgress(97);
+        } catch {
+          setThumbnailError('Thumbnail conversion failed.');
+        }
+      } else {
+        setSaveProgress(95);
+      }
+      
+      setSavePhase('Complete!');
+      setSaveProgress(100);
       setSaving(false);
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      
+      // Reset progress after brief delay
+      setTimeout(() => {
+        setSaved(false);
+        setSaveProgress(0);
+        setSavePhase('');
+      }, 2000);
     } catch (err) {
       setInputError('Failed to save video: ' + (err instanceof Error ? err.message : 'Unknown error'));
       setSaving(false);
+      setSaveProgress(0);
+      setSavePhase('');
     }
   };
 
@@ -276,7 +371,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
       </div>
       <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
       {error && <div className="text-red-600 mb-2">{error}</div>}
-      {convertError && <div className="text-red-600 mb-2">{convertError}</div>}
+      {workerError && <div className="text-red-600 mb-2">Conversion error: {workerError}</div>}
       <div className="flex items-center justify-center gap-4 mb-6">
         {/* Main record/stop button */}
         <button
@@ -306,12 +401,42 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
           </button>
         )}
       </div>
+      
+      {/* Comprehensive progress bar during save operation */}
+      {saving && (
+        <div className="w-full max-w-md mb-4">
+          <div className="text-sm text-gray-600 mb-2 text-center">
+            {savePhase} {saveProgress > 0 && `${saveProgress}%`}
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div 
+              className="bg-purple-500 h-3 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${saveProgress}%` }}
+            />
+          </div>
+          {/* Web Worker conversion sub-progress when available */}
+          {isProcessing && savePhase.includes('Converting') && (
+            <div className="mt-2">
+              <div className="text-xs text-gray-500 mb-1">
+                Web Worker: {workerPhase || 'Processing...'}
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-1">
+                <div 
+                  className="bg-purple-300 h-1 rounded-full transition-all duration-300"
+                  style={{ width: `${((workerProgress - 35) / 30) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      
       <button
-        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-400"
+        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-400 disabled:opacity-50"
         disabled={recording || !mediaBlob || saving}
         onClick={handleSave}
       >
-        {saving ? (convertProgress > 0 && convertProgress < 1 ? `Converting... ${(convertProgress * 100).toFixed(0)}%` : 'Saving...') : saved ? 'Saved!' : 'Save'}
+        {saving ? savePhase || 'Processing...' : saved ? 'Saved!' : 'Save'}
       </button>
       </div>
     </div>
