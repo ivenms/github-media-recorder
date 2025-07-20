@@ -45,10 +45,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     handleThumbnailChange,
   } = useAudioForm();
 
-  // Background processing states
-  const [workerProgress, setWorkerProgress] = useState(0);
-  const [workerPhase, setWorkerPhase] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
   
   // Save states
   const [saving, setSaving] = useState(false);
@@ -163,14 +159,11 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
             setSaveProgress(35);
             
             // Convert using Web Worker Service (handles its own progress reporting 35-65%)
-            setIsProcessing(true);
             
             const conversionResult = await audioWorkerService.convertAudio(
               uint8,
               'mp3',
-              (progress, phase) => {
-                setWorkerProgress(progress);
-                setWorkerPhase(phase);
+              (progress) => {
                 // Map worker progress to save progress (35-65% range)
                 if (progress >= 0 && progress <= 100) {
                   const mappedProgress = 35 + (progress * 0.3);
@@ -178,8 +171,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
                 }
               }
             );
-            
-            setIsProcessing(false);
             setSaveProgress(65);
             
             outBlob = new Blob([conversionResult.convertedData], { type: 'audio/mp3' });
@@ -211,7 +202,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         console.error('Audio conversion failed:', conversionErr);
         const errorMessage = conversionErr instanceof Error ? conversionErr.message : 'Unknown conversion error';
         
-        setIsProcessing(false);
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
@@ -346,32 +336,18 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
             />
           </button>
         </div>
-        {/* Comprehensive progress bar during save operation */}
+        {/* Progress bar during save operation */}
         {saving && (
           <div className="w-full mb-4">
             <div className="text-sm text-gray-600 mb-2 text-center">
-              {savePhase} {saveProgress > 0 && `${saveProgress}%`}
+              Processing...
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
-                className="bg-purple-500 h-3 rounded-full transition-all duration-500 ease-out"
+                className="bg-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${saveProgress}%` }}
               />
             </div>
-            {/* Web Worker conversion sub-progress when available */}
-            {isProcessing && audioFormat === 'mp3' && (
-              <div className="mt-2">
-                <div className="text-xs text-gray-500 mb-1">
-                  Web Worker: {workerPhase || 'Processing...'}
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-1">
-                  <div 
-                    className="bg-purple-300 h-1 rounded-full transition-all duration-300"
-                    style={{ width: `${workerProgress}%` }}
-                  />
-                </div>
-              </div>
-            )}
           </div>
         )}
         
