@@ -2,7 +2,7 @@
 // Handles FFmpeg conversion and file operations in background
 
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import type { VideoProcessingMessage, VideoProcessingResponse } from '../types';
+import type { VideoProcessingMessage, VideoProcessingResponse } from '../types/workers';
 
 // FFmpeg instance for worker
 const ffmpeg = new FFmpeg();

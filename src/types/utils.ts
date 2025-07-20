@@ -29,38 +29,3 @@ export interface GitHubFile {
   type: 'file' | 'dir';
 }
 
-// Web Worker types for video processing
-export interface VideoConversionResult {
-  convertedData: Uint8Array;
-  originalSize: number;
-  convertedSize: number;
-}
-
-export interface VideoProcessingMessage {
-  type: 'convert-video' | 'ping';
-  id: string;
-  data?: {
-    videoData: Uint8Array;
-  };
-}
-
-export interface VideoProcessingResponse {
-  type: 'conversion-complete' | 'ffmpeg-progress' | 'progress' | 'error' | 'pong';
-  id?: string;
-  progress?: number;
-  phase?: string;
-  data?: VideoConversionResult;
-  error?: string;
-}
-
-// Video Worker Service types
-export interface VideoConversionCallback {
-  resolve: (result: VideoConversionResult) => void;
-  reject: (error: Error) => void;
-  onProgress?: (progress: number, phase: string) => void;
-  metadata?: {
-    title: string;
-    author: string;
-    category: string;
-  };
-}

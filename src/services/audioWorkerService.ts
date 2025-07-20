@@ -1,18 +1,18 @@
-// Global Video Worker Service
-// Manages a persistent Web Worker for video conversion that survives component unmounts
+// Global Audio Worker Service
+// Manages a persistent Web Worker for audio conversion that survives component unmounts
 
 import type { 
-  VideoProcessingMessage, 
-  VideoProcessingResponse
+  AudioProcessingMessage, 
+  AudioProcessingResponse
 } from '../types/workers';
 import type {
-  VideoConversionResult,
-  VideoConversionCallback 
+  AudioConversionResult,
+  AudioConversionCallback 
 } from '../types/services';
 
-class VideoWorkerService {
+class AudioWorkerService {
   private worker: Worker | null = null;
-  private pendingConversions = new Map<string, VideoConversionCallback>();
+  private pendingConversions = new Map<string, AudioConversionCallback>();
   private isWorkerLoaded = false;
 
   // Initialize the worker (singleton pattern)
@@ -20,16 +20,16 @@ class VideoWorkerService {
     if (this.worker || this.isWorkerLoaded) return;
 
     this.worker = new Worker(
-      new URL('../workers/videoProcessingWorker.ts', import.meta.url),
+      new URL('../workers/audioProcessingWorker.ts', import.meta.url),
       { type: 'module' }
     );
 
-    this.worker.onmessage = (event: MessageEvent<VideoProcessingResponse>) => {
+    this.worker.onmessage = (event: MessageEvent<AudioProcessingResponse>) => {
       this.handleWorkerMessage(event.data);
     };
 
     this.worker.onerror = (error) => {
-      console.error('Video Worker Service error:', error);
+      console.error('Audio Worker Service error:', error);
       // Reject all pending conversions
       this.pendingConversions.forEach(({ reject }) => {
         reject(new Error('Worker failed to initialize'));
@@ -40,7 +40,7 @@ class VideoWorkerService {
     this.isWorkerLoaded = true;
   }
 
-  private handleWorkerMessage(message: VideoProcessingResponse): void {
+  private handleWorkerMessage(message: AudioProcessingResponse): void {
     const { type, id, progress, phase, data, error } = message;
 
     if (!id) return;
@@ -50,7 +50,6 @@ class VideoWorkerService {
 
     switch (type) {
       case 'progress':
-      case 'ffmpeg-progress':
         if (callback.onProgress && typeof progress === 'number' && phase) {
           callback.onProgress(progress, phase);
         }
@@ -70,11 +69,12 @@ class VideoWorkerService {
     }
   }
 
-  // Convert video (public API)
-  async convertVideo(
-    videoData: Uint8Array, 
+  // Convert audio (public API)
+  async convertAudio(
+    audioData: Uint8Array,
+    format: 'mp3' | 'wav',
     onProgress?: (progress: number, phase: string) => void
-  ): Promise<VideoConversionResult> {
+  ): Promise<AudioConversionResult> {
     await this.initializeWorker();
 
     if (!this.worker) {
@@ -88,10 +88,10 @@ class VideoWorkerService {
       this.pendingConversions.set(id, { resolve, reject, onProgress });
 
       // Send conversion request
-      const message: VideoProcessingMessage = {
-        type: 'convert-video',
+      const message: AudioProcessingMessage = {
+        type: 'convert-audio',
         id,
-        data: { videoData }
+        data: { audioData, format }
       };
 
       this.worker!.postMessage(message);
@@ -129,4 +129,4 @@ class VideoWorkerService {
 }
 
 // Export singleton instance
-export const videoWorkerService = new VideoWorkerService();
+export const audioWorkerService = new AudioWorkerService();
