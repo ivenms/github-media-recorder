@@ -79,7 +79,14 @@ const Modal: React.FC<ModalProps> = ({
                 <span className={typeStyles.iconColor}>{typeStyles.icon}</span>
               </div>
             )}
-            <p className="text-gray-700 leading-relaxed flex-1">{message}</p>
+            <p className="text-gray-700 leading-relaxed flex-1">
+              {message?.split('\n').map((line, index, array) => (
+                <React.Fragment key={index}>
+                  {line}
+                  {index < array.length - 1 && <br />}
+                </React.Fragment>
+              ))}
+            </p>
           </div>
         </div>
         

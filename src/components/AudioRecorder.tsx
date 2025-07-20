@@ -49,7 +49,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const [workerProgress, setWorkerProgress] = useState(0);
   const [workerPhase, setWorkerPhase] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [workerError, setWorkerError] = useState<string | null>(null);
   
   // Save states
   const [saving, setSaving] = useState(false);
@@ -58,7 +57,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   const [saveProgress, setSaveProgress] = useState(0);
   const [savePhase, setSavePhase] = useState<string>('');
   const [saveThumbnailError, setSaveThumbnailError] = useState<string | null>(null);
-  const [inputError, setInputError] = useState<string | null>(null);
 
   const { setScreen, openModal } = useUIStore();
   const { saveFile } = useFilesStore();
@@ -80,7 +78,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
     if (!validateInputs()) return;
     
     setSaving(true);
-    setInputError(null);
     setSaveProgress(0);
     setSavePhase('Initializing...');
     
@@ -91,7 +88,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
       
       const storageStatus = await isStorageNearCapacity();
       if (storageStatus.critical) {
-        setInputError('Storage is critically low. Please free up some space before saving.');
+        openModal({
+          type: 'error',
+          title: 'Storage Error',
+          message: 'Storage is critically low. Please free up some space before saving.',
+          confirmText: 'OK'
+        });
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
@@ -114,7 +116,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
       // Check if we can store the original file
       const canStore = await canStoreFile(blob.size);
       if (!canStore) {
-        setInputError('Not enough storage space available. Please free up some space and try again.');
+        openModal({
+          type: 'error',
+          title: 'Storage Error',
+          message: 'Not enough storage space available. Please free up some space and try again.',
+          confirmText: 'OK'
+        });
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
@@ -157,7 +164,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
             
             // Convert using Web Worker Service (handles its own progress reporting 35-65%)
             setIsProcessing(true);
-            setWorkerError(null);
             
             const conversionResult = await audioWorkerService.convertAudio(
               uint8,
@@ -189,7 +195,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         // Final check after conversion (converted file might be different size)
         const finalCanStore = await canStoreFile(outBlob.size);
         if (!finalCanStore) {
-          setInputError('Converted file is too large for available storage space.');
+          openModal({
+            type: 'error',
+            title: 'Storage Error',
+            message: 'Converted file is too large for available storage space.',
+            confirmText: 'OK'
+          });
           setSaving(false);
           setSaveProgress(0);
           setSavePhase('');
@@ -204,7 +215,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         setSaving(false);
         setSaveProgress(0);
         setSavePhase('');
-        setWorkerError(errorMessage);
         
         openModal({
           type: 'alert',
@@ -288,7 +298,12 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         setSavePhase('');
       }, 2000);
     } catch (err) {
-      setInputError('Failed to save audio: ' + (err instanceof Error ? err.message : 'Unknown error'));
+      openModal({
+        type: 'error',
+        title: 'Audio Save Failed',
+        message: `Failed to save audio recording.\n\nError: ${err instanceof Error ? err.message : 'Unknown error'}\n\nPlease try saving again or check your device's storage and permissions.`,
+        confirmText: 'OK'
+      });
       setSaving(false);
       setSaveProgress(0);
       setSavePhase('');
@@ -300,8 +315,6 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
       <Header title="Voice Recording" />
       <div className="flex flex-col items-center p-4">
       {error && <div className="text-red-600 mb-2">{error}</div>}
-      {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
-      {workerError && <div className="text-red-600 mb-2">Conversion error: {workerError}</div>}
       
       <Modal
         isOpen={!!saveThumbnailError}

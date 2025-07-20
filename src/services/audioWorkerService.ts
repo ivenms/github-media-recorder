@@ -91,7 +91,7 @@ class AudioWorkerService {
         }
         break;
 
-      case 'error':
+      case 'error': {
         const errorObj = new Error(error || 'Unknown conversion error');
         callback.reject(errorObj);
         this.pendingConversions.delete(id);
@@ -99,6 +99,7 @@ class AudioWorkerService {
         // Show background alert if user is not on audio screen
         this.showBackgroundAlert('error', errorObj);
         break;
+      }
     }
   }
 

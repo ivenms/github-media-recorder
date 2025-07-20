@@ -56,7 +56,7 @@ export function useGitHubUrl() {
       // Return the original path as fallback
       return filePath;
     }
-  }, [urlCache, loading]);
+  }, [urlCache, loading, CACHE_DURATION]);
 
   const clearCache = useCallback(() => {
     setUrlCache({});

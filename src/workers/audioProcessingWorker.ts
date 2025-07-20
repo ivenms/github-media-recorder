@@ -113,10 +113,8 @@ self.onmessage = async (event: MessageEvent<AudioProcessingMessage>) => {
         };
         self.postMessage(response);
         
-        let convertedData: Uint8Array;
-        
         // Use FFmpeg for both MP3 and WAV conversion
-        convertedData = await convertAudioWithFFmpeg(audioData, format, (progress, phase) => {
+        const convertedData = await convertAudioWithFFmpeg(audioData, format, (progress, phase) => {
           const progressResponse: AudioProcessingResponse = {
             type: 'progress',
             id,

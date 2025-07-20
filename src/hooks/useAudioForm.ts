@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { getMediaCategories } from '../utils/appConfig';
+import { FILE_LIMITS } from '../utils/storageQuota';
+import { useUIStore } from '../stores/uiStore';
 
 export function useAudioForm() {
+  const { openModal } = useUIStore();
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [category, setCategory] = useState(() => getMediaCategories()[0].id);
@@ -50,8 +53,27 @@ export function useAudioForm() {
     const file = e.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        setThumbnailError('Please select a valid image file.');
+        openModal({
+          type: 'error',
+          title: 'Invalid File Type',
+          message: 'Please select a valid image file.',
+          confirmText: 'OK'
+        });
         setThumbnail(null);
+        // Clear the input
+        e.target.value = '';
+        return;
+      }
+      if (file.size > FILE_LIMITS.MAX_THUMBNAIL_SIZE) {
+        openModal({
+          type: 'error',
+          title: 'File Too Large',
+          message: 'Thumbnail file is too large. Maximum size is 5MB.',
+          confirmText: 'OK'
+        });
+        setThumbnail(null);
+        // Clear the input
+        e.target.value = '';
         return;
       }
       setThumbnail(file);

@@ -22,7 +22,7 @@ import { useUploadManager } from '../hooks/useUploadManager';
 import type { FileListProps, FileRecord, EnhancedFileRecord } from '../types';
 
 const FileList: React.FC<FileListProps> = ({ highlightId }) => {
-  const { modal, closeModal } = useUIStore();
+  const { modal, closeModal, openModal } = useUIStore();
   const { 
     files: mediaFiles, 
     thumbnails,
@@ -56,6 +56,22 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       }
     }
   }, [highlightedId, mediaFiles]);
+
+  // Show error modal when remoteError is set
+  useEffect(() => {
+    if (remoteError) {
+      openModal({
+        type: 'error',
+        title: 'Repository Error',
+        message: `${remoteError}\n\nShowing local files only. Check your GitHub settings to view remote files.`,
+        confirmText: 'OK',
+        onConfirm: () => {
+          setRemoteError(null);
+          closeModal();
+        }
+      });
+    }
+  }, [remoteError, openModal, closeModal, setRemoteError]);
 
   const handleDelete = async (id: string) => {
     await removeFile(id);
@@ -111,32 +127,8 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             <div className="text-gray-600 font-medium">Loading files from repository...</div>
           </div>
         ) : (
-          <>
-            {/* Error Message */}
-            {remoteError && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-start gap-3">
-                  <svg className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-red-800 mb-1">Repository Error</h3>
-                    <p className="text-sm text-red-700">{remoteError}</p>
-                    <p className="text-xs text-red-600 mt-2">Showing local files only. Check your GitHub settings to view remote files.</p>
-                  </div>
-                  <button
-                    onClick={() => setRemoteError(null)}
-                    className="text-red-400 hover:text-red-600 p-1"
-                    title="Dismiss"
-                  >
-                    <CloseIcon width={16} height={16} />
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-4">
-        {mediaFiles.map((file) => {
+          <div className="space-y-4">
+            {mediaFiles.map((file) => {
           const meta = parseMediaFileName(file.name) || { title: '', author: '', category: '', date: '' };
           const baseName = file.name.replace(/\.[^.]+$/, '');
           const thumb = thumbnails[baseName];
@@ -314,8 +306,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             </div>
           );
         })}
-            </div>
-          </>
+          </div>
         )}
       </div>
       

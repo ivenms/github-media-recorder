@@ -92,7 +92,7 @@ class VideoWorkerService {
         }
         break;
 
-      case 'error':
+      case 'error': {
         const errorObj = new Error(error || 'Unknown conversion error');
         callback.reject(errorObj);
         this.pendingConversions.delete(id);
@@ -100,6 +100,7 @@ class VideoWorkerService {
         // Show background alert if user is not on video screen
         this.showBackgroundAlert('error', errorObj);
         break;
+      }
     }
   }
 
