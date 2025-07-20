@@ -53,6 +53,7 @@ export const useUIStore = create<UIState>((set, get) => ({
     });
   },
 
+
   setUploading: (uploading: boolean) => {
     set({ isUploading: uploading });
   },

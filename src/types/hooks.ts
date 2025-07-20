@@ -30,9 +30,17 @@ export interface UseModalState {
   isOpen: boolean;
   title?: string;
   message: string;
-  type: 'alert' | 'confirm';
+  type: 'alert' | 'confirm' | 'success' | 'error';
   confirmText?: string;
   cancelText?: string;
+  onConfirm?: () => void;
+}
+
+export interface ShowAlertOptions {
+  type?: 'alert' | 'success' | 'error';
+  title?: string;
+  message: string;
+  confirmText?: string;
   onConfirm?: () => void;
 }
 

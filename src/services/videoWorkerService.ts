@@ -7,13 +7,15 @@ import type {
 } from '../types/workers';
 import type {
   VideoConversionResult,
-  VideoConversionCallback 
+  VideoConversionCallback,
+  BackgroundProcessingCallbacks
 } from '../types/services';
 
 class VideoWorkerService {
   private worker: Worker | null = null;
   private pendingConversions = new Map<string, VideoConversionCallback>();
   private isWorkerLoaded = false;
+  private backgroundCallbacks: BackgroundProcessingCallbacks | null = null;
 
   // Initialize the worker (singleton pattern)
   private async initializeWorker(): Promise<void> {
@@ -60,12 +62,29 @@ class VideoWorkerService {
         if (data) {
           callback.resolve(data);
           this.pendingConversions.delete(id);
+          
+          // Check if user is off-screen and trigger background alert
+          if (this.backgroundCallbacks?.getCurrentScreen && this.backgroundCallbacks?.onComplete) {
+            const currentScreen = this.backgroundCallbacks.getCurrentScreen();
+            if (currentScreen !== 'video') {
+              this.backgroundCallbacks.onComplete(data);
+            }
+          }
         }
         break;
 
       case 'error':
-        callback.reject(new Error(error || 'Unknown conversion error'));
+        const errorObj = new Error(error || 'Unknown conversion error');
+        callback.reject(errorObj);
         this.pendingConversions.delete(id);
+        
+        // Check if user is off-screen and trigger background alert
+        if (this.backgroundCallbacks?.getCurrentScreen && this.backgroundCallbacks?.onError) {
+          const currentScreen = this.backgroundCallbacks.getCurrentScreen();
+          if (currentScreen !== 'video') {
+            this.backgroundCallbacks.onError(errorObj);
+          }
+        }
         break;
     }
   }
@@ -110,6 +129,11 @@ class VideoWorkerService {
   // Get current conversion count
   getPendingConversionsCount(): number {
     return this.pendingConversions.size;
+  }
+
+  // Set background processing callbacks
+  setBackgroundCallbacks(callbacks: BackgroundProcessingCallbacks | null): void {
+    this.backgroundCallbacks = callbacks;
   }
 
   // Cleanup (only call on app shutdown)

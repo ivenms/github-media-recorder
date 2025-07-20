@@ -30,3 +30,10 @@ export interface AudioConversionCallback {
   reject: (error: Error) => void;
   onProgress?: (progress: number, phase: string) => void;
 }
+
+// Background processing callback interface for cross-screen notifications
+export interface BackgroundProcessingCallbacks {
+  onComplete?: (result: AudioConversionResult | VideoConversionResult, fileName?: string) => void;
+  onError?: (error: Error, fileName?: string) => void;
+  getCurrentScreen?: () => string;
+}

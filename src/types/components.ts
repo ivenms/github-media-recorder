@@ -15,7 +15,7 @@ export interface ModalProps {
   onConfirm?: () => void;
   title?: string;
   message: string;
-  type?: 'alert' | 'confirm';
+  type?: 'alert' | 'confirm' | 'success' | 'error';
   confirmText?: string;
   cancelText?: string;
 }

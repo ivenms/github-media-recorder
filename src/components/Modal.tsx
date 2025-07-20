@@ -24,6 +24,32 @@ const Modal: React.FC<ModalProps> = ({
     onClose();
   };
 
+  // Get styling based on type
+  const getTypeStyles = () => {
+    switch (type) {
+      case 'success':
+        return {
+          icon: '✓',
+          iconColor: 'text-green-600',
+          buttonColor: 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+        };
+      case 'error':
+        return {
+          icon: '✕',
+          iconColor: 'text-red-600',
+          buttonColor: 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+        };
+      default:
+        return {
+          icon: null,
+          iconColor: '',
+          buttonColor: 'bg-purple-600 hover:bg-purple-700 focus:ring-purple-500'
+        };
+    }
+  };
+
+  const typeStyles = getTypeStyles();
+
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -45,7 +71,16 @@ const Modal: React.FC<ModalProps> = ({
         
         {/* Body */}
         <div className="px-6 py-4">
-          <p className="text-gray-700 leading-relaxed">{message}</p>
+          <div className="flex items-start gap-3">
+            {typeStyles.icon && (
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-lg font-bold ${
+                type === 'success' ? 'bg-green-100' : 'bg-red-100'
+              }`}>
+                <span className={typeStyles.iconColor}>{typeStyles.icon}</span>
+              </div>
+            )}
+            <p className="text-gray-700 leading-relaxed flex-1">{message}</p>
+          </div>
         </div>
         
         {/* Footer */}
@@ -60,7 +95,7 @@ const Modal: React.FC<ModalProps> = ({
           )}
           <button
             onClick={handleConfirm}
-            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className={`px-4 py-2 text-white rounded-md transition-colors focus:outline-none focus:ring-2 ${typeStyles.buttonColor}`}
           >
             {confirmText}
           </button>

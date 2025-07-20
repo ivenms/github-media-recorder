@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { UseModalState } from '../types';
+import type { UseModalState, ShowAlertOptions } from '../types';
 
 export function useModal() {
   const [modalState, setModalState] = useState<UseModalState>({
@@ -8,14 +8,27 @@ export function useModal() {
     type: 'alert',
   });
 
-  const showAlert = useCallback((message: string, title?: string) => {
-    setModalState({
-      isOpen: true,
-      message,
-      title,
-      type: 'alert',
-      confirmText: 'OK',
-    });
+  const showAlert = useCallback((options: ShowAlertOptions | string, title?: string) => {
+    if (typeof options === 'string') {
+      // Backward compatibility - string message
+      setModalState({
+        isOpen: true,
+        message: options,
+        title,
+        type: 'alert',
+        confirmText: 'OK',
+      });
+    } else {
+      // New object-based interface
+      setModalState({
+        isOpen: true,
+        message: options.message,
+        title: options.title,
+        type: options.type || 'alert',
+        confirmText: options.confirmText || 'OK',
+        onConfirm: options.onConfirm,
+      });
+    }
   }, []);
 
   const showConfirm = useCallback((

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import AudioRecorder from './components/AudioRecorder';
 import VideoRecorder from './components/VideoRecorder';
 import FileList from './components/FileList';
@@ -12,6 +12,8 @@ import { useModal } from './hooks/useModal';
 import { useAuth } from './hooks/useAuth';
 import { useSettingsStore } from './stores/settingsStore';
 import { useUIStore } from './stores/uiStore';
+import { audioWorkerService } from './services/audioWorkerService';
+import { videoWorkerService } from './services/videoWorkerService';
 
 
 const App: React.FC = () => {
@@ -20,6 +22,37 @@ const App: React.FC = () => {
   const { currentScreen, highlightFileId, setScreen } = useUIStore();
   const { modalState, showAlert, closeModal } = useModal();
   const { authenticated, isLoading, setAuthenticated } = useAuth(showAlert);
+
+  // Set up background processing callbacks
+  useEffect(() => {
+    const backgroundCallbacks = {
+      getCurrentScreen: () => currentScreen,
+      onComplete: () => {
+        showAlert({
+          type: 'success',
+          title: 'Conversion Complete',
+          message: 'Your media file has been successfully converted and saved!',
+          confirmText: 'View',
+          onConfirm: () => setScreen('library')
+        });
+      },
+      onError: (error: Error) => {
+        showAlert({
+          type: 'error',
+          title: 'Conversion Failed',
+          message: `Conversion failed: ${error.message}`
+        });
+      }
+    };
+
+    audioWorkerService.setBackgroundCallbacks(backgroundCallbacks);
+    videoWorkerService.setBackgroundCallbacks(backgroundCallbacks);
+
+    return () => {
+      audioWorkerService.setBackgroundCallbacks(null);
+      videoWorkerService.setBackgroundCallbacks(null);
+    };
+  }, [currentScreen, showAlert, setScreen]);
 
 
   // Show loading while checking authentication
