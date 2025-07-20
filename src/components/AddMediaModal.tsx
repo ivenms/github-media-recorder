@@ -16,7 +16,7 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
   const [formData, setFormData] = useState({
     title: '',
     author: '',
-    date: new Date().toISOString().split('T')[0],
+    date: getTodayDateString(),
     category: getMediaCategories()[0].id,
   });
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);

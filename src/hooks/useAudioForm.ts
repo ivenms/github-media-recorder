@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { getMediaCategories } from '../utils/appConfig';
 import { FILE_LIMITS } from '../utils/storageQuota';
 import { useUIStore } from '../stores/uiStore';
+import { getTodayDateString } from '../utils/date';
 
 export function useAudioForm() {
   const { openModal } = useUIStore();
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [category, setCategory] = useState(() => getMediaCategories()[0].id);
-  const [date, setDate] = useState('');
+  const [date, setDate] = useState(getTodayDateString());
   const [titleError, setTitleError] = useState<string | null>(null);
   const [authorError, setAuthorError] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<File | null>(null);
