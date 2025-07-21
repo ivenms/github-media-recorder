@@ -29,3 +29,36 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing coverage
+coverage/
+*.lcov
+
+# Build info and caches
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+.parcel-cache/
+
+# Temporary files
+*.tmp
+.tmp/
+temp/
+.temp/
+
+# Configuration files with sensitive data
+.mcp.json
+*.local.json
+
+# Additional build/deployment
+build/
+storybook-static/
+
+# Mobile development (future-proofing)
+.expo/
+ios/build/
+android/build/
+android/.gradle/
+
+# Turborepo
+.turbo/
