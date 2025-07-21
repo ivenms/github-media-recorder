@@ -63,7 +63,7 @@ describe('Recording Workflow Integration', () => {
     
     // Make saveFile return a promise that resolves with proper file record
     mockSaveFile.mockImplementation(() => 
-      new Promise(resolve => setTimeout(() => resolve({ id: 'mock-file-id', name: 'test-file.mp3' }), 100))
+      new Promise(resolve => setTimeout(() => resolve({ id: 'mock-file-id', name: 'Music_Test Audio_Test Author_2024-06-01.mp3' }), 100))
     );
     
     useFilesStore.mockReturnValue({
