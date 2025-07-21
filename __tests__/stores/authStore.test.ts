@@ -8,6 +8,14 @@ describe('authStore', () => {
     // Clear localStorage and store state
     zustandTestUtils.clearAllStores();
     localStorage.clear();
+    
+    // Reset the auth store to initial state
+    const { result } = renderHook(() => useAuthStore());
+    if (result.current.isAuthenticated) {
+      act(() => {
+        result.current.logout();
+      });
+    }
   });
 
   describe('Initial State', () => {
@@ -366,6 +374,13 @@ describe('authStore', () => {
       });
 
       const { result } = renderHook(() => useAuthStore());
+      
+      // Manually trigger rehydration since the store was already created
+      // Access the store's setState method directly
+      act(() => {
+        const store = (result.current as any);
+        zustandTestUtils.rehydrateStore(useAuthStore, 'auth-storage');
+      });
 
       expect(result.current.isAuthenticated).toBe(true);
       expect(result.current.githubConfig).toEqual(mockConfig);

@@ -108,6 +108,86 @@ npm run build
 
 The built files will be in the `dist/` directory.
 
+## Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run specific test file
+npm test -- __tests__/utils/fileUtils.test.ts
+
+# Run with coverage report
+npm run test:coverage
+```
+
+### Test Suite Overview
+
+The project includes a comprehensive test suite with **179 tests** covering all major functionality:
+
+| Test Suite | Tests | Coverage |
+|------------|-------|----------|
+| **Setup Verification** | 21 | Environment, mocks, and tooling |
+| **Authentication Store** | 24 | GitHub auth, token management |
+| **File Utils** | 40 | IndexedDB operations, file processing |
+| **UI Components** | 55 | React component behavior and rendering |
+| **Custom Hooks** | 25 | Media recording, form handling |
+| **Integration Tests** | 14 | End-to-end user workflows |
+
+### Testing Architecture
+
+- **Jest + React Testing Library**: Component and hook testing with user-centric approach
+- **jsdom Environment**: Browser API simulation for React components
+- **MSW (Mock Service Worker)**: HTTP request mocking for GitHub API
+- **fake-indexeddb**: In-memory database for IndexedDB testing
+- **Comprehensive Mocking**: Browser APIs (MediaRecorder, getUserMedia, Web Audio)
+
+### Key Testing Areas
+
+#### Unit Tests
+- **File Operations**: IndexedDB CRUD, file naming, validation
+- **State Management**: Zustand store actions and persistence
+- **Utilities**: Media conversion, GitHub API integration
+- **Type Safety**: TypeScript interface compliance
+
+#### Component Tests
+- **Audio/Video Recording**: User interactions, form validation
+- **File Management**: List display, preview modals, sharing
+- **Navigation**: Bottom menu, screen transitions
+- **Error Handling**: Modal displays, user feedback
+
+#### Integration Tests
+- **Complete Workflows**: Record → Convert → Save → Upload
+- **Error Scenarios**: Storage limits, conversion failures, network issues
+- **Recovery Patterns**: Retry mechanisms, error state transitions
+- **Format Support**: MP3, WAV, WebM audio formats
+
+#### Mock Infrastructure
+- **Zustand Store Mocks**: Realistic state management simulation
+- **Browser API Mocks**: MediaRecorder, IndexedDB, Web Audio APIs
+- **Service Mocks**: FFmpeg conversion, GitHub API responses
+- **Hook Mocks**: Custom React hooks with configurable states
+
+### Testing Best Practices
+
+1. **Always run tests before committing**: `npm test`
+2. **Write tests for new features**: Follow existing patterns
+3. **Test error scenarios**: Include failure cases and recovery
+4. **Use realistic data**: Mirror production usage patterns
+5. **Maintain test isolation**: Clean state between tests
+
+### Continuous Integration
+
+Tests run automatically on:
+- **Pull Requests**: All tests must pass before merging
+- **Main Branch**: Validates production deployments
+- **Local Development**: Pre-commit hooks ensure quality
+
 ## PWA Usage
 - Add to home screen on mobile for a standalone, native-like experience
 - Works offline and supports background sync
@@ -123,8 +203,29 @@ src/
   types/           # TypeScript types organized by feature (components, hooks, stores, utils, workers)
   utils/           # Utilities (file management, media conversion, GitHub API, device detection)
   workers/         # Web Workers (audio/video processing with FFmpeg.js)
+  setupTests.ts    # Jest and React Testing Library configuration
+
+__tests__/
+  __mocks__/       # Centralized mock implementations
+    browser-apis/  # Browser API mocks (MediaRecorder, getUserMedia, Web Audio)
+    server/        # MSW server setup and GitHub API response mocks
+    zustand/       # Zustand store mocking infrastructure
+  components/      # Component test files
+    recording/     # Audio/Video recorder component tests
+  hooks/           # Custom hook test files
+    recording/     # Media recording hook tests
+  integration/     # End-to-end workflow tests
+  stores/          # Zustand store test files
+  utils/           # Utility function test files
+  setupGlobals.ts  # Global test environment setup (browser APIs, mocks)
+  setup-verification.test.ts # Test environment validation
+
 public/
   icons/           # PWA icons and assets
+
+jest.config.js     # Jest configuration with jsdom environment
+.github/
+  workflows/       # GitHub Actions CI/CD with automated testing
 ```
 
 ## Main Components, Hooks & Stores
@@ -165,6 +266,24 @@ public/
 - `useFilesStore` – File management, upload progress, and local file operations
 - `useUIStore` – Navigation state, current screen, modal state, and loading states
 - `useGitStore` – GitHub repository state and remote file caching
+
+## Development Commands
+
+```bash
+# Development
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Lint code with ESLint
+
+# Testing
+npm test             # Run all tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Run tests with coverage report
+
+# Deployment
+git push origin main # Trigger GitHub Pages deployment
+```
 
 ## Configuration
 All settings are managed through Zustand stores with automatic persistence:

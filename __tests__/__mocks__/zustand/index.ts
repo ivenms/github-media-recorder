@@ -1,4 +1,5 @@
 // Zustand mock for testing
+import { useState, useEffect } from 'react';
 
 // Type definitions
 type StateCreator<T> = (
@@ -14,14 +15,22 @@ type StoreApi<T> = {
   destroy: () => void;
 };
 
-// Mock store implementation that doesn't require React
+// Global registry to track store instances
+const storeRegistry = new Map<string, any>();
+let storeCounter = 0;
+
+// Mock store implementation that works with React Testing Library
 const createMockStore = <T>(initializer: StateCreator<T>): StoreApi<T> & (() => T) => {
+  const storeId = `store-${++storeCounter}`;
   let state: T;
   const listeners = new Set<(state: T) => void>();
 
   const setState = (partial: Partial<T> | ((state: T) => Partial<T>)) => {
     const nextState = typeof partial === 'function' ? partial(state) : partial;
     state = { ...state, ...nextState };
+    
+    // Store the latest state in the registry
+    storeRegistry.set(storeId, state);
     
     // Notify all listeners synchronously for testing
     listeners.forEach((listener) => listener(state));
@@ -36,6 +45,7 @@ const createMockStore = <T>(initializer: StateCreator<T>): StoreApi<T> & (() => 
 
   const destroy = () => {
     listeners.clear();
+    storeRegistry.delete(storeId);
   };
 
   const api: StoreApi<T> = {
@@ -47,10 +57,24 @@ const createMockStore = <T>(initializer: StateCreator<T>): StoreApi<T> & (() => 
 
   // Initialize state
   state = initializer(setState, getState, api);
+  storeRegistry.set(storeId, state);
 
   // Return a function that can be called as a hook and has store methods
+  // This uses React state to trigger rerenders when the store updates
   const useStore = ((selector?: (state: T) => any) => {
-    const currentState = getState();
+    const [, forceUpdate] = useState({});
+    
+    useEffect(() => {
+      const unsubscribe = subscribe(() => {
+        // Force a rerender when store state changes
+        forceUpdate({});
+      });
+      
+      return unsubscribe;
+    }, []);
+
+    // Get the latest state from the registry or fallback to getState
+    const currentState = storeRegistry.get(storeId) || getState();
     return selector ? selector(currentState) : currentState;
   }) as StoreApi<T> & (() => T);
 
@@ -65,11 +89,15 @@ const createMockStore = <T>(initializer: StateCreator<T>): StoreApi<T> & (() => 
 
 // Mock create function that returns a store hook or a curried function
 export const create = jest.fn(<T>() => {
-  // Return a curried function that can accept middleware
+  // Return a curried function that can accept middleware or store creator
   return (initializer: StateCreator<T> | any) => {
     // Handle cases where initializer might be wrapped in middleware
-    const actualInitializer = typeof initializer === 'function' ? initializer : () => initializer;
-    return createMockStore(actualInitializer);
+    if (typeof initializer === 'function') {
+      return createMockStore(initializer);
+    }
+    
+    // Direct store creation without middleware
+    return createMockStore(() => initializer);
   };
 });
 
@@ -81,7 +109,7 @@ export const persist = jest.fn((config: any, options: any = {}) => {
   return (set: any, get: any, api: any) => {
     // Create a wrapper for set that handles persistence
     const wrappedSet = (updater: any) => {
-      // Call the original set function
+      // Call the original set function first
       set(updater);
       
       // Mock persistence - save to localStorage after state update
@@ -97,19 +125,18 @@ export const persist = jest.fn((config: any, options: any = {}) => {
       }
     };
 
-    // Initialize the store with the config
+    // Initialize the store with the config first
     const store = config(wrappedSet, get, api);
 
-    // Mock rehydration from localStorage after initialization
+    // Then check for persisted state and rehydrate if necessary
     if (options.name) {
       try {
         const persisted = localStorage.getItem(options.name);
         if (persisted) {
           const { state: persistedState } = JSON.parse(persisted);
-          if (persistedState) {
-            // Merge persisted state with initial state
-            const currentState = get();
-            set({ ...currentState, ...persistedState });
+          if (persistedState && typeof persistedState === 'object') {
+            // Always rehydrate persisted state in tests - let the tests control what's persisted
+            set((currentState: any) => ({ ...currentState, ...persistedState }));
           }
         }
       } catch (error) {
@@ -164,6 +191,8 @@ export const zustandTestUtils = {
   clearAllStores: () => {
     create.mockClear();
     localStorage.clear();
+    storeRegistry.clear();
+    storeCounter = 0;
   },
 
   // Get store state for testing
@@ -179,6 +208,21 @@ export const zustandTestUtils = {
   // Mock persistence
   mockPersistence: (storeName: string, initialState: any) => {
     localStorage.setItem(storeName, JSON.stringify({ state: initialState, version: 0 }));
+  },
+
+  // Force rehydration for a store
+  rehydrateStore: (store: any, storeName: string) => {
+    try {
+      const persisted = localStorage.getItem(storeName);
+      if (persisted) {
+        const { state: persistedState } = JSON.parse(persisted);
+        if (persistedState && typeof persistedState === 'object') {
+          store.setState((currentState: any) => ({ ...currentState, ...persistedState }));
+        }
+      }
+    } catch (error) {
+      // Ignore persistence errors in tests
+    }
   },
 
   // Clear persistence
