@@ -5,6 +5,7 @@ import { getUserMediaTestUtils } from '../../__mocks__/browser-apis/getUserMedia
 
 describe('useAudioRecorder', () => {
   beforeEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
     getUserMediaTestUtils.resetMocks();
     

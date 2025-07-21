@@ -1,0 +1,15 @@
+export const useMediaRecorder = jest.fn(() => ({
+  recording: false,
+  paused: false,
+  error: null,
+  duration: 0,
+  audioUrl: null,
+  audioBlob: null,
+  start: jest.fn(),
+  stop: jest.fn(),
+  pause: jest.fn(),
+  resume: jest.fn(),
+  videoUrl: null,
+  videoBlob: null,
+  stream: null,
+})); 

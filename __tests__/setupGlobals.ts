@@ -337,10 +337,10 @@ global.HTMLImageElement = global.HTMLImageElement || class MockImage {
   onerror: (() => void) | null = null;
   
   set src(value: string) {
-    // Simulate image load
-    setTimeout(() => {
+    // Simulate image load using microtask instead of timer
+    queueMicrotask(() => {
       if (this.onload) this.onload();
-    }, 0);
+    });
   }
 };
 
