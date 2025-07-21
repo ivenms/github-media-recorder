@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../src/App';
 
@@ -99,7 +99,7 @@ jest.mock('../src/components/Modal', () => {
     type, 
     confirmText, 
     cancelText 
-  }: any) {
+  }: { isOpen: boolean; onClose: () => void; onConfirm?: () => void; title: string; message: string; type: string; confirmText?: string; cancelText?: string }) {
     return isOpen ? (
       <div data-testid="modal">
         <h2>{title}</h2>

@@ -29,7 +29,7 @@ jest.mock('../../src/stores/gitStore');
 
 // Mock components
 jest.mock('../../src/components/EditFileModal', () => {
-  return function MockEditFileModal({ onClose, onSave }: any) {
+  return function MockEditFileModal({ onClose, onSave }: { onClose: () => void; onSave: (id?: string) => void }) {
     return (
       <div data-testid="edit-file-modal">
         <button onClick={() => onClose()}>Close Edit</button>
@@ -40,7 +40,7 @@ jest.mock('../../src/components/EditFileModal', () => {
 });
 
 jest.mock('../../src/components/AddMediaModal', () => {
-  return function MockAddMediaModal({ onClose, onSave }: any) {
+  return function MockAddMediaModal({ onClose, onSave }: { onClose: () => void; onSave: () => void }) {
     return (
       <div data-testid="add-media-modal">
         <button onClick={() => onClose()}>Close Add</button>
@@ -51,7 +51,7 @@ jest.mock('../../src/components/AddMediaModal', () => {
 });
 
 jest.mock('../../src/components/Modal', () => {
-  return function MockModal({ isOpen, onClose, onConfirm, title, message, type }: any) {
+  return function MockModal({ isOpen, onClose, onConfirm, title, message, type }: { isOpen: boolean; onClose: () => void; onConfirm?: () => void; title: string; message: string; type: string }) {
     return isOpen ? (
       <div data-testid="modal">
         <h2>{title}</h2>
@@ -65,7 +65,7 @@ jest.mock('../../src/components/Modal', () => {
 });
 
 jest.mock('../../src/components/GitHubImage', () => {
-  return function MockGitHubImage({ filePath, alt, className, fallback }: any) {
+  return function MockGitHubImage({ filePath, alt, className, fallback }: { filePath?: string; alt?: string; className?: string; fallback?: React.ReactNode }) {
     return filePath ? (
       <img src={filePath} alt={alt} className={className} data-testid="github-image" />
     ) : (
@@ -75,7 +75,7 @@ jest.mock('../../src/components/GitHubImage', () => {
 });
 
 jest.mock('../../src/components/GitHubMedia', () => {
-  return function MockGitHubMedia({ filePath, type, className, fallback }: any) {
+  return function MockGitHubMedia({ filePath, type, className, fallback }: { filePath?: string; type: string; className?: string; fallback?: React.ReactNode }) {
     return filePath ? (
       <div data-testid={`github-media-${type}`} className={className}>
         {type === 'audio' ? 'GitHub Audio Player' : 'GitHub Video Player'}
@@ -87,15 +87,15 @@ jest.mock('../../src/components/GitHubMedia', () => {
 });
 
 // Mock all icon components
-jest.mock('../../src/components/icons/DefaultThumbnail', () => ({ className }: any) => <div data-testid="default-thumbnail" className={className} />);
-jest.mock('../../src/components/icons/PlayIcon', () => ({ width, height }: any) => <div data-testid="play-icon" />);
-jest.mock('../../src/components/icons/EditIcon', () => ({ width, height }: any) => <div data-testid="edit-icon" />);
-jest.mock('../../src/components/icons/DeleteIcon', () => ({ width, height }: any) => <div data-testid="delete-icon" />);
-jest.mock('../../src/components/icons/UploadIcon', () => ({ className }: any) => <div data-testid="upload-icon" className={className} />);
-jest.mock('../../src/components/icons/CheckIcon', () => ({ width, height, className }: any) => <div data-testid="check-icon" className={className} />);
-jest.mock('../../src/components/icons/AudioIcon', () => ({ className, width, height }: any) => <div data-testid="audio-icon" className={className} />);
-jest.mock('../../src/components/icons/VideoIcon', () => ({ className, width, height }: any) => <div data-testid="video-icon" className={className} />);
-jest.mock('../../src/components/icons/CloseIcon', () => ({ width, height }: any) => <div data-testid="close-icon" />);
+jest.mock('../../src/components/icons/DefaultThumbnail', () => ({ className }: { className?: string }) => <div data-testid="default-thumbnail" className={className} />);
+jest.mock('../../src/components/icons/PlayIcon', () => ({ width: _width, height: _height }: { width?: number; height?: number }) => <div data-testid="play-icon" />);
+jest.mock('../../src/components/icons/EditIcon', () => ({ width: _width, height: _height }: { width?: number; height?: number }) => <div data-testid="edit-icon" />);
+jest.mock('../../src/components/icons/DeleteIcon', () => ({ width: _width, height: _height }: { width?: number; height?: number }) => <div data-testid="delete-icon" />);
+jest.mock('../../src/components/icons/UploadIcon', () => ({ className }: { className?: string }) => <div data-testid="upload-icon" className={className} />);
+jest.mock('../../src/components/icons/CheckIcon', () => ({ width: _width, height: _height, className }: { width?: number; height?: number; className?: string }) => <div data-testid="check-icon" className={className} />);
+jest.mock('../../src/components/icons/AudioIcon', () => ({ className, width: _width, height: _height }: { className?: string; width?: number; height?: number }) => <div data-testid="audio-icon" className={className} />);
+jest.mock('../../src/components/icons/VideoIcon', () => ({ className, width: _width, height: _height }: { className?: string; width?: number; height?: number }) => <div data-testid="video-icon" className={className} />);
+jest.mock('../../src/components/icons/CloseIcon', () => ({ width: _width, height: _height }: { width?: number; height?: number }) => <div data-testid="close-icon" />);
 
 const { useCombinedFiles } = require('../../src/hooks/useCombinedFiles');
 const { useUploadManager } = require('../../src/hooks/useUploadManager');
@@ -185,7 +185,7 @@ describe('FileList', () => {
     // Mock DOM methods
     Object.defineProperty(document, 'getElementById', {
       writable: true,
-      value: jest.fn().mockImplementation((id) => ({
+      value: jest.fn().mockImplementation((_id) => ({
         scrollIntoView: jest.fn()
       }))
     });
