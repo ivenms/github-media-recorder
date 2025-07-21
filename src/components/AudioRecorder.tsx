@@ -327,6 +327,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           <button
             className="w-14 h-14 rounded-full shadow-neumorph transition-all overflow-hidden p-0 border-0 bg-transparent"
             onClick={recording ? stopRecording : startRecording}
+            aria-label={recording ? 'Stop recording' : 'Start recording'}
           >
             <RecordIcon 
               width={56} 

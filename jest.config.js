@@ -13,7 +13,7 @@ export default {
   
   // Setup files
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
-  setupFiles: ['<rootDir>/src/setupGlobals.ts'],
+  setupFiles: ['<rootDir>/__tests__/setupGlobals.ts'],
   
   // Module name mapping for assets and styles
   moduleNameMapper: {

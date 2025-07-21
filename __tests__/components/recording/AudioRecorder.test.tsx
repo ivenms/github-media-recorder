@@ -55,7 +55,7 @@ describe('AudioRecorder', () => {
     setTitle: jest.fn(),
     author: '',
     setAuthor: jest.fn(),
-    category: 'music',
+    category: 'Music',
     setCategory: jest.fn(),
     date: '2025-01-01',
     setDate: jest.fn(),
@@ -92,9 +92,9 @@ describe('AudioRecorder', () => {
     mockFileUtils.formatMediaFileName.mockReturnValue('test-audio.mp3');
     mockFileUtils.convertImageToJpg.mockResolvedValue(new Blob());
 
-    // Mock fetch for audioUrl
+    // Mock fetch for audioUrl - return a Blob with arrayBuffer method
     global.fetch = jest.fn().mockResolvedValue({
-      blob: () => Promise.resolve(testUtils.createMockFile('test.webm', 1000, 'audio/webm')),
+      blob: () => Promise.resolve(new Blob(['mock-webm-content'], { type: 'audio/webm' })),
     });
 
     // Mock audio worker service
@@ -231,9 +231,10 @@ describe('AudioRecorder', () => {
       render(<AudioRecorder audioFormat="mp3" />);
 
       const titleInput = screen.getByPlaceholderText('Title (required)');
-      await user.type(titleInput, 'Test Recording');
+      await user.type(titleInput, 'A');
 
-      expect(mockSetTitle).toHaveBeenCalledWith('Test Recording');
+      // Just verify that setTitle was called when typing
+      expect(mockSetTitle).toHaveBeenCalledWith('A');
     });
 
     it('handles author input changes', async () => {
@@ -246,9 +247,10 @@ describe('AudioRecorder', () => {
       render(<AudioRecorder audioFormat="mp3" />);
 
       const authorInput = screen.getByPlaceholderText('Author (required)');
-      await user.type(authorInput, 'Test Author');
+      await user.type(authorInput, 'B');
 
-      expect(mockSetAuthor).toHaveBeenCalledWith('Test Author');
+      // Just verify that setAuthor was called when typing
+      expect(mockSetAuthor).toHaveBeenCalledWith('B');
     });
 
     it('handles category selection changes', async () => {
@@ -260,10 +262,10 @@ describe('AudioRecorder', () => {
 
       render(<AudioRecorder audioFormat="mp3" />);
 
-      const categorySelect = screen.getByDisplayValue('music');
-      await user.selectOptions(categorySelect, 'podcast');
+      const categorySelect = screen.getByDisplayValue('Music');
+      await user.selectOptions(categorySelect, 'Podcast');
 
-      expect(mockSetCategory).toHaveBeenCalledWith('podcast');
+      expect(mockSetCategory).toHaveBeenCalledWith('Podcast');
     });
 
     it('displays validation errors', () => {
@@ -305,6 +307,11 @@ describe('AudioRecorder', () => {
         ...defaultAudioRecorderState,
         audioUrl: 'blob:mock-audio-url',
         duration: 30,
+      });
+      mockUseAudioForm.mockReturnValue({
+        ...defaultAudioFormState,
+        title: 'Test Title',
+        author: 'Test Author',
       });
       mockValidateInputs.mockReturnValue(true);
       mockSaveFile.mockResolvedValue({ id: 'test-file-id' });
@@ -407,6 +414,16 @@ describe('AudioRecorder', () => {
     });
 
     it('displays save progress', async () => {
+      // Make the audioWorkerService take some time to allow progress to be visible
+      mockAudioWorkerService.convertAudio.mockImplementation(() => 
+        new Promise(resolve => 
+          setTimeout(() => resolve({
+            convertedData: new Uint8Array(1000),
+            format: 'mp3',
+          }), 100)
+        )
+      );
+
       render(<AudioRecorder audioFormat="mp3" />);
 
       const saveButton = screen.getByRole('button', { name: /save/i });
@@ -414,7 +431,7 @@ describe('AudioRecorder', () => {
       // Start save process
       await user.click(saveButton);
 
-      // Should show progress elements
+      // Should show progress elements quickly
       await waitFor(() => {
         expect(screen.getByText('Processing...')).toBeInTheDocument();
       });
@@ -503,7 +520,7 @@ describe('AudioRecorder', () => {
 
       render(<AudioRecorder audioFormat="mp3" />);
 
-      const audioElement = screen.getByRole('application'); // audio controls
+      const audioElement = document.querySelector('audio');
       expect(audioElement).toBeInTheDocument();
       expect(audioElement).toHaveAttribute('src', 'blob:mock-audio-url');
     });
@@ -520,7 +537,7 @@ describe('AudioRecorder', () => {
     it('handles thumbnail file selection', async () => {
       render(<AudioRecorder audioFormat="mp3" />);
 
-      const fileInput = screen.getByDisplayValue('');
+      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
       const mockFile = testUtils.createMockFile('image.jpg', 1000, 'image/jpeg');
 
       await user.upload(fileInput, mockFile);
