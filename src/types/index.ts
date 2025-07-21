@@ -65,6 +65,7 @@ export interface ParsedMediaFileName {
   title: string;
   author: string;
   date: string;
+  extension: string;
 }
 
 export interface ThumbnailFile {

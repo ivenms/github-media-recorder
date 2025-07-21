@@ -119,6 +119,13 @@ export async function decodeWebmToPCM(blob: Blob): Promise<{channelData: Float32
  * @returns Blob containing the WAV data
  */
 export function encodeWAV(channelData: Float32Array[], sampleRate: number): Blob {
+  // Validate inputs
+  if (!channelData || channelData.length === 0) {
+    throw new Error('Channel data is required');
+  }
+  if (sampleRate <= 0) {
+    throw new Error('Sample rate must be positive');
+  }
   const numChannels = channelData.length;
   const length = channelData[0].length;
   const buffer = new ArrayBuffer(44 + length * numChannels * 2);
@@ -198,15 +205,47 @@ export async function convertImageToJpg(file: Blob, quality: number = 0.92): Pro
  * @returns ParsedMediaFileName object or null if parsing fails.
  */
 export function parseMediaFileName(name: string): ParsedMediaFileName | null {
-  // Expected: Category_Title_Author_Date.extension
+  if (!name || typeof name !== 'string') return null;
+  
+  const extension = name.split('.').pop() || '';
+  
+  // Try to match standard format: Category_Title_Author_Date.extension
   const match = name.match(/^([^_]+)_([^_]+)_([^_]+)_([0-9]{4}-[0-9]{2}-[0-9]{2})\.[^.]+$/);
-  if (!match) return null;
-  return {
-    category: match[1],
-    title: match[2],
-    author: match[3],
-    date: match[4],
-  };
+  if (match) {
+    return {
+      category: match[1],
+      title: match[2],
+      author: match[3],
+      date: match[4],
+      extension,
+    };
+  }
+
+  // Try to match format: Category_Title_Author.extension (no date)
+  const matchNoDate = name.match(/^([^_]+)_([^_]+)_([^_]+)\.[^.]+$/);
+  if (matchNoDate) {
+    return {
+      category: matchNoDate[1],
+      title: matchNoDate[2],
+      author: matchNoDate[3],
+      date: '',
+      extension,
+    };
+  }
+  
+  // Fallback: try to extract at least the extension and use filename as title
+  const parts = name.split('.');
+  if (parts.length >= 2) {
+    return {
+      category: '',
+      title: parts.slice(0, -1).join('.'),
+      author: '',
+      date: '',
+      extension,
+    };
+  }
+  
+  return null;
 }
 
 /**
@@ -251,9 +290,9 @@ export function sortFilesByDate<T extends { name: string; created?: number; isLo
 
 /**
  * Formats a media file name as Category_Title_Author_Date.extension
- * - Removes non-alphanumeric, dash, and space characters
- * - Removes spaces
- * - Example: Music_MySong_JohnDoe_2024-06-07.mp3
+ * - Removes special characters but keeps alphanumeric, dashes, and spaces
+ * - Uses "_" (underscore) as separator with no spaces
+ * - Example: Music_My Song_John Doe_2024-06-07.mp3
  */
 export function formatMediaFileName({
   category,
@@ -268,8 +307,52 @@ export function formatMediaFileName({
   date: string;
   extension: string;
 }): string {
-  // Only remove non-alphanumeric, dash, and space characters, keep spaces
-  // Then replace dashes with spaces
-  const safe = (str: string) => str.replace(/[^a-zA-Z0-9\- ]/g, '').replace(/-/g, ' ');
-  return `${safe(category)}_${safe(title)}_${safe(author)}_${formatDate(date)}.${extension}`;
+  // Remove special characters but keep alphanumeric, dashes, and spaces
+  const safe = (str: string) => str.replace(/[^a-zA-Z0-9\- ]/g, '').trim();
+  
+  // Build components, filtering out empty ones
+  const components = [safe(category), safe(title), safe(author), formatDate(date)]
+    .filter(component => component.length > 0);
+  
+  // Join with "_" and add extension
+  return `${components.join('_')}.${extension}`;
+}
+
+/**
+ * Validates if a file is a supported media file based on name and MIME type
+ * @param filename - The file name to check
+ * @param mimeType - The MIME type to validate
+ * @returns true if valid media file, false otherwise
+ */
+export function isValidMediaFile(filename: string, mimeType: string): boolean {
+  if (!filename || !mimeType) return false;
+  
+  // Get file extension
+  const extension = filename.split('.').pop()?.toLowerCase();
+  if (!extension) return false;
+  
+  // Define valid combinations
+  const validCombinations = {
+    // Audio files
+    'mp3': ['audio/mp3', 'audio/mpeg'],
+    'wav': ['audio/wav', 'audio/wave'],
+    'webm': ['audio/webm', 'video/webm'], // WebM can be audio or video
+    'm4a': ['audio/mp4', 'audio/m4a'],
+    'ogg': ['audio/ogg'],
+    
+    // Video files  
+    'mp4': ['video/mp4'],
+    'mov': ['video/quicktime'],
+    'avi': ['video/avi', 'video/x-msvideo'],
+    
+    // Image files
+    'jpg': ['image/jpeg'],
+    'jpeg': ['image/jpeg'],
+    'png': ['image/png'],
+    'gif': ['image/gif'],
+    'webp': ['image/webp'],
+  };
+  
+  const validMimeTypes = validCombinations[extension as keyof typeof validCombinations];
+  return validMimeTypes ? validMimeTypes.includes(mimeType.toLowerCase()) : false;
 } 
