@@ -107,7 +107,7 @@ describe('Jest Setup Verification', () => {
       const mockResponse = { login: 'testuser', id: 123 };
       global.fetch = jest.fn().mockResolvedValue({
         json: () => Promise.resolve(mockResponse),
-      } as any);
+      } as Response);
       
       const response = await fetch('https://api.github.com/user');
       const data = await response.json();
@@ -184,7 +184,7 @@ describe('Jest Setup Verification', () => {
       testUtils.createMockFile('test.mp3', 1000, 'audio/mp3');
       testUtils.createMockMediaStream();
       new AudioContext();
-      new MediaRecorder(testUtils.createMockMediaStream() as any);
+      new MediaRecorder(testUtils.createMockMediaStream() as MediaStream);
       
       const end = performance.now();
       const duration = end - start;

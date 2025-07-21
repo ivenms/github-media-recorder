@@ -378,7 +378,6 @@ describe('authStore', () => {
       // Manually trigger rehydration since the store was already created
       // Access the store's setState method directly
       act(() => {
-        const store = (result.current as any);
         zustandTestUtils.rehydrateStore(useAuthStore, 'auth-storage');
       });
 

@@ -6,7 +6,7 @@ import {
   formatMediaFileName,
   parseMediaFileName,
   isValidMediaFile,
-  convertImageToJpg,
+  convertImageToJpg as _convertImageToJpg,
   decodeWebmToPCM,
   encodeWAV,
 } from '../../src/utils/fileUtils';
@@ -27,8 +27,8 @@ describe('fileUtils', () => {
       global.IDBKeyRange = FDBKeyRange;
       
       // Clear all open connections and databases
-      if ((global.indexedDB as any)._databases) {
-        (global.indexedDB as any)._databases.clear();
+      if ((global.indexedDB as typeof indexedDB & { _databases?: Map<string, unknown> })._databases) {
+        ((global.indexedDB as typeof indexedDB & { _databases: Map<string, unknown> })._databases).clear();
       }
       
       // Small delay for cleanup
@@ -108,9 +108,9 @@ describe('fileUtils', () => {
         const originalOpen = indexedDB.open;
         indexedDB.open = jest.fn().mockImplementation(() => {
           const request = {
-            onerror: null as any,
-            onsuccess: null as any,
-            onupgradeneeded: null as any,
+            onerror: null as ((this: IDBRequest, ev: Event) => unknown) | null,
+            onsuccess: null as ((this: IDBRequest, ev: Event) => unknown) | null,
+            onupgradeneeded: null as ((this: IDBOpenDBRequest, ev: IDBVersionChangeEvent) => unknown) | null,
             error: new Error('Database unavailable'),
           };
           setTimeout(() => {
@@ -140,7 +140,6 @@ describe('fileUtils', () => {
       it('returns empty array when no files exist', async () => {
         // Clear any existing files first by getting current count
         let files = await listFiles();
-        const initialCount = files.length;
         
         // Delete all existing files
         for (const file of files) {
@@ -154,7 +153,7 @@ describe('fileUtils', () => {
 
       it('returns list of saved files with URLs', async () => {
         // Clear any existing files first
-        let existingFiles = await listFiles();
+        const existingFiles = await listFiles();
         for (const file of existingFiles) {
           await deleteFile(file.id);
         }
@@ -212,7 +211,7 @@ describe('fileUtils', () => {
 
       it('handles database errors gracefully', async () => {
         // Mock IndexedDB transaction to fail
-        const mockDB = {
+        const _mockDB = {
           transaction: jest.fn().mockReturnValue({
             objectStore: jest.fn().mockReturnValue({
               getAll: jest.fn().mockReturnValue({
@@ -233,7 +232,7 @@ describe('fileUtils', () => {
     describe('deleteFile', () => {
       it('deletes file by ID', async () => {
         // Clear any existing files first
-        let existingFiles = await listFiles();
+        const existingFiles = await listFiles();
         for (const file of existingFiles) {
           await deleteFile(file.id);
         }
@@ -433,8 +432,8 @@ describe('fileUtils', () => {
       it('returns null for invalid filenames', () => {
         expect(parseMediaFileName('')).toBe(null);
         expect(parseMediaFileName('file_without_extension')).toBe(null);
-        expect(parseMediaFileName(null as any)).toBe(null);
-        expect(parseMediaFileName(undefined as any)).toBe(null);
+        expect(parseMediaFileName(null as unknown as string)).toBe(null);
+        expect(parseMediaFileName(undefined as unknown as string)).toBe(null);
       });
     });
   });
@@ -484,7 +483,6 @@ describe('fileUtils', () => {
         const mockImageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
         
         // Mock convertImageToJpg to return immediately
-        const originalConvertImageToJpg = convertImageToJpg;
         const convertImageToJpgSpy = jest.fn().mockResolvedValue(
           new Blob(['mock-jpeg-data'], { type: 'image/jpeg' })
         );
@@ -522,7 +520,7 @@ describe('fileUtils', () => {
           new Error('Invalid image file')
         );
         
-        await expect(convertImageToJpgSpy(mockTextFile as any))
+        await expect(convertImageToJpgSpy(mockTextFile as unknown as File))
           .rejects.toThrow('Invalid image file');
       }, 1000);
 
@@ -614,7 +612,7 @@ describe('fileUtils', () => {
     it('handles IndexedDB unavailable', async () => {
       // Mock indexedDB to be undefined
       const originalIndexedDB = global.indexedDB;
-      (global as any).indexedDB = undefined;
+      (global as typeof globalThis & { indexedDB?: typeof indexedDB }).indexedDB = undefined;
 
       const mockBlob = testUtils.createMockFile('test.mp3', 1000, 'audio/mp3');
       const metadata: FileMetadata = {

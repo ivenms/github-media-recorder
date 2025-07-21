@@ -14,7 +14,7 @@ export const useAuthStore = create<AuthState>()(
         // Validate userInfo structure - should be object with expected properties or null
         let validatedUserInfo = null;
         if (userInfo && typeof userInfo === 'object' && !Array.isArray(userInfo)) {
-          const info = userInfo as any;
+          const info = userInfo as Record<string, unknown>;
           if (typeof info.login === 'string' || typeof info.name === 'string' || typeof info.avatar_url === 'string') {
             validatedUserInfo = userInfo as { login?: string; name?: string; avatar_url?: string };
           }
@@ -50,7 +50,7 @@ export const useAuthStore = create<AuthState>()(
         // Validate userInfo structure - should be object with expected properties or null
         let validatedUserInfo = null;
         if (userInfo && typeof userInfo === 'object' && !Array.isArray(userInfo)) {
-          const info = userInfo as any;
+          const info = userInfo as Record<string, unknown>;
           if (typeof info.login === 'string' || typeof info.name === 'string' || typeof info.avatar_url === 'string') {
             validatedUserInfo = userInfo as { login?: string; name?: string; avatar_url?: string };
           }

@@ -1,7 +1,7 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useAudioRecorder } from '../../../src/hooks/useAudioRecorder';
 import { getUserMediaTestUtils } from '../../__mocks__/browser-apis/getUserMedia';
-import { MockMediaRecorder } from '../../__mocks__/browser-apis/mediaRecorder';
+// MockMediaRecorder is available globally via setupGlobals.ts
 
 describe('useAudioRecorder', () => {
   beforeEach(() => {
@@ -9,8 +9,8 @@ describe('useAudioRecorder', () => {
     getUserMediaTestUtils.resetMocks();
     
     // Clear MediaRecorder instances
-    if ((global.MediaRecorder as any).instances) {
-      (global.MediaRecorder as any).instances.length = 0;
+    if ((global.MediaRecorder as typeof MediaRecorder & { instances?: unknown[] }).instances) {
+      ((global.MediaRecorder as typeof MediaRecorder & { instances: unknown[] }).instances).length = 0;
     }
     
     // Reset URL mock with incrementing counter
@@ -134,7 +134,7 @@ describe('useAudioRecorder', () => {
       const originalMediaRecorder = global.MediaRecorder;
       global.MediaRecorder = jest.fn().mockImplementation(() => {
         throw new Error('MediaRecorder not available');
-      }) as any;
+      }) as jest.MockedClass<typeof MediaRecorder>;
       global.MediaRecorder.isTypeSupported = jest.fn().mockReturnValue(true);
 
       const { result } = renderHook(() => useAudioRecorder());
@@ -333,7 +333,7 @@ describe('useAudioRecorder', () => {
       });
 
       // Simulate MediaRecorder data events
-      const mockRecorder = (global.MediaRecorder as any).instances[0];
+      const mockRecorder = ((global.MediaRecorder as typeof MediaRecorder & { instances: unknown[] }).instances)[0];
       const mockBlob1 = new Blob(['chunk1'], { type: 'audio/webm' });
       const mockBlob2 = new Blob(['chunk2'], { type: 'audio/webm' });
 
@@ -369,7 +369,7 @@ describe('useAudioRecorder', () => {
         expect(result.current.recording).toBe(true);
       });
 
-      const mockRecorder = (global.MediaRecorder as any).instances[0];
+      const mockRecorder = ((global.MediaRecorder as typeof MediaRecorder & { instances: unknown[] }).instances)[0];
       const emptyBlob = new Blob([], { type: 'audio/webm' });
       const validBlob = new Blob(['data'], { type: 'audio/webm' });
 
@@ -522,7 +522,7 @@ describe('useAudioRecorder', () => {
         expect(result.current.recording).toBe(true);
       });
 
-      const mockRecorder = (global.MediaRecorder as any).instances[0];
+      const mockRecorder = ((global.MediaRecorder as typeof MediaRecorder & { instances: unknown[] }).instances)[0];
 
       expect(typeof mockRecorder.ondataavailable).toBe('function');
       expect(typeof mockRecorder.onstop).toBe('function');
@@ -539,7 +539,7 @@ describe('useAudioRecorder', () => {
         expect(result.current.recording).toBe(true);
       });
 
-      const mockRecorder = (global.MediaRecorder as any).instances[0];
+      const mockRecorder = ((global.MediaRecorder as typeof MediaRecorder & { instances: unknown[] }).instances)[0];
       expect(mockRecorder.start).toHaveBeenCalled();
     });
 
@@ -558,7 +558,7 @@ describe('useAudioRecorder', () => {
         result.current.stopRecording();
       });
 
-      const mockRecorder = (global.MediaRecorder as any).instances[0];
+      const mockRecorder = ((global.MediaRecorder as typeof MediaRecorder & { instances: unknown[] }).instances)[0];
       expect(mockRecorder.stop).toHaveBeenCalled();
     });
   });

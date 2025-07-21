@@ -37,7 +37,7 @@ global.testUtils = {
   },
   
   // Helper to create mock audio/video streams
-  createMockMediaStream: (tracks: any[] = []) => {
+  createMockMediaStream: (tracks: MediaStreamTrack[] = []) => {
     const stream = {
       id: 'mock-stream-id',
       active: true,
@@ -79,7 +79,7 @@ global.testUtils = {
   },
   
   // Helper to trigger events
-  triggerEvent: (element: any, eventType: string, eventData: any = {}) => {
+  triggerEvent: (element: Element, eventType: string, eventData: Record<string, unknown> = {}) => {
     const event = new Event(eventType, { bubbles: true });
     Object.assign(event, eventData);
     element.dispatchEvent(event);
@@ -88,7 +88,7 @@ global.testUtils = {
 
 // Extend Jest matchers
 expect.extend({
-  toBeValidFile(received: any) {
+  toBeValidFile(received: unknown) {
     const pass = received instanceof File && received.name && received.size >= 0;
     return {
       message: () => `expected ${received} to be a valid File object`,
@@ -96,10 +96,10 @@ expect.extend({
     };
   },
   
-  toHaveBeenCalledWithFile(received: any, filename?: string) {
+  toHaveBeenCalledWithFile(received: jest.MockedFunction<(...args: unknown[]) => unknown>, filename?: string) {
     const calls = received.mock.calls;
-    const pass = calls.some((call: any[]) => {
-      const file = call.find((arg: any) => arg instanceof File);
+    const pass = calls.some((call: unknown[]) => {
+      const file = call.find((arg: unknown) => arg instanceof File);
       return file && (!filename || file.name === filename);
     });
     return {
@@ -109,20 +109,18 @@ expect.extend({
   },
 });
 
-// Type declarations for global test utilities
+// Type declarations for global test utilities  
 declare global {
-  namespace jest {
-    interface Matchers<R> {
-      toBeValidFile(): R;
-      toHaveBeenCalledWithFile(filename?: string): R;
-    }
+  interface CustomMatchers<R = unknown> {
+    toBeValidFile(): R;
+    toHaveBeenCalledWithFile(filename?: string): R;
   }
   
   var testUtils: {
     createMockFile: (name: string, size?: number, type?: string) => File;
-    createMockMediaStream: (tracks?: any[]) => any;
-    createMockMediaTrack: (kind?: 'audio' | 'video') => any;
+    createMockMediaStream: (tracks?: MediaStreamTrack[]) => MediaStream;
+    createMockMediaTrack: (kind?: 'audio' | 'video') => MediaStreamTrack;
     waitForAsync: () => Promise<void>;
-    triggerEvent: (element: any, eventType: string, eventData?: any) => void;
+    triggerEvent: (element: Element, eventType: string, eventData?: Record<string, unknown>) => void;
   };
 }
