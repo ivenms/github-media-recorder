@@ -23,7 +23,6 @@ class MockMediaRecorder extends EventTarget {
   
   // Mock data for testing
   private chunks: Blob[] = [];
-  private timeslice?: number;
   private recordingStartTime: number = 0;
 
   constructor(stream: MediaStream, options: MediaRecorderOptions = {}) {
@@ -41,7 +40,6 @@ class MockMediaRecorder extends EventTarget {
     }
 
     this.state = 'recording';
-    this.timeslice = timeslice;
     this.recordingStartTime = Date.now();
     this.chunks = [];
 
@@ -170,10 +168,11 @@ const MediaRecorderMock = jest.fn().mockImplementation((stream: MediaStream, opt
 });
 
 // Add static method to the mock
-MediaRecorderMock.isTypeSupported = MockMediaRecorder.isTypeSupported;
-
+// @ts-ignore: isTypeSupported is a static property for the mock
+(MediaRecorderMock as any).isTypeSupported = MockMediaRecorder.isTypeSupported;
 // Add instances array for testing
-MediaRecorderMock.instances = instances;
+// @ts-ignore: instances is a static property for the mock
+(MediaRecorderMock as any).instances = instances;
 
 // Assign to global
 global.MediaRecorder = MediaRecorderMock as any;

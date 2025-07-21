@@ -85,7 +85,8 @@ const createMockAudioContext = () => {
 // Mock the global AudioContext
 const MockWebAudioContext = jest.fn().mockImplementation(createMockAudioContext);
 global.AudioContext = MockWebAudioContext;
-global.webkitAudioContext = MockWebAudioContext;
+// Allow assignment to global object
+(global as typeof globalThis & { webkitAudioContext?: typeof MockWebAudioContext }).webkitAudioContext = MockWebAudioContext;
 
 // Mock MediaStreamAudioSourceNode
 global.MediaStreamAudioSourceNode = jest.fn().mockImplementation((context, options) => ({
