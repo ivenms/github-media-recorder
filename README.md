@@ -6,6 +6,11 @@ A Progressive Web App (PWA) for recording audio and video, converting to MP3/MP4
 
 🌐 **Live Demo**: [https://ivenms.github.io/github-media-recorder/](https://ivenms.github.io/github-media-recorder/)
 
+[![CI/CD Pipeline](https://github.com/ivenms/github-media-recorder/actions/workflows/deploy.yml/badge.svg)](https://github.com/ivenms/github-media-recorder/actions/workflows/deploy.yml)
+[![codecov](https://codecov.io/gh/ivenms/github-media-recorder/branch/main/graph/badge.svg)](https://codecov.io/gh/ivenms/github-media-recorder)
+[![Test Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)](https://github.com/ivenms/github-media-recorder/actions)
+[![Tests](https://img.shields.io/badge/tests-179%20passing-brightgreen)](https://github.com/ivenms/github-media-recorder/actions)
+
 ## Features
 - **GitHub Personal Access Token Authentication**
   - Secure authentication using GitHub Personal Access Tokens
@@ -188,6 +193,29 @@ Tests run automatically on:
 - **Main Branch**: Validates production deployments
 - **Local Development**: Pre-commit hooks ensure quality
 
+### Branch Protection Setup
+
+To enforce testing and coverage requirements for PR merges:
+
+1. **Go to Repository Settings** → **Branches**
+2. **Add/Edit protection rule** for `main` branch:
+   ```
+   ✅ Require pull request before merging
+   ✅ Require status checks to pass before merging
+       ✅ Require branches to be up to date
+       ✅ Status checks: "test" (includes coverage)
+       ✅ Status checks: "build"
+   ✅ Require conversation resolution before merging
+   ✅ Include administrators
+   ```
+
+3. **Coverage Requirements**:
+   - Tests automatically enforce **80% coverage threshold**
+   - PRs failing coverage checks cannot be merged
+   - Coverage reports posted as PR comments
+
+**Result**: No code can be merged without passing all tests and meeting 80% coverage!
+
 ## PWA Usage
 - Add to home screen on mobile for a standalone, native-like experience
 - Works offline and supports background sync
@@ -280,6 +308,7 @@ npm run lint         # Lint code with ESLint
 npm test             # Run all tests
 npm run test:watch   # Run tests in watch mode
 npm run test:coverage # Run tests with coverage report
+npm run test:ci      # Run tests with coverage (CI optimized)
 
 # Deployment
 git push origin main # Trigger GitHub Pages deployment
