@@ -38,7 +38,7 @@ global.testUtils = {
   
   // Helper to create mock audio/video streams
   createMockMediaStream: (tracks: MediaStreamTrack[] = []) => {
-    const stream = {
+    const stream: Partial<MediaStream> = {
       id: 'mock-stream-id',
       active: true,
       getTracks: jest.fn(() => tracks),
@@ -46,32 +46,41 @@ global.testUtils = {
       getVideoTracks: jest.fn(() => tracks.filter(t => t.kind === 'video')),
       addTrack: jest.fn(),
       removeTrack: jest.fn(),
-      clone: jest.fn(() => stream),
       addEventListener: jest.fn(),
       removeEventListener: jest.fn(),
       dispatchEvent: jest.fn(),
+      clone: jest.fn(() => stream as MediaStream),
+      onaddtrack: null,
+      onremovetrack: null,
+      getTrackById: jest.fn(),
     };
-    return stream;
+    return stream as MediaStream;
   },
   
   // Helper to create mock media tracks
-  createMockMediaTrack: (kind: 'audio' | 'video' = 'audio') => ({
-    id: `mock-track-${kind}`,
-    kind,
-    label: `Mock ${kind} track`,
-    enabled: true,
-    muted: false,
-    readyState: 'live',
-    stop: jest.fn(),
-    clone: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-    getSettings: jest.fn(() => ({})),
-    getConstraints: jest.fn(() => ({})),
-    getCapabilities: jest.fn(() => ({})),
-    applyConstraints: jest.fn(() => Promise.resolve()),
-  }),
+  createMockMediaTrack: (kind: 'audio' | 'video' = 'audio') => {
+    const track: Partial<MediaStreamTrack> = {
+      id: 'mock-track-id',
+      kind,
+      label: kind === 'audio' ? 'Mock Audio Track' : 'Mock Video Track',
+      enabled: true,
+      muted: false,
+      readyState: 'live',
+      stop: jest.fn(),
+      clone: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      applyConstraints: jest.fn(),
+      contentHint: '',
+      onended: null,
+      onmute: null,
+      onunmute: null,
+      getSettings: jest.fn(),
+      getConstraints: jest.fn(),
+      getCapabilities: jest.fn(),
+    };
+    return track as MediaStreamTrack;
+  },
   
   // Helper to simulate user interactions
   async waitForAsync() {
@@ -89,10 +98,11 @@ global.testUtils = {
 // Extend Jest matchers
 expect.extend({
   toBeValidFile(received: unknown) {
-    const pass = received instanceof File && received.name && received.size >= 0;
+    const pass = received instanceof File && typeof received.name === 'string' && received.size >= 0;
     return {
-      message: () => `expected ${received} to be a valid File object`,
-      pass,
+      message: () =>
+        `expected ${received} ${!pass ? 'not ' : ''}to be a valid File object`,
+      pass: !!pass
     };
   },
   

@@ -85,7 +85,7 @@ class MockMediaStreamTrack extends EventTarget {
     };
   }
 
-  applyConstraints(constraints: any) {
+  applyConstraints(_constraints: any) {
     return Promise.resolve();
   }
 }
@@ -203,7 +203,7 @@ const mockMediaDevices = {
     ]);
   }),
 
-  getDisplayMedia: jest.fn((constraints: any = {}) => {
+  getDisplayMedia: jest.fn((_constraints: any = {}) => {
     return Promise.resolve(new MockMediaStream([
       new MockMediaStreamTrack('video', 'Screen capture'),
       new MockMediaStreamTrack('audio', 'System audio'),
