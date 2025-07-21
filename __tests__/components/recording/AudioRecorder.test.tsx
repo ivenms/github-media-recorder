@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AudioRecorder from '../../../src/components/AudioRecorder';
 import { useAudioRecorder } from '../../../src/hooks/useAudioRecorder';
@@ -77,10 +77,10 @@ describe('AudioRecorder', () => {
     mockUseUIStore.mockReturnValue({
       setScreen: mockSetScreen,
       openModal: mockOpenModal,
-    } as any);
+    } as ReturnType<typeof useUIStore>);
     mockUseFilesStore.mockReturnValue({
       saveFile: mockSaveFile,
-    } as any);
+    } as ReturnType<typeof useFilesStore>);
 
     // Mock storage and file utilities
     mockStorageQuota.isStorageNearCapacity.mockResolvedValue({

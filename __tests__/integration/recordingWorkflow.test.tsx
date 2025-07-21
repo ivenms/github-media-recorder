@@ -1,9 +1,9 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AudioRecorder from '../../src/components/AudioRecorder';
 import { getUserMediaTestUtils } from '../__mocks__/browser-apis/getUserMedia';
-import { MockMediaRecorder } from '../__mocks__/browser-apis/mediaRecorder';
+// MockMediaRecorder is available globally via setupGlobals.ts
 import { mockGithubResponses } from '../__mocks__/server';
 import * as storageQuota from '../../src/utils/storageQuota';
 

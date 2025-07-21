@@ -2,7 +2,7 @@
 import 'fake-indexeddb/auto';
 
 // Global polyfills for browser APIs
-global.structuredClone = global.structuredClone || ((val: any) => JSON.parse(JSON.stringify(val)));
+global.structuredClone = global.structuredClone || ((val: unknown) => JSON.parse(JSON.stringify(val)));
 
 // Define global for compatibility (same as in vite.config.ts)
 global.global = globalThis;
@@ -16,7 +16,7 @@ if (!global.URL || !global.URL.createObjectURL) {
       return `blob:mock-audio-url-${urlCounter}`;
     }),
     revokeObjectURL: jest.fn(),
-  } as any;
+  } as typeof URL;
 }
 
 // Mock File constructor
@@ -26,7 +26,7 @@ global.File = global.File || class MockFile {
   type: string;
   lastModified: number;
   
-  constructor(bits: any[], name: string, options: any = {}) {
+  constructor(bits: BlobPart[], name: string, options: FilePropertyBag = {}) {
     this.name = name;
     this.size = bits.reduce((acc, bit) => acc + (bit.length || 0), 0);
     this.type = options.type || '';
@@ -39,7 +39,7 @@ global.Blob = class MockBlob {
   size: number;
   type: string;
   
-  constructor(parts: any[] = [], options: any = {}) {
+  constructor(parts: BlobPart[] = [], options: BlobPropertyBag = {}) {
     // Calculate size more accurately for ArrayBuffers
     this.size = parts.reduce((acc, part) => {
       if (part instanceof ArrayBuffer) {
@@ -137,7 +137,7 @@ global.TextDecoder = global.TextDecoder || class MockTextDecoder {
 // Mock crypto for secure random values
 Object.defineProperty(global, 'crypto', {
   value: {
-    getRandomValues: (arr: any) => {
+    getRandomValues: (arr: Uint8Array | Uint16Array | Uint32Array) => {
       for (let i = 0; i < arr.length; i++) {
         arr[i] = Math.floor(Math.random() * 256);
       }
@@ -158,9 +158,9 @@ global.Response = global.Response || class MockResponse {
   statusText: string;
   headers: Map<string, string>;
   url: string;
-  body: any;
+  body: unknown;
 
-  constructor(body?: any, init: { status?: number; statusText?: string; headers?: Record<string, string> } = {}) {
+  constructor(body?: unknown, init: { status?: number; statusText?: string; headers?: Record<string, string> } = {}) {
     this.body = body;
     this.status = init.status || 200;
     this.statusText = init.statusText || 'OK';
@@ -200,9 +200,9 @@ global.Request = global.Request || class MockRequest {
   url: string;
   method: string;
   headers: Map<string, string>;
-  body: any;
+  body: unknown;
 
-  constructor(url: string, init: { method?: string; headers?: Record<string, string>; body?: any } = {}) {
+  constructor(url: string, init: { method?: string; headers?: Record<string, string>; body?: unknown } = {}) {
     this.url = url;
     this.method = init.method || 'GET';
     this.headers = new Map(Object.entries(init.headers || {}));
@@ -257,7 +257,7 @@ global.fetch = jest.fn(() =>
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
     headers: new Map(),
     clone: jest.fn(),
-  } as any)
+  } as Response)
 );
 
 // Note: Skip window.location and navigator mocking for now 
@@ -286,7 +286,7 @@ global.BroadcastChannel = global.BroadcastChannel || class MockBroadcastChannel 
     this.name = name;
   }
 
-  postMessage(message: any) {
+  postMessage(_message: unknown) {
     // Mock implementation - do nothing
   }
 
@@ -321,7 +321,7 @@ global.HTMLCanvasElement = global.HTMLCanvasElement || class MockCanvas {
     return null;
   }
   
-  toBlob(callback: (blob: Blob | null) => void, type = 'image/png', quality = 0.92) {
+  toBlob(callback: (blob: Blob | null) => void, type = 'image/png', _quality = 0.92) {
     // Simulate successful conversion immediately using queueMicrotask
     queueMicrotask(() => {
       callback(new Blob(['mock-image-data'], { type }));
@@ -379,12 +379,12 @@ global.Image = global.Image || class MockImageConstructor {
 global.AudioContext = global.AudioContext || class MockAudioContext {
   sampleRate = 44100;
   
-  decodeAudioData(arrayBuffer: ArrayBuffer) {
+  decodeAudioData(_arrayBuffer: ArrayBuffer) {
     return Promise.resolve({
       length: 1000,
       sampleRate: this.sampleRate,
       numberOfChannels: 1,
-      getChannelData: (channel: number) => new Float32Array(1000).fill(0.1),
+      getChannelData: (_channel: number) => new Float32Array(1000).fill(0.1),
     });
   }
   
@@ -394,15 +394,15 @@ global.AudioContext = global.AudioContext || class MockAudioContext {
 };
 
 // Add webkitAudioContext for compatibility
-(global as any).webkitAudioContext = global.AudioContext;
+(global as typeof globalThis & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext = global.AudioContext;
 
 // Ensure window object has the same mocks when in browser-like environment
 if (typeof window !== 'undefined') {
-  (window as any).AudioContext = global.AudioContext;
-  (window as any).webkitAudioContext = global.AudioContext;
+  (window as Window & { webkitAudioContext?: typeof AudioContext }).AudioContext = global.AudioContext;
+  (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext = global.AudioContext;
 } else {
   // In Node/Jest environment, create a mock window object
-  (global as any).window = {
+  (global as typeof globalThis & { window?: unknown }).window = {
     AudioContext: global.AudioContext,
     webkitAudioContext: global.AudioContext,
   };

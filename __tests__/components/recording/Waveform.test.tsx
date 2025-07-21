@@ -47,7 +47,7 @@ describe('Waveform', () => {
       
       mockUseWaveformVisualizer.mockReturnValue(animatedData);
 
-      render(<Waveform stream={mockStream as any} height={60} />);
+      render(<Waveform stream={mockStream as MediaStream} height={60} />);
 
       expect(mockUseWaveformVisualizer).toHaveBeenCalledWith(mockStream);
       
@@ -65,7 +65,7 @@ describe('Waveform', () => {
       
       mockUseWaveformVisualizer.mockReturnValue(animatedData);
 
-      render(<Waveform data={staticData} stream={mockStream as any} height={40} />);
+      render(<Waveform data={staticData} stream={mockStream as MediaStream} height={40} />);
 
       const svg = screen.getByLabelText('Waveform');
       const bars = svg.querySelectorAll('rect');
@@ -80,7 +80,7 @@ describe('Waveform', () => {
       
       mockUseWaveformVisualizer.mockReturnValue(null);
 
-      render(<Waveform data={staticData} stream={mockStream as any} height={40} />);
+      render(<Waveform data={staticData} stream={mockStream as MediaStream} height={40} />);
 
       const svg = screen.getByLabelText('Waveform');
       const bars = svg.querySelectorAll('rect');
@@ -282,7 +282,7 @@ describe('Waveform', () => {
     it('passes stream to waveform visualizer hook', () => {
       const mockStream = getUserMediaTestUtils.createMockStream(1, 0);
       
-      render(<Waveform stream={mockStream as any} height={40} />);
+      render(<Waveform stream={mockStream as MediaStream} height={40} />);
       
       expect(mockUseWaveformVisualizer).toHaveBeenCalledWith(mockStream);
     });
@@ -297,10 +297,10 @@ describe('Waveform', () => {
       const mockStream1 = getUserMediaTestUtils.createMockStream(1, 0);
       const mockStream2 = getUserMediaTestUtils.createMockStream(1, 0);
       
-      const { rerender } = render(<Waveform stream={mockStream1 as any} height={40} />);
+      const { rerender } = render(<Waveform stream={mockStream1 as MediaStream} height={40} />);
       expect(mockUseWaveformVisualizer).toHaveBeenCalledWith(mockStream1);
       
-      rerender(<Waveform stream={mockStream2 as any} height={40} />);
+      rerender(<Waveform stream={mockStream2 as MediaStream} height={40} />);
       expect(mockUseWaveformVisualizer).toHaveBeenCalledWith(mockStream2);
     });
   });

@@ -124,7 +124,7 @@ export const QRCodeCanvas = React.forwardRef<
         }
       }
     }
-  }, [value, size, bgColor, fgColor]);
+  }, [value, size, bgColor, fgColor, ref]);
 
   return (
     <canvas
