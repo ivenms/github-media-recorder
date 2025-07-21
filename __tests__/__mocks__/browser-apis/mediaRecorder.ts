@@ -168,10 +168,8 @@ const MediaRecorderMock = jest.fn().mockImplementation((stream: MediaStream, opt
 });
 
 // Add static method to the mock
-// @ts-ignore: isTypeSupported is a static property for the mock
 (MediaRecorderMock as any).isTypeSupported = MockMediaRecorder.isTypeSupported;
 // Add instances array for testing
-// @ts-ignore: instances is a static property for the mock
 (MediaRecorderMock as any).instances = instances;
 
 // Assign to global
