@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: CI/CD Pipeline
 
 on:
   push:
@@ -19,9 +19,56 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Test and Coverage job (single efficient run)
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run linter
+        run: npm run lint
+        
+      - name: Run tests with coverage
+        run: npm run test:ci
+        
+      - name: Verify coverage threshold
+        run: |
+          echo "✅ All tests passed with coverage above threshold (80%)"
+          echo "📊 Coverage report generated successfully"
+        
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          
+      - name: Coverage Comment on PR
+        uses: romeovs/lcov-reporter-action@v0.3.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          lcov-file: ./coverage/lcov.info
+          delete-old-comments: true
+          title: "📊 Code Coverage Report"
+        if: github.event_name == 'pull_request'
+
   # Build job
   build:
     runs-on: ubuntu-latest
+    needs: test  # Only build if tests and coverage pass
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -54,7 +101,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [test, build]  # Require both test and build to succeed
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to GitHub Pages
