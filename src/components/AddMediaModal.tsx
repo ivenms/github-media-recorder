@@ -7,6 +7,7 @@ import { formatMediaFileName } from '../utils/fileUtils';
 import { convertImageToJpg } from '../utils/fileUtils';
 import { validateMultipleFiles, validateFileSize, getFileType, formatBytes, FILE_LIMITS } from '../utils/storageQuota';
 import Modal from './Modal';
+import InputField from './InputField';
 import { useUIStore } from '../stores/uiStore';
 import CloseIcon from './icons/CloseIcon';
 
@@ -214,15 +215,12 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Select Media Files
-            </label>
-            <input
+            <InputField
+              label="Select Media Files"
               type="file"
               accept=".mp3,.wav,.mp4,audio/mp3,audio/mpeg,audio/wav,audio/wave,audio/x-wav,video/mp4"
               multiple
               onChange={handleFileChange}
-              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
               required
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -241,77 +239,56 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
             )}
           </div>
 
+          <InputField
+            label="Title"
+            type="text"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            placeholder="Enter media title"
+            maxLength={100}
+            required
+          />
+          
+          <InputField
+            label="Author"
+            type="text"
+            value={formData.author}
+            onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+            placeholder="Enter author name"
+            maxLength={50}
+            required
+          />
+          
+          <InputField
+            label="Category"
+            type="select"
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            options={getMediaCategories()}
+          />
+          
+          <InputField
+            label="Date"
+            type="date"
+            value={formData.date}
+            max={getTodayDateString()}
+            onChange={(e) => {
+              const selectedDate = e.target.value;
+              if (!isFutureDate(selectedDate)) {
+                setFormData({ ...formData, date: selectedDate });
+              }
+            }}
+            required
+          />
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
-              placeholder="Enter media title"
-              maxLength={100}
-              required
+            <InputField
+              label="Thumbnail (Optional)"
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
             />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Author
-            </label>
-            <input
-              type="text"
-              value={formData.author}
-              onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
-              placeholder="Enter author name"
-              maxLength={50}
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
-            >
-              {getMediaCategories().map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
-            </label>
-            <input
-              type="date"
-              value={formData.date}
-              max={getTodayDateString()}
-              onChange={(e) => {
-                const selectedDate = e.target.value;
-                if (!isFutureDate(selectedDate)) {
-                  setFormData({ ...formData, date: selectedDate });
-                }
-              }}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Thumbnail (Optional)
-            </label>
-            <div className="space-y-2">
+            <div className="space-y-2 mt-2">
               {thumbnailPreview && (
                 <div className="space-y-1">
                   <p className="text-xs text-gray-600">Thumbnail preview:</p>
@@ -324,12 +301,6 @@ const AddMediaModal: React.FC<AddMediaModalProps> = ({ onClose, onSave }) => {
                   </div>
                 </div>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleThumbnailChange}
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-              />
               <p className="text-xs text-gray-500">
                 Upload a thumbnail image (will be applied to all imported files)<br/>
                 Max size: {formatBytes(FILE_LIMITS.MAX_THUMBNAIL_SIZE)}

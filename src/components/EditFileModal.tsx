@@ -5,6 +5,7 @@ import { parseMediaFileName } from '../utils/fileUtils';
 import { validateFileSize, formatBytes, FILE_LIMITS } from '../utils/storageQuota';
 import { useFilesStore } from '../stores/filesStore';
 import Modal from './Modal';
+import InputField from './InputField';
 import { useUIStore } from '../stores/uiStore';
 import CloseIcon from './icons/CloseIcon';
 import type { ParsedMediaFileName, EditFileModalProps } from '../types';
@@ -75,73 +76,52 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          <InputField
+            label="Title"
+            type="text"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            required
+          />
+          
+          <InputField
+            label="Author"
+            type="text"
+            value={formData.author}
+            onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+            required
+          />
+          
+          <InputField
+            label="Category"
+            type="select"
+            value={formData.category}
+            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+            options={getMediaCategories()}
+          />
+          
+          <InputField
+            label="Date"
+            type="date"
+            value={formData.date}
+            max={getTodayDateString()}
+            onChange={(e) => {
+              const selectedDate = e.target.value;
+              if (!isFutureDate(selectedDate)) {
+                setFormData({ ...formData, date: selectedDate });
+              }
+            }}
+            required
+          />
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
-              required
+            <InputField
+              label="Thumbnail"
+              type="file"
+              accept="image/*"
+              onChange={handleThumbnailChange}
             />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Author
-            </label>
-            <input
-              type="text"
-              value={formData.author}
-              onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
-            >
-              {getMediaCategories().map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
-            </label>
-            <input
-              type="date"
-              value={formData.date}
-              max={getTodayDateString()}
-              onChange={(e) => {
-                const selectedDate = e.target.value;
-                if (!isFutureDate(selectedDate)) {
-                  setFormData({ ...formData, date: selectedDate });
-                }
-              }}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Thumbnail
-            </label>
-            <div className="space-y-2">
+            <div className="space-y-2 mt-2">
               {thumbnailPreview && (
                 <div className="space-y-1">
                   <p className="text-xs text-gray-600">
@@ -156,12 +136,6 @@ const EditFileModal: React.FC<EditFileModalProps> = ({ file, onClose, onSave, th
                   </div>
                 </div>
               )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleThumbnailChange}
-                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
-              />
               <p className="text-xs text-gray-500">
                 {thumbnail ? 'Upload a new thumbnail to replace the current one (optional)' : 'Upload a thumbnail image (optional)'}<br/>
                 Max size: {formatBytes(FILE_LIMITS.MAX_THUMBNAIL_SIZE)}

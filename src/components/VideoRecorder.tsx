@@ -11,6 +11,7 @@ import { canStoreFile, isStorageNearCapacity, validateFileSize } from '../utils/
 import type { VideoRecorderProps } from '../types';
 import { useUIStore } from '../stores/uiStore';
 import Header from './Header';
+import InputField from './InputField';
 import RecordIcon from './icons/RecordIcon';
 
 const VideoRecorder: React.FC<VideoRecorderProps> = () => {
@@ -389,34 +390,34 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
           <span className="text-gray-500">{recording ? '[Recording...]' : '[Camera Preview]'}</span>
         )}
       </div>
-      <div className="flex flex-col w-full max-w-md gap-2 mb-4">
-        <input
-          className="border rounded px-2 py-1"
+      <div className="flex flex-col w-full max-w-md gap-4 mb-4">
+        <InputField
+          label="Title"
+          type="text"
           placeholder="Title (required)"
           value={title}
           maxLength={100}
           onChange={e => setTitle(e.target.value)}
           required
         />
-        <input
-          className="border rounded px-2 py-1"
+        <InputField
+          label="Author"
+          type="text"
           placeholder="Author (required)"
           value={author}
           maxLength={50}
           onChange={e => setAuthor(e.target.value)}
           required
         />
-        <select
-          className="border rounded px-2 py-1"
+        <InputField
+          label="Category"
+          type="select"
           value={category}
           onChange={e => setCategory(e.target.value)}
-        >
-          {mediaCategories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </select>
-        <input
-          className="border rounded px-2 py-1"
+          options={mediaCategories}
+        />
+        <InputField
+          label="Date"
           type="date"
           value={date}
           max={getTodayDateString()}
@@ -427,10 +428,10 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
             }
           }}
         />
-        <input
+        <InputField
+          label="Thumbnail"
           type="file"
           accept="image/*"
-          className="border rounded px-2 py-1"
           onChange={handleThumbnailChange}
         />
       </div>

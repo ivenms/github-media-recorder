@@ -4,6 +4,7 @@ import { getStoredUsername, clearTokenData } from '../utils/tokenAuth';
 import { DEFAULT_MEDIA_CATEGORIES } from '../utils/appConfig';
 import Modal from './Modal';
 import Header from './Header';
+import InputField from './InputField';
 import { useUIStore } from '../stores/uiStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
@@ -135,92 +136,80 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
       </div>
 
       {/* Repository Settings */}
-      <div className="mb-6">
+      <div className="mb-6 space-y-4">
         <h3 className="text-lg font-semibold mb-3">Repository Settings</h3>
-        <label className="block mb-3">
-          <span className="text-sm font-medium text-gray-700">Repository Name</span>
-          <input
-            type="text"
-            name="repo"
-            value={settings.repo}
-            onChange={handleChange}
-            placeholder="my-media-repo"
-            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
-          />
-        </label>
+        <InputField
+          label="Repository Name"
+          type="text"
+          name="repo"
+          value={settings.repo}
+          onChange={handleChange}
+          placeholder="my-media-repo"
+        />
         
-        <label className="block mb-4">
-          <span className="text-sm font-medium text-gray-700">Media Path</span>
-          <input
+        <div>
+          <InputField
+            label="Media Path"
             type="text"
             name="path"
             value={settings.path || ''}
             onChange={handleChange}
             placeholder="media/"
-            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
           />
           <span className="text-xs text-gray-500 mt-1 block">Path in repository where media files will be uploaded</span>
-        </label>
+        </div>
         
-        <label className="block mb-4">
-          <span className="text-sm font-medium text-gray-700">Thumbnail Path</span>
-          <input
+        <div>
+          <InputField
+            label="Thumbnail Path"
             type="text"
             name="thumbnailPath"
             value={settings.thumbnailPath || ''}
             onChange={handleChange}
             placeholder="thumbnails/"
-            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
           />
           <span className="text-xs text-gray-500 mt-1 block">Path in repository where thumbnail files will be uploaded</span>
-        </label>
+        </div>
         
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Thumbnail Width</span>
-            <input
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <InputField
+              label="Thumbnail Width"
               type="number"
               name="thumbnailWidth"
-              value={settings.thumbnailWidth || 320}
+              value={String(settings.thumbnailWidth || 320)}
               onChange={handleChange}
-              min="50"
-              max="1920"
-              className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
             />
-            <span className="text-xs text-gray-500 mt-1 block">Width in pixels</span>
-          </label>
+            <span className="text-xs text-gray-500 mt-1 block">Width in pixels (50-1920)</span>
+          </div>
           
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Thumbnail Height</span>
-            <input
+          <div>
+            <InputField
+              label="Thumbnail Height"
               type="number"
               name="thumbnailHeight"
-              value={settings.thumbnailHeight || 240}
+              value={String(settings.thumbnailHeight || 240)}
               onChange={handleChange}
-              min="50"
-              max="1080"
-              className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
             />
-            <span className="text-xs text-gray-500 mt-1 block">Height in pixels</span>
-          </label>
+            <span className="text-xs text-gray-500 mt-1 block">Height in pixels (50-1080)</span>
+          </div>
         </div>
       </div>
 
       {/* Audio Settings */}
-      <div className="mb-6">
+      <div className="mb-6 space-y-4">
         <h3 className="text-lg font-semibold mb-3">Audio Settings</h3>
-        <label className="block mb-4">
-          <span className="text-sm font-medium text-gray-700">Audio Format</span>
-          <select
-            name="audioFormat"
-            value={audioFormat}
-            onChange={(e) => setAudioFormat(e.target.value as 'mp3' | 'wav')}
-            className="w-full border border-gray-300 rounded px-3 py-2 mt-1 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base"
-          >
-            <option value="mp3">MP3 (Compressed)</option>
-            <option value="wav">WAV (Uncompressed)</option>
-          </select>
-        </label>
+        <InputField
+          label="Audio Format"
+          type="select"
+          name="audioFormat"
+          value={audioFormat}
+          onChange={(e) => setAudioFormat(e.target.value as 'mp3' | 'wav')}
+          options={[
+            { id: 'mp3', name: 'MP3 (Compressed)' },
+            { id: 'wav', name: 'WAV (Uncompressed)' }
+          ]}
+        />
       </div>
 
       {/* Category Management */}
@@ -252,14 +241,15 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
         <div className="mb-3">
           <span className="text-sm font-medium text-gray-700 block mb-2">Add New Category</span>
           <div className="flex gap-2">
-            <input
-              type="text"
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addCategory()}
-              placeholder="Category name"
-              className="flex-1 border border-gray-300 rounded px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
+            <div className="flex-1">
+              <InputField
+                type="text"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Category name"
+                className="mb-0"
+              />
+            </div>
             <button
               onClick={addCategory}
               disabled={!newCategoryName.trim()}
