@@ -11,6 +11,7 @@ import RecordIcon from './icons/RecordIcon';
 import Waveform from './Waveform';
 import Modal from './Modal';
 import Header from './Header';
+import InputField from './InputField';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { useAudioForm } from '../hooks/useAudioForm';
 import { getTodayDateString, isFutureDate } from '../utils/date';
@@ -363,44 +364,36 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
           <audio controls src={audioUrl} className="w-full mt-4 rounded-xl" />
         )}
       </div>
-      <div className="flex flex-col w-full max-w-xs gap-2 mt-2">
-        <div>
-          <input
-            className={`border rounded-xl px-3 py-2 shadow-neumorph w-full ${
-              titleError ? 'border-red-500 bg-red-50 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500'
-            } focus:outline-none focus:ring-2`}
-            placeholder="Title (required)"
-            value={title}
-            maxLength={100}
-            onChange={e => setTitle(e.target.value)}
-            required
-          />
-          {titleError && <div className="text-red-600 text-sm mt-1">{titleError}</div>}
-        </div>
-        <div>
-          <input
-            className={`border rounded-xl px-3 py-2 shadow-neumorph w-full ${
-              authorError ? 'border-red-500 bg-red-50 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500'
-            } focus:outline-none focus:ring-2`}
-            placeholder="Author (required)"
-            value={author}
-            maxLength={50}
-            onChange={e => setAuthor(e.target.value)}
-            required
-          />
-          {authorError && <div className="text-red-600 text-sm mt-1">{authorError}</div>}
-        </div>
-        <select
-          className="border rounded-xl px-3 py-2 shadow-neumorph"
+      <div className="flex flex-col w-full max-w-xs gap-4 mt-2">
+        <InputField
+          label="Title"
+          type="text"
+          placeholder="Title (required)"
+          value={title}
+          maxLength={100}
+          onChange={e => setTitle(e.target.value)}
+          required
+          error={titleError || undefined}
+        />
+        <InputField
+          label="Author"
+          type="text"
+          placeholder="Author (required)"
+          value={author}
+          maxLength={50}
+          onChange={e => setAuthor(e.target.value)}
+          required
+          error={authorError || undefined}
+        />
+        <InputField
+          label="Category"
+          type="select"
           value={category}
           onChange={e => setCategory(e.target.value)}
-        >
-          {mediaCategories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </select>
-        <input
-          className="border rounded-xl px-3 py-2 shadow-neumorph"
+          options={mediaCategories}
+        />
+        <InputField
+          label="Date"
           type="date"
           value={date}
           max={getTodayDateString()}
@@ -411,10 +404,10 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
             }
           }}
         />
-        <input
+        <InputField
+          label="Thumbnail"
           type="file"
           accept="image/*"
-          className="border rounded-xl px-3 py-2 shadow-neumorph"
           onChange={handleThumbnailChange}
         />
       </div>
