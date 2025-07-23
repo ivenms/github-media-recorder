@@ -39,11 +39,17 @@ const SelectInput: React.FC<SelectInputProps> = ({
       disabled={disabled}
       className={getInputStyles()}
     >
-      {options.map((option) => (
-        <option key={option.id} value={option.id}>
-          {option.name}
+      {options.length === 0 ? (
+        <option value="" disabled>
+          No options available
         </option>
-      ))}
+      ) : (
+        options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.name}
+          </option>
+        ))
+      )}
     </select>
   );
 };
