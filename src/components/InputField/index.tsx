@@ -24,13 +24,13 @@ const InputField: React.FC<InputFieldProps> = ({
 }) => {
   const renderInput = () => {
     // Select appropriate specialized component based on input type
-    if (type === 'select' && options.length > 0) {
+    if (type === 'select') {
       return (
         <SelectInput
           name={name}
           value={value}
           required={required}
-          disabled={disabled}
+          disabled={disabled || options.length === 0}
           options={options}
           error={error}
           onChange={onChange}
