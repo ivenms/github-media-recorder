@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import type { FileRecord } from '../../src/types';
 
 // Mock the gitStore inline similar to settingsStore
 jest.mock('../../src/stores/gitStore', () => {
@@ -162,36 +163,58 @@ const mockRemoteFiles = [
     duration: 240,
     created: Date.now(),
     uploaded: true,
+    file: new Blob(['dummy'], { type: 'audio/mp3' }),
   },
-] as any;
+] as FileRecord[];
 
 const mockRemoteThumbnails = {
   'remote-audio': {
-    id: 'remote-thumb-1',
-    name: 'remote-audio.jpg',
-    type: 'thumbnail',
-    mimeType: 'image/jpeg',
-    size: 512,
-    duration: 0,
-    created: Date.now(),
+    url: 'https://example.com/remote-audio.jpg',
     isLocal: false,
   },
-} as any;
+} as Record<string, { url: string; isLocal: false }>;
 
+// Full AuthState mock
 const mockAuthState = {
   isAuthenticated: true,
   githubConfig: {
     token: 'test-token',
     owner: 'test-owner',
+    repo: 'test-repo',
   },
+  userInfo: null,
+  tokenTimestamp: Date.now(),
+  login: jest.fn(),
+  logout: jest.fn(),
+  updateConfig: jest.fn(),
+  setUserInfo: jest.fn(),
 };
 
+// Full SettingsState mock
 const mockSettingsState = {
+  audioFormat: 'mp3' as string,
   appSettings: {
     repo: 'test-repo',
     path: 'media/',
     thumbnailPath: 'thumbnails/',
+    thumbnailWidth: 320,
+    thumbnailHeight: 240,
   },
+  setAudioFormat: jest.fn(),
+  setAppSettings: jest.fn(),
+  updateAppSettings: jest.fn(),
+  reset: jest.fn(),
+};
+
+// For negative test cases:
+const mockAuthStateUnauth = {
+  ...mockAuthState,
+  isAuthenticated: false,
+  githubConfig: null,
+};
+const mockSettingsStateNull = {
+  ...mockSettingsState,
+  appSettings: null,
 };
 
 describe('gitStore', () => {
@@ -270,7 +293,7 @@ describe('gitStore', () => {
       await act(async () => {
         try {
           await result.current.fetchRemoteFiles();
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -323,10 +346,7 @@ describe('gitStore', () => {
     });
 
     it('should handle missing authentication', async () => {
-      mockUseAuthStore.getState.mockReturnValue({
-        isAuthenticated: false,
-        githubConfig: null,
-      });
+      mockUseAuthStore.getState.mockReturnValue(mockAuthStateUnauth);
 
       // Make the mock function throw an error for this test
       mockFetchRemoteFiles.mockRejectedValue(new Error('Authentication required'));
@@ -336,7 +356,7 @@ describe('gitStore', () => {
       await act(async () => {
         try {
           await result.current.fetchRemoteFiles();
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -346,9 +366,7 @@ describe('gitStore', () => {
     });
 
     it('should handle missing settings', async () => {
-      mockUseSettingsStore.getState.mockReturnValue({
-        appSettings: null,
-      });
+      mockUseSettingsStore.getState.mockReturnValue(mockSettingsStateNull);
 
       // Make the mock function throw an error for this test
       mockFetchRemoteFiles.mockRejectedValue(new Error('Settings not configured'));
@@ -358,7 +376,7 @@ describe('gitStore', () => {
       await act(async () => {
         try {
           await result.current.fetchRemoteFiles();
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });
@@ -580,7 +598,7 @@ describe('gitStore', () => {
       await act(async () => {
         try {
           await result.current.fetchRemoteFiles(true);
-        } catch (e) {
+        } catch {
           // Expected to throw
         }
       });

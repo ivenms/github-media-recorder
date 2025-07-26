@@ -1,12 +1,13 @@
 import { renderHook, act } from '@testing-library/react';
 import { useMediaRecorder } from '../../src/hooks/useMediaRecorder';
+import { getMobilePlatform } from '../../src/utils/device';
 
 // Mock the device utility
 jest.mock('../../src/utils/device', () => ({
   getMobilePlatform: jest.fn(),
 }));
 
-import { getMobilePlatform } from '../../src/utils/device';
+import type { MobilePlatform } from '../../src/types/utils';
 
 const mockGetMobilePlatform = getMobilePlatform as jest.MockedFunction<typeof getMobilePlatform>;
 
@@ -22,13 +23,17 @@ const mockMediaRecorder = {
   pause: mockPause,
   resume: mockResume,
   state: 'inactive',
-  ondataavailable: null as any,
-  onstop: null as any,
-  onerror: null as any,
-} as any;
+  ondataavailable: null as ((event: BlobEvent) => void) | null,
+  onstop: null as (() => void) | null,
+  onerror: null as ((event: { error: { message?: string } | null }) => void) | null,
+};
 
-global.MediaRecorder = jest.fn().mockImplementation(() => mockMediaRecorder);
-(global.MediaRecorder as any).isTypeSupported = jest.fn().mockReturnValue(true);
+global.MediaRecorder = Object.assign(
+  jest.fn().mockImplementation(() => mockMediaRecorder as unknown as MediaRecorder),
+  {
+    isTypeSupported: jest.fn().mockReturnValue(true)
+  }
+);
 
 // Mock getUserMedia
 const mockGetUserMedia = jest.fn();
@@ -44,8 +49,8 @@ describe('useMediaRecorder', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    mockGetMobilePlatform.mockReturnValue('android-chrome');
-    mockMediaRecorder.state = 'inactive';
+    mockGetMobilePlatform.mockReturnValue('android-chrome' as unknown as MobilePlatform);
+    Object.defineProperty(mockMediaRecorder, 'state', { value: 'inactive', writable: true });
   });
 
   afterEach(() => {
@@ -76,7 +81,7 @@ describe('useMediaRecorder', () => {
   describe('Audio Recording', () => {
     const mockStream = {
       getTracks: jest.fn().mockReturnValue([{ stop: jest.fn() }]),
-    } as any;
+    } as unknown as MediaStream;
 
     beforeEach(() => {
       mockGetUserMedia.mockResolvedValue(mockStream);
@@ -125,11 +130,10 @@ describe('useMediaRecorder', () => {
       const mockBlob = new Blob(['audio data'], { type: 'audio/webm' });
       
       act(() => {
-        if (mockMediaRecorder.onstop) {
-          // Simulate chunks being collected
-          if (mockMediaRecorder.ondataavailable) {
-            mockMediaRecorder.ondataavailable({ data: mockBlob });
-          }
+        if (typeof mockMediaRecorder.ondataavailable === 'function') {
+          mockMediaRecorder.ondataavailable({ data: mockBlob } as unknown as BlobEvent);
+        }
+        if (typeof mockMediaRecorder.onstop === 'function') {
           mockMediaRecorder.onstop();
         }
       });
@@ -165,7 +169,7 @@ describe('useMediaRecorder', () => {
   describe('Video Recording', () => {
     const mockStream = {
       getTracks: jest.fn().mockReturnValue([{ stop: jest.fn() }]),
-    } as any;
+    } as unknown as MediaStream;
 
     beforeEach(() => {
       mockGetUserMedia.mockResolvedValue(mockStream);
@@ -191,7 +195,7 @@ describe('useMediaRecorder', () => {
     });
 
     it('should use iOS Safari specific constraints', async () => {
-      mockGetMobilePlatform.mockReturnValue('ios-safari');
+      mockGetMobilePlatform.mockReturnValue('ios-safari' as unknown as MobilePlatform);
 
       const { result } = renderHook(() => useMediaRecorder({ audio: true, video: true }));
 
@@ -210,7 +214,7 @@ describe('useMediaRecorder', () => {
     });
 
     it('should handle video MIME type selection for iOS Safari', async () => {
-      mockGetMobilePlatform.mockReturnValue('ios-safari');
+      mockGetMobilePlatform.mockReturnValue('ios-safari' as unknown as MobilePlatform);
       (global.MediaRecorder as any).isTypeSupported.mockImplementation((type: string) => {
         return type === 'video/mp4';
       });
@@ -235,11 +239,10 @@ describe('useMediaRecorder', () => {
       const mockBlob = new Blob(['video data'], { type: 'video/webm' });
       
       act(() => {
-        if (mockMediaRecorder.onstop) {
-          // Simulate chunks being collected
-          if (mockMediaRecorder.ondataavailable) {
-            mockMediaRecorder.ondataavailable({ data: mockBlob });
-          }
+        if (typeof mockMediaRecorder.ondataavailable === 'function') {
+          mockMediaRecorder.ondataavailable({ data: mockBlob } as unknown as BlobEvent);
+        }
+        if (typeof mockMediaRecorder.onstop === 'function') {
           mockMediaRecorder.onstop();
         }
       });
@@ -257,7 +260,7 @@ describe('useMediaRecorder', () => {
   describe('Pause and Resume', () => {
     const mockStream = {
       getTracks: jest.fn().mockReturnValue([{ stop: jest.fn() }]),
-    } as any;
+    } as unknown as MediaStream;
 
     beforeEach(() => {
       mockGetUserMedia.mockResolvedValue(mockStream);
@@ -270,9 +273,8 @@ describe('useMediaRecorder', () => {
         await result.current.start();
       });
 
-      mockMediaRecorder.state = 'recording';
-
       act(() => {
+        Object.defineProperty(mockMediaRecorder, 'state', { value: 'recording', writable: true });
         result.current.pause();
       });
 
@@ -288,14 +290,14 @@ describe('useMediaRecorder', () => {
       });
 
       // First pause
-      mockMediaRecorder.state = 'recording';
       act(() => {
+        Object.defineProperty(mockMediaRecorder, 'state', { value: 'recording', writable: true });
         result.current.pause();
       });
 
       // Then resume
-      mockMediaRecorder.state = 'paused';
       act(() => {
+        Object.defineProperty(mockMediaRecorder, 'state', { value: 'paused', writable: true });
         result.current.resume();
       });
 
@@ -306,7 +308,9 @@ describe('useMediaRecorder', () => {
     it('should not pause when not recording', () => {
       const { result } = renderHook(() => useMediaRecorder({ audio: true }));
 
-      mockMediaRecorder.state = 'inactive';
+      act(() => {
+        Object.defineProperty(mockMediaRecorder, 'state', { value: 'inactive', writable: true });
+      });
 
       act(() => {
         result.current.pause();
@@ -319,7 +323,9 @@ describe('useMediaRecorder', () => {
     it('should not resume when not paused', () => {
       const { result } = renderHook(() => useMediaRecorder({ audio: true }));
 
-      mockMediaRecorder.state = 'recording';
+      act(() => {
+        Object.defineProperty(mockMediaRecorder, 'state', { value: 'recording', writable: true });
+      });
 
       act(() => {
         result.current.resume();
@@ -342,8 +348,8 @@ describe('useMediaRecorder', () => {
       expect(result.current.duration).toBe(2);
 
       // Pause
-      mockMediaRecorder.state = 'recording';
       act(() => {
+        Object.defineProperty(mockMediaRecorder, 'state', { value: 'recording', writable: true });
         result.current.pause();
       });
 
@@ -354,8 +360,8 @@ describe('useMediaRecorder', () => {
       expect(result.current.duration).toBe(2);
 
       // Resume
-      mockMediaRecorder.state = 'paused';
       act(() => {
+        Object.defineProperty(mockMediaRecorder, 'state', { value: 'paused', writable: true });
         result.current.resume();
       });
 
@@ -371,7 +377,7 @@ describe('useMediaRecorder', () => {
     it('should handle MediaRecorder errors', async () => {
       const mockStream = {
         getTracks: jest.fn().mockReturnValue([{ stop: jest.fn() }]),
-      } as any;
+      } as unknown as MediaStream;
       mockGetUserMedia.mockResolvedValue(mockStream);
 
       const { result } = renderHook(() => useMediaRecorder({ audio: true }));
@@ -383,7 +389,7 @@ describe('useMediaRecorder', () => {
       // Simulate MediaRecorder error
       const errorMessage = 'Recording failed';
       act(() => {
-        if (mockMediaRecorder.onerror) {
+        if (typeof mockMediaRecorder.onerror === 'function') {
           mockMediaRecorder.onerror({ error: { message: errorMessage } });
         }
       });
@@ -394,7 +400,7 @@ describe('useMediaRecorder', () => {
     it('should handle MediaRecorder errors without message', async () => {
       const mockStream = {
         getTracks: jest.fn().mockReturnValue([{ stop: jest.fn() }]),
-      } as any;
+      } as unknown as MediaStream;
       mockGetUserMedia.mockResolvedValue(mockStream);
 
       const { result } = renderHook(() => useMediaRecorder({ audio: true }));
@@ -405,7 +411,7 @@ describe('useMediaRecorder', () => {
 
       // Simulate MediaRecorder error without message
       act(() => {
-        if (mockMediaRecorder.onerror) {
+        if (typeof mockMediaRecorder.onerror === 'function') {
           mockMediaRecorder.onerror({ error: null });
         }
       });
@@ -429,7 +435,7 @@ describe('useMediaRecorder', () => {
   describe('Custom MIME Types', () => {
     const mockStream = {
       getTracks: jest.fn().mockReturnValue([{ stop: jest.fn() }]),
-    } as any;
+    } as unknown as MediaStream;
 
     beforeEach(() => {
       mockGetUserMedia.mockResolvedValue(mockStream);
@@ -461,7 +467,7 @@ describe('useMediaRecorder', () => {
   describe('State Reset', () => {
     const mockStream = {
       getTracks: jest.fn().mockReturnValue([{ stop: jest.fn() }]),
-    } as any;
+    } as unknown as MediaStream;
 
     beforeEach(() => {
       mockGetUserMedia.mockResolvedValue(mockStream);
@@ -499,7 +505,7 @@ describe('useMediaRecorder', () => {
   describe('Data Collection', () => {
     const mockStream = {
       getTracks: jest.fn().mockReturnValue([{ stop: jest.fn() }]),
-    } as any;
+    } as unknown as MediaStream;
 
     beforeEach(() => {
       mockGetUserMedia.mockResolvedValue(mockStream);
@@ -518,12 +524,12 @@ describe('useMediaRecorder', () => {
       const chunk3 = new Blob(['chunk3']);
 
       act(() => {
-        if (mockMediaRecorder.ondataavailable) {
-          mockMediaRecorder.ondataavailable({ data: chunk1 });
-          mockMediaRecorder.ondataavailable({ data: chunk2 });
-          mockMediaRecorder.ondataavailable({ data: chunk3 });
+        if (typeof mockMediaRecorder.ondataavailable === 'function') {
+          mockMediaRecorder.ondataavailable({ data: chunk1 } as unknown as BlobEvent);
+          mockMediaRecorder.ondataavailable({ data: chunk2 } as unknown as BlobEvent);
+          mockMediaRecorder.ondataavailable({ data: chunk3 } as unknown as BlobEvent);
         }
-        if (mockMediaRecorder.onstop) {
+        if (typeof mockMediaRecorder.onstop === 'function') {
           mockMediaRecorder.onstop();
         }
       });
@@ -540,10 +546,10 @@ describe('useMediaRecorder', () => {
 
       // Simulate empty chunk
       act(() => {
-        if (mockMediaRecorder.ondataavailable) {
-          mockMediaRecorder.ondataavailable({ data: new Blob([]) });
+        if (typeof mockMediaRecorder.ondataavailable === 'function') {
+          mockMediaRecorder.ondataavailable({ data: new Blob([]) } as unknown as BlobEvent);
         }
-        if (mockMediaRecorder.onstop) {
+        if (typeof mockMediaRecorder.onstop === 'function') {
           mockMediaRecorder.onstop();
         }
       });

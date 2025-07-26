@@ -33,11 +33,10 @@ describe('useFileConverter', () => {
       const outputData = new Uint8Array([5, 6, 7, 8]);
       
       mockConvertToMp3.mockImplementation(async (input, progressCallback) => {
-        // Simulate progress updates
-        progressCallback(25);
-        progressCallback(50);
-        progressCallback(75);
-        progressCallback(100);
+        progressCallback?.(25);
+        progressCallback?.(50);
+        progressCallback?.(75);
+        progressCallback?.(100);
         return outputData;
       });
 
@@ -81,8 +80,8 @@ describe('useFileConverter', () => {
       // Set initial error and progress
       await act(async () => {
         try {
-          await result.current.convert('unsupported' as any, new Uint8Array());
-        } catch (e) {
+          await result.current.convert('unsupported' as unknown as 'mp3' | 'mp4', new Uint8Array());
+        } catch {
           // Expected to fail
         }
       });
@@ -155,13 +154,12 @@ describe('useFileConverter', () => {
   describe('Progress Tracking', () => {
     it('should track progress during conversion', async () => {
       const inputData = new Uint8Array([1, 2, 3, 4]);
-      const progressValues: number[] = [];
       
       mockConvertToMp3.mockImplementation(async (input, progressCallback) => {
-        progressCallback(25);
-        progressCallback(50);
-        progressCallback(75);
-        progressCallback(100);
+        progressCallback?.(25);
+        progressCallback?.(50);
+        progressCallback?.(75);
+        progressCallback?.(100);
         return new Uint8Array([5, 6, 7, 8]);
       });
 
@@ -191,7 +189,7 @@ describe('useFileConverter', () => {
       expect(result.current.progress).toBe(50);
 
       // Now start another conversion
-      mockConvertToMp3.mockImplementation(async (input, progressCallback) => {
+      mockConvertToMp3.mockImplementation(async (_input, _progressCallback) => {
         // Don't call progressCallback immediately
         return new Uint8Array([9, 10, 11, 12]);
       });

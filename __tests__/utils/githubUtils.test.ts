@@ -11,7 +11,8 @@ jest.mock('../../src/stores/settingsStore', () => ({
 // Mock setTimeout globally to avoid delays in fetchWithRetry
 const originalSetTimeout = global.setTimeout;
 let timeoutCallCount = 0;
-global.setTimeout = jest.fn((cb: Function, delay: number) => {
+// @ts-expect-error: Mocking setTimeout for tests, __promisify__ is not needed here
+global.setTimeout = jest.fn((cb: () => void, __delay: number): unknown => {
   timeoutCallCount++;
   // Execute immediately in tests to avoid delays
   if (typeof cb === 'function') {
@@ -20,7 +21,7 @@ global.setTimeout = jest.fn((cb: Function, delay: number) => {
     }
     cb();
   }
-  return 123 as any; // Mock timer ID
+  return 123 as unknown; // Mock timer ID
 });
 
 describe('extractDateFromFilename', () => {
