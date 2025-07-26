@@ -62,9 +62,12 @@ describe('Recording Workflow Integration', () => {
     });
     
     // Make saveFile return a promise that resolves with proper file record
-    mockSaveFile.mockImplementation(() => 
-      new Promise(resolve => setTimeout(() => resolve({ id: 'mock-file-id', name: 'Music_Test Audio_Test Author_2024-06-01.mp3' }), 100))
-    );
+    mockSaveFile.mockImplementation(() => {
+      return new Promise(resolve => {
+        // Reduce timeout to speed up tests
+        setTimeout(() => resolve({ id: 'mock-file-id', name: 'Music_Test Audio_Test Author_2024-06-01.mp3' }), 10);
+      });
+    });
     
     useFilesStore.mockReturnValue({
       saveFile: mockSaveFile,
@@ -139,6 +142,7 @@ describe('Recording Workflow Integration', () => {
     global.URL.createObjectURL = jest.fn(() => 'blob:mock-recording-url');
     global.URL.revokeObjectURL = jest.fn();
   });
+
 
   describe('Complete Audio Recording Workflow', () => {
     it('successfully records, saves, and uploads audio', async () => {
@@ -264,7 +268,7 @@ describe('Recording Workflow Integration', () => {
       await user.click(saveButton);
 
       // Wait for async operations to complete
-      await new Promise(resolve => setTimeout(resolve, 200));
+      await new Promise(resolve => setTimeout(resolve, 20));
       
       // Verify that openModal was called with correct error parameters
       expect(mockOpenModal).toHaveBeenCalledWith({
@@ -456,7 +460,7 @@ describe('Recording Workflow Integration', () => {
       });
       
       // Wait a bit more for thumbnail processing to fail
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 10));
       
       // Should show thumbnail error modal - verify via openModal call
       // Note: The component shows thumbnail error via the saveThumbnailError state,
@@ -561,7 +565,7 @@ describe('Recording Workflow Integration', () => {
       await user.click(saveButton);
 
       // Wait for the error to be handled
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 10));
       
       // Should show storage error via openModal call
       expect(mockOpenModal).toHaveBeenCalledWith({

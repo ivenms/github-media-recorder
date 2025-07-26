@@ -19,6 +19,8 @@ export default {
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': 'jest-transform-stub',
+    '^zustand$': '<rootDir>/__tests__/__mocks__/zustand/index.js',
+    '^zustand/middleware$': '<rootDir>/__tests__/__mocks__/zustand/index.js',
   },
   
   // Coverage configuration
@@ -35,10 +37,10 @@ export default {
   // Coverage thresholds
   coverageThreshold: {
     global: {
-      branches: 25,
-      functions: 25,
-      lines: 25,
-      statements: 25,
+      branches: 35,
+      functions: 40,
+      lines: 40,
+      statements: 35,
     },
   },
   

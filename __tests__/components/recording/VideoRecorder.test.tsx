@@ -959,4 +959,5 @@ describe('VideoRecorder', () => {
     expect(screen.getByPlaceholderText('Title (required)')).toHaveValue('Test Title');
     expect(screen.getByPlaceholderText('Author (required)')).toHaveValue('Test Author');
   });
+
 });

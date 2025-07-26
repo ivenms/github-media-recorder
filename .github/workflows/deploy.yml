@@ -44,7 +44,7 @@ jobs:
         
       - name: Verify coverage threshold
         run: |
-          echo "✅ All tests passed with coverage above threshold (25%)"
+          echo "✅ All tests passed with coverage above threshold (40%)"
           echo "📊 Coverage report generated successfully"
         
       - name: Upload coverage reports to Codecov
