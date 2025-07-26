@@ -9,6 +9,7 @@ const useAudioRecorder = require('../../../src/hooks/useAudioRecorder').useAudio
 jest.mock('../../../src/hooks/useAudioForm');
 const useAudioForm = require('../../../src/hooks/useAudioForm').useAudioForm;
 
+
 jest.mock('../../../src/stores/uiStore', () => ({
   useUIStore: () => ({ setScreen: jest.fn(), openModal: jest.fn() })
 }));
@@ -18,7 +19,23 @@ jest.mock('../../../src/stores/filesStore', () => ({
 jest.mock('../../../src/utils/appConfig', () => ({ getMediaCategories: () => [{ id: 'music', name: 'Music' }] }));
 jest.mock('../../../src/utils/date', () => ({ getTodayDateString: () => '2024-06-01', isFutureDate: () => false }));
 jest.mock('../../../src/utils/storageQuota', () => ({ canStoreFile: async () => true, isStorageNearCapacity: async () => ({ critical: false, warning: false }) }));
-jest.mock('../../../src/utils/fileUtils', () => ({ formatMediaFileName: jest.fn(() => 'Music_Test Audio_Test Author_2024-06-01.mp3'), convertImageToJpg: jest.fn() }));
+jest.mock('../../../src/utils/fileUtils', () => ({ 
+  formatMediaFileName: jest.fn(() => 'Music_Test Audio_Test Author_2024-06-01.mp3'), 
+  convertImageToJpg: jest.fn(),
+  decodeWebmToPCM: jest.fn().mockResolvedValue({ channelData: [new Float32Array(1024)], sampleRate: 44100 }),
+  encodeWAV: jest.fn().mockReturnValue(new Blob(['fake wav'], { type: 'audio/wav' }))
+}));
+
+jest.mock('../../../src/services/audioWorkerService', () => ({
+  audioWorkerService: {
+    convertAudio: jest.fn().mockResolvedValue(new Uint8Array([1, 2, 3]))
+  }
+}));
+
+// Mock global fetch
+global.fetch = jest.fn().mockResolvedValue({
+  blob: () => Promise.resolve(new Blob(['fake audio'], { type: 'audio/webm' }))
+});
 
 
 describe('AudioRecorder', () => {
@@ -397,4 +414,6 @@ describe('AudioRecorder', () => {
     
     expect(mockValidateInputs).toHaveBeenCalled();
   });
+
+
 });
