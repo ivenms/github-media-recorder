@@ -291,7 +291,7 @@ describe('Icon Components', () => {
         { component: <SaveIcon />, name: 'SaveIcon' }
       ];
 
-      icons.forEach(({ component, name }) => {
+      icons.forEach(({ component, _name }) => {
         const { container, unmount } = render(component);
         const svgElement = container.querySelector('svg');
         expect(svgElement).toBeInTheDocument();
@@ -320,7 +320,7 @@ describe('Icon Components', () => {
         { component: SaveIcon, name: 'SaveIcon' }
       ];
 
-      icons.forEach(({ component: IconComponent, name }) => {
+      icons.forEach(({ component: IconComponent, _name }) => {
         const { container, unmount } = render(<IconComponent className={testClassName} />);
         const svgElement = container.querySelector('svg');
         expect(svgElement).toHaveClass(testClassName);
