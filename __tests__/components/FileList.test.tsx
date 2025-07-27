@@ -209,6 +209,7 @@ describe('FileList', () => {
   it('displays loading state', () => {
     useCombinedFiles.mockReturnValue({
       ...defaultMockImplementation,
+      files: [], // No initial content
       isLoading: true
     });
     
@@ -216,6 +217,24 @@ describe('FileList', () => {
     expect(screen.getByText('Loading files from repository...')).toBeInTheDocument();
     expect(screen.queryByText('Add Media')).not.toBeInTheDocument();
     expect(screen.queryByText('Refresh')).not.toBeInTheDocument();
+  });
+
+  it('displays subtle loading indicator when refreshing with content', () => {
+    useCombinedFiles.mockReturnValue({
+      ...defaultMockImplementation,
+      isLoading: true // Has content but is loading
+    });
+    
+    render(<FileList />);
+    
+    // Should show content with subtle loading indicator
+    expect(screen.getByText('Audio Test')).toBeInTheDocument();
+    expect(screen.getByText('Syncing with repository...')).toBeInTheDocument();
+    expect(screen.getByText('Add Media')).toBeInTheDocument();
+    expect(screen.getByText('Refresh')).toBeInTheDocument();
+    
+    // Should not show the full loading screen
+    expect(screen.queryByText('Loading files from repository...')).not.toBeInTheDocument();
   });
 
   it('displays empty state when no files', () => {
@@ -326,6 +345,27 @@ describe('FileList', () => {
     render(<FileList />);
     fireEvent.click(screen.getByText('Refresh'));
     expect(mockRefreshAllFiles).toHaveBeenCalled();
+  });
+
+  it('shows refreshing state when refresh button is clicked', async () => {
+    const mockRefreshAllFiles = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+    useCombinedFiles.mockReturnValue({
+      ...defaultMockImplementation,
+      refreshAllFiles: mockRefreshAllFiles
+    });
+    
+    render(<FileList />);
+    
+    // Click refresh button
+    fireEvent.click(screen.getByText('Refresh'));
+    
+    // Should show refreshing state immediately
+    await waitFor(() => {
+      expect(screen.getByText('Refreshing...')).toBeInTheDocument();
+    });
+    
+    // Button should be disabled
+    expect(screen.getByText('Refreshing...')).toBeDisabled();
   });
 
   it('handles add media button click', () => {
