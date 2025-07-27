@@ -380,7 +380,6 @@ describe('AddMediaModal', () => {
       const fileInput = document.querySelector('input[type="file"][accept]') as HTMLInputElement;
       const titleInput = screen.getByPlaceholderText('Enter media title');
       const authorInput = screen.getByPlaceholderText('Enter author name');
-      const form = document.querySelector('form');
 
       fireEvent.change(fileInput, { target: { files: [file] } });
       fireEvent.change(titleInput, { target: { value: 'Test Title' } });
@@ -430,7 +429,6 @@ describe('AddMediaModal', () => {
       const fileInput = document.querySelector('input[type="file"][accept]') as HTMLInputElement;
       const titleInput = screen.getByPlaceholderText('Enter media title');
       const authorInput = screen.getByPlaceholderText('Enter author name');
-      const form = document.querySelector('form');
 
       fireEvent.change(fileInput, { target: { files: [file] } });
       fireEvent.change(titleInput, { target: { value: 'Test' } });
