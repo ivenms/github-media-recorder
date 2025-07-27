@@ -380,6 +380,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
             />
           ) : mediaUrl ? (
             <video 
+              ref={videoRef}
               src={mediaUrl} 
               controls 
               playsInline
