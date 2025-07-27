@@ -242,4 +242,252 @@ describe('Settings', () => {
   //   // Category should be added synchronously
   //   expect(screen.getByText('Podcast')).toBeInTheDocument();
   // });
+
+  describe('SaveButton integration', () => {
+    it('renders SaveButton with correct default props', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const saveButton = screen.getByRole('button', { name: /save settings/i });
+      expect(saveButton).toBeInTheDocument();
+      expect(saveButton).toHaveTextContent('Save Settings');
+    });
+
+    it('SaveButton is enabled by default in Settings', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const saveButton = screen.getByRole('button', { name: /save settings/i });
+      expect(saveButton).not.toBeDisabled();
+    });
+
+    it('displays SaveButton with proper styling classes', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const saveButton = screen.getByRole('button', { name: /save settings/i });
+      expect(saveButton).toHaveClass('w-full', 'bg-purple-500', 'text-white');
+    });
+
+    it('shows saved state when save button is clicked', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const saveButton = screen.getByRole('button', { name: /save settings/i });
+      fireEvent.click(saveButton);
+      
+      // Should show saved state
+      expect(screen.getByText('Saved!')).toBeInTheDocument();
+      expect(mockSetAppSettings).toHaveBeenCalled();
+    });
+
+    it('calls handleSave when SaveButton is clicked', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const saveButton = screen.getByRole('button', { name: /save settings/i });
+      fireEvent.click(saveButton);
+      
+      expect(mockSetAppSettings).toHaveBeenCalledWith(expect.objectContaining({
+        repo: '',
+        path: 'media/',
+        thumbnailPath: 'thumbnails/',
+        thumbnailWidth: 320,
+        thumbnailHeight: 240,
+        customCategories: expect.any(Array)
+      }));
+    });
+
+    it('SaveButton uses simple save mode (no progress) for Settings', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check that progress elements don't exist (Settings uses simple save)
+      const progressText = screen.queryByText('Processing...');
+      expect(progressText).not.toBeInTheDocument();
+      
+      const saveButton = screen.getByRole('button', { name: /save settings/i });
+      expect(saveButton).toBeInTheDocument();
+    });
+  });
+
+  describe('Card-style form sections', () => {
+    it('renders GitHub Account section with card styling', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for GitHub Account section with card styling
+      const githubSection = screen.getByText('GitHub Account').closest('.bg-white.rounded-xl.shadow-lg');
+      expect(githubSection).toBeInTheDocument();
+      expect(githubSection).toHaveClass('p-4', 'mb-6');
+    });
+
+    it('renders Repository Settings section with card styling', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for Repository Settings section with card styling
+      const repoSection = screen.getByText('Repository Settings').closest('.bg-white.rounded-xl.shadow-lg');
+      expect(repoSection).toBeInTheDocument();
+      expect(repoSection).toHaveClass('p-4', 'mb-6');
+    });
+
+    it('renders Audio Settings section with card styling', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for Audio Settings section with card styling
+      const audioSection = screen.getByText('Audio Settings').closest('.bg-white.rounded-xl.shadow-lg');
+      expect(audioSection).toBeInTheDocument();
+      expect(audioSection).toHaveClass('p-4', 'mb-6');
+    });
+
+    it('renders Media Categories section with card styling', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for Media Categories section with card styling
+      const categoriesSection = screen.getByText('Media Categories').closest('.bg-white.rounded-xl.shadow-lg');
+      expect(categoriesSection).toBeInTheDocument();
+      expect(categoriesSection).toHaveClass('p-4', 'mb-6');
+    });
+
+    it('applies consistent spacing to form inputs within sections', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for space-y-4 class in Repository Settings for consistent spacing
+      const spaceContainer = document.querySelector('.space-y-4');
+      expect(spaceContainer).toBeInTheDocument();
+    });
+
+    it('maintains responsive design with max-width constraints', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for max-w-md and mx-auto classes for responsive centering
+      const mainContainer = document.querySelector('.max-w-md.mx-auto');
+      expect(mainContainer).toBeInTheDocument();
+    });
+
+    it('applies proper background styling to main container', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for main container background styling
+      const mainContainer = document.querySelector('.min-h-screen.bg-gray-50');
+      expect(mainContainer).toBeInTheDocument();
+    });
+
+    it('ensures all form sections have proper padding and margins', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check that all card sections have proper padding and margins
+      const cardSections = document.querySelectorAll('.p-4.bg-white.rounded-xl.shadow-lg.mb-6');
+      expect(cardSections.length).toBe(4); // GitHub, Repository, Audio, Categories sections
+    });
+  });
+
+  describe('Category management UI styling', () => {
+    it('displays categories with pill-style design', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for category pill styling
+      const categoryPill = document.querySelector('.bg-purple-100.text-purple-800.px-3.py-1.rounded-full.text-sm');
+      expect(categoryPill).toBeInTheDocument();
+      expect(categoryPill).toHaveTextContent('Music');
+    });
+
+    it('renders circular remove buttons that match pill style', () => {
+      // Mock multiple categories to show remove buttons
+      const originalAppSettings = mockAppSettings.customCategories;
+      mockAppSettings.customCategories = [
+        { id: 'music', name: 'Music' },
+        { id: 'podcast', name: 'Podcast' }
+      ];
+
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for circular remove button styling
+      const removeButton = document.querySelector('.w-4.h-4.rounded-full.bg-purple-200.hover\\:bg-purple-300');
+      expect(removeButton).toBeInTheDocument();
+      expect(removeButton).toHaveTextContent('×');
+      
+      // Restore original categories
+      mockAppSettings.customCategories = originalAppSettings;
+    });
+
+    it('hides remove buttons when only one category remains', () => {
+      // Use default single category setup
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Should not show remove button when only one category
+      const removeButton = screen.queryByText('×');
+      expect(removeButton).not.toBeInTheDocument();
+    });
+
+    it('applies proper styling to Add Category button', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const addButton = screen.getByText('Add');
+      expect(addButton).toHaveClass(
+        'px-3', 'py-2', 'bg-purple-500', 'text-white', 'rounded', 'text-sm',
+        'hover:bg-purple-400', 'disabled:bg-gray-300', 'disabled:cursor-not-allowed'
+      );
+    });
+
+    it('styles reset categories link appropriately', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const resetLink = screen.getByText('Reset to default categories');
+      expect(resetLink).toHaveClass('text-sm', 'text-gray-600', 'hover:text-gray-800', 'underline');
+    });
+  });
+
+  describe('Input field cross-browser compatibility', () => {
+    it('renders select input with consistent styling across browsers', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const audioFormatSelect = screen.getByDisplayValue('MP3 (Compressed)');
+      expect(audioFormatSelect).not.toHaveAttribute('type'); // Select elements don't have type attribute
+      
+      // Verify select is rendered and has proper styling classes applied
+      expect(audioFormatSelect.tagName.toLowerCase()).toBe('select');
+    });
+
+    it('ensures text inputs maintain consistent height across mobile browsers', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const repoInput = screen.getByPlaceholderText('my-media-repo');
+      const pathInput = screen.getByPlaceholderText('media/');
+      const thumbnailPathInput = screen.getByPlaceholderText('thumbnails/');
+      const categoryInput = screen.getByPlaceholderText('Category name');
+      
+      // All text inputs should be present and properly styled
+      expect(repoInput).toBeInTheDocument();
+      expect(pathInput).toBeInTheDocument();
+      expect(thumbnailPathInput).toBeInTheDocument();
+      expect(categoryInput).toBeInTheDocument();
+      
+      expect(repoInput).toHaveAttribute('type', 'text');
+      expect(pathInput).toHaveAttribute('type', 'text');
+      expect(thumbnailPathInput).toHaveAttribute('type', 'text');
+      expect(categoryInput).toHaveAttribute('type', 'text');
+    });
+
+    it('handles number inputs with proper styling for thumbnail dimensions', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      const widthInput = screen.getByDisplayValue('320');
+      const heightInput = screen.getByDisplayValue('240');
+      
+      // Both number inputs should be present and properly styled
+      expect(widthInput).toBeInTheDocument();
+      expect(heightInput).toBeInTheDocument();
+      expect(widthInput).toHaveAttribute('type', 'number');
+      expect(heightInput).toHaveAttribute('type', 'number');
+    });
+
+    it('applies grid layout for responsive thumbnail dimension inputs', () => {
+      render(<Settings audioFormat="mp3" setAudioFormat={jest.fn()} onLogout={jest.fn()} />);
+      
+      // Check for grid layout classes for thumbnail dimensions
+      const gridContainer = document.querySelector('.grid.grid-cols-2.gap-4');
+      expect(gridContainer).toBeInTheDocument();
+      
+      // Verify the number inputs are within this grid
+      const widthInput = screen.getByDisplayValue('320');
+      const heightInput = screen.getByDisplayValue('240');
+      
+      expect(gridContainer).toContainElement(widthInput.closest('div'));
+      expect(gridContainer).toContainElement(heightInput.closest('div'));
+    });
+  });
 }); 

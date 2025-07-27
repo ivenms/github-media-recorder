@@ -8,7 +8,6 @@ import { useFilesStore } from '../stores/filesStore';
 import { canStoreFile, isStorageNearCapacity } from '../utils/storageQuota';
 import MicIcon from './icons/MicIcon';
 import RecordIcon from './icons/RecordIcon';
-import CheckIcon from './icons/CheckIcon';
 import Waveform from './Waveform';
 import Modal from './Modal';
 import Header from './Header';
