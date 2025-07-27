@@ -12,6 +12,7 @@ import type { VideoRecorderProps } from '../types';
 import { useUIStore } from '../stores/uiStore';
 import Header from './Header';
 import InputField from './InputField';
+import SaveButton from './SaveButton';
 import RecordIcon from './icons/RecordIcon';
 
 const VideoRecorder: React.FC<VideoRecorderProps> = () => {
@@ -365,130 +366,130 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
     <div className="min-h-screen bg-gray-50">
       <Header title="Video Recorder" />
       <div className="flex flex-col items-center p-4">
-      {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
-      <div className="w-full h-48 bg-gray-300 rounded mb-4 flex items-center justify-center overflow-hidden">
-        {recording && stream ? (
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            muted 
-            playsInline
-            webkit-playsinline="true"
-            x-webkit-airplay="disabled"
-            className="w-full h-full object-cover rounded" 
-          />
-        ) : mediaUrl ? (
-          <video 
-            src={mediaUrl} 
-            controls 
-            playsInline
-            webkit-playsinline="true"
-            x-webkit-airplay="disabled"
-            className="w-full h-full object-cover rounded" 
-          />
-        ) : (
-          <span className="text-gray-500">{recording ? '[Recording...]' : '[Camera Preview]'}</span>
-        )}
-      </div>
-      <div className="flex flex-col w-full max-w-md gap-4 mb-4">
-        <InputField
-          label="Title"
-          type="text"
-          placeholder="Title (required)"
-          value={title}
-          maxLength={100}
-          onChange={e => setTitle(e.target.value)}
-          required
-        />
-        <InputField
-          label="Author"
-          type="text"
-          placeholder="Author (required)"
-          value={author}
-          maxLength={50}
-          onChange={e => setAuthor(e.target.value)}
-          required
-        />
-        <InputField
-          label="Category"
-          type="select"
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-          options={mediaCategories}
-        />
-        <InputField
-          label="Date"
-          type="date"
-          value={date}
-          max={getTodayDateString()}
-          onChange={e => {
-            const selectedDate = e.target.value;
-            if (!isFutureDate(selectedDate)) {
-              setDate(selectedDate);
-            }
-          }}
-        />
-        <InputField
-          label="Thumbnail"
-          type="file"
-          accept="image/*"
-          onChange={handleThumbnailChange}
-        />
-      </div>
-      <div className="text-2xl font-mono mb-4">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
-      {error && <div className="text-red-600 mb-2">{error}</div>}
-      <div className="flex items-center justify-center gap-4 mb-6">
-        {/* Main record/stop button */}
-        <button
-          className="w-16 h-16 rounded-full shadow-neumorph transition-all overflow-hidden p-0 border-0 bg-transparent"
-          onClick={recording ? stop : start}
-        >
-          <RecordIcon 
-            width={64} 
-            height={64} 
-            className="transition-colors w-full h-full"
-            state={recording ? 'recording' : 'idle'}
-          />
-        </button>
+      <div className="w-full max-w-md mb-6 p-4 bg-white rounded-xl shadow-lg">
+        <div className="w-full h-48 bg-gray-300 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+          {recording && stream ? (
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              muted 
+              playsInline
+              webkit-playsinline="true"
+              x-webkit-airplay="disabled"
+              className="w-full h-full object-cover rounded-lg" 
+            />
+          ) : mediaUrl ? (
+            <video 
+              ref={videoRef}
+              src={mediaUrl} 
+              controls 
+              playsInline
+              webkit-playsinline="true"
+              x-webkit-airplay="disabled"
+              className="w-full h-full object-cover rounded-lg" 
+            />
+          ) : (
+            <span className="text-gray-500">{recording ? '[Recording...]' : '[Camera Preview]'}</span>
+          )}
+        </div>
         
-        {/* Pause/Resume button - only show when recording */}
-        {recording && (
+        {/* Timer display */}
+        <div className="text-2xl font-mono mb-4 text-center text-purple-600">{new Date(duration * 1000).toISOString().substr(14, 5)}</div>
+        
+        {/* Record buttons */}
+        <div className="flex items-center justify-center gap-4">
+          {/* Main record/stop button */}
           <button
-            className="w-16 h-16 rounded-full shadow-neumorph transition-all overflow-hidden p-0 border-0 bg-transparent"
-            onClick={paused ? resume : pause}
+            className="w-16 h-16 rounded-full shadow-lg transition-all overflow-hidden p-0 border-0 bg-transparent"
+            onClick={recording ? stop : start}
           >
             <RecordIcon 
               width={64} 
               height={64} 
               className="transition-colors w-full h-full"
-              state={paused ? "play" : "paused"}
+              state={recording ? 'recording' : 'idle'}
             />
           </button>
-        )}
+          
+          {/* Pause/Resume button - only show when recording */}
+          {recording && (
+            <button
+              className="w-16 h-16 rounded-full shadow-lg transition-all overflow-hidden p-0 border-0 bg-transparent"
+              onClick={paused ? resume : pause}
+            >
+              <RecordIcon 
+                width={64} 
+                height={64} 
+                className="transition-colors w-full h-full"
+                state={paused ? "play" : "paused"}
+              />
+            </button>
+          )}
+        </div>
       </div>
       
-      {/* Progress bar during save operation */}
-      {saving && (
-        <div className="w-full max-w-md mb-4">
-          <div className="text-sm text-gray-600 mb-2 text-center">
-            Processing...
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="bg-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${saveProgress}%` }}
-            />
-          </div>
-        </div>
-      )}
+      {/* Input error display */}
+      {inputError && <div className="text-red-600 mb-2">{inputError}</div>}
       
-      <button
-        className="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-400 disabled:opacity-50"
+      <div className="w-full max-w-md mb-6 p-4 bg-white rounded-xl shadow-lg">
+        <div className="space-y-4">
+          <InputField
+            label="Title"
+            type="text"
+            placeholder="Title (required)"
+            value={title}
+            maxLength={100}
+            onChange={e => setTitle(e.target.value)}
+            required
+          />
+          <InputField
+            label="Author"
+            type="text"
+            placeholder="Author (required)"
+            value={author}
+            maxLength={50}
+            onChange={e => setAuthor(e.target.value)}
+            required
+          />
+          <InputField
+            label="Category"
+            type="select"
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            options={mediaCategories}
+          />
+          <InputField
+            label="Date"
+            type="date"
+            value={date}
+            max={getTodayDateString()}
+            onChange={e => {
+              const selectedDate = e.target.value;
+              if (!isFutureDate(selectedDate)) {
+                setDate(selectedDate);
+              }
+            }}
+          />
+          <InputField
+            label="Thumbnail"
+            type="file"
+            accept="image/*"
+            onChange={handleThumbnailChange}
+          />
+        </div>
+      </div>
+      
+      {/* Error display */}
+      {error && <div className="text-red-600 mb-2">{error}</div>}
+      
+      <SaveButton
+        saving={saving}
+        saved={saved}
+        saveProgress={saveProgress}
+        savePhase={savePhase}
         disabled={recording || !mediaBlob || saving}
         onClick={handleSave}
-      >
-        {saving ? savePhase || 'Processing...' : saved ? 'Saved!' : 'Save'}
-      </button>
+      />
       </div>
     </div>
   );

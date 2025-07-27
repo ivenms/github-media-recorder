@@ -29,8 +29,13 @@ const TextInput: React.FC<TextInputProps> = ({
       ? 'border-red-500 bg-red-50 focus:ring-red-500 focus:border-red-500' 
       : 'border-gray-300 focus:ring-purple-500 focus:border-purple-500';
     
+    // Safari/iOS date input specific styling to maintain consistent width
+    const dateInputStyles = type === 'date' 
+      ? 'appearance-none -webkit-appearance-none' 
+      : '';
+    
     // Bootstrap-style form control with good mobile touch targets
-    return `w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 text-base ${errorStyles}`;
+    return `w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 text-base ${errorStyles} ${dateInputStyles}`;
   };
 
   return (

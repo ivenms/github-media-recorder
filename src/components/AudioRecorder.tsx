@@ -12,6 +12,7 @@ import Waveform from './Waveform';
 import Modal from './Modal';
 import Header from './Header';
 import InputField from './InputField';
+import SaveButton from './SaveButton';
 import { useAudioRecorder } from '../hooks/useAudioRecorder';
 import { useAudioForm } from '../hooks/useAudioForm';
 import { getTodayDateString, isFutureDate } from '../utils/date';
@@ -304,7 +305,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="Voice Recording" />
-      <div className="flex flex-col items-center p-4">
+      <div className="flex flex-col items-center p-4 pb-32">
       {error && <div className="text-red-600 mb-2">{error}</div>}
       
       <Modal
@@ -314,7 +315,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         message={saveThumbnailError || ''}
         type="alert"
       />
-      <div className="flex flex-col items-center w-full max-w-xs bg-white/70 rounded-3xl shadow-neumorph p-6 mb-6">
+      <div className="flex flex-col items-center w-full max-w-md bg-white/70 rounded-3xl shadow-lg p-6 mb-6">
         <div className="flex flex-col items-center mb-4">
           <div className="w-20 h-20 flex items-center justify-center mb-2">
             <MicIcon className="w-20 h-20" />
@@ -338,79 +339,68 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
             />
           </button>
         </div>
-        {/* Progress bar during save operation */}
-        {saving && (
-          <div className="w-full mb-4">
-            <div className="text-sm text-gray-600 mb-2 text-center">
-              Processing...
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${saveProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
-        
-        <button
-          className="w-full bg-purple-500 text-white px-4 py-2 rounded-xl shadow-neumorph disabled:opacity-50 hover:bg-purple-400"
-          disabled={recording || !audioUrl || saving}
-          onClick={handleSave}
-        >
-          {saving ? savePhase || 'Processing...' : saved ? 'Saved!' : 'Save'}
-        </button>
         {audioUrl && (
           <audio controls src={audioUrl} className="w-full mt-4 rounded-xl" />
         )}
       </div>
-      <div className="flex flex-col w-full max-w-xs gap-4 mt-2">
-        <InputField
-          label="Title"
-          type="text"
-          placeholder="Title (required)"
-          value={title}
-          maxLength={100}
-          onChange={e => setTitle(e.target.value)}
-          required
-          error={titleError || undefined}
-        />
-        <InputField
-          label="Author"
-          type="text"
-          placeholder="Author (required)"
-          value={author}
-          maxLength={50}
-          onChange={e => setAuthor(e.target.value)}
-          required
-          error={authorError || undefined}
-        />
-        <InputField
-          label="Category"
-          type="select"
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-          options={mediaCategories}
-        />
-        <InputField
-          label="Date"
-          type="date"
-          value={date}
-          max={getTodayDateString()}
-          onChange={e => {
-            const selectedDate = e.target.value;
-            if (!isFutureDate(selectedDate)) {
-              setDate(selectedDate);
-            }
-          }}
-        />
-        <InputField
-          label="Thumbnail"
-          type="file"
-          accept="image/*"
-          onChange={handleThumbnailChange}
-        />
+      <div className="w-full max-w-md mb-6 p-4 bg-white rounded-xl shadow-lg">
+        <div className="space-y-4">
+          <InputField
+            label="Title"
+            type="text"
+            placeholder="Title (required)"
+            value={title}
+            maxLength={100}
+            onChange={e => setTitle(e.target.value)}
+            required
+            error={titleError || undefined}
+          />
+          <InputField
+            label="Author"
+            type="text"
+            placeholder="Author (required)"
+            value={author}
+            maxLength={50}
+            onChange={e => setAuthor(e.target.value)}
+            required
+            error={authorError || undefined}
+          />
+          <InputField
+            label="Category"
+            type="select"
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+            options={mediaCategories}
+          />
+          <InputField
+            label="Date"
+            type="date"
+            value={date}
+            max={getTodayDateString()}
+            onChange={e => {
+              const selectedDate = e.target.value;
+              if (!isFutureDate(selectedDate)) {
+                setDate(selectedDate);
+              }
+            }}
+          />
+          <InputField
+            label="Thumbnail"
+            type="file"
+            accept="image/*"
+            onChange={handleThumbnailChange}
+          />
+        </div>
       </div>
+      
+      <SaveButton
+        saving={saving}
+        saved={saved}
+        saveProgress={saveProgress}
+        savePhase={savePhase}
+        disabled={recording || !audioUrl || saving}
+        onClick={handleSave}
+      />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ jest.mock('../../src/utils/mediaConverter', () => ({
 }));
 
 import { convertToMp3, convertToMp4 } from '../../src/utils/mediaConverter';
+import { ConvertType } from '../../src/types';
 
 const mockConvertToMp3 = convertToMp3 as jest.MockedFunction<typeof convertToMp3>;
 const mockConvertToMp4 = convertToMp4 as jest.MockedFunction<typeof convertToMp4>;
@@ -210,7 +211,7 @@ describe('useFileConverter', () => {
       let conversionResult: Uint8Array | null = null;
 
       await act(async () => {
-        conversionResult = await result.current.convert('unsupported' as any, new Uint8Array());
+        conversionResult = await result.current.convert('unsupported' as ConvertType, new Uint8Array());
       });
 
       expect(conversionResult).toBeNull();
