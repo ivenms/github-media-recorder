@@ -315,7 +315,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ audioFormat }) => {
         message={saveThumbnailError || ''}
         type="alert"
       />
-      <div className="flex flex-col items-center w-full max-w-md bg-white/70 rounded-3xl shadow-lg p-6 mb-6">
+      <div className="flex flex-col items-center w-full max-w-md bg-white/70 rounded-xl shadow-lg p-6 mb-6">
         <div className="flex flex-col items-center mb-4">
           <div className="w-20 h-20 flex items-center justify-center mb-2">
             <MicIcon className="w-20 h-20" />

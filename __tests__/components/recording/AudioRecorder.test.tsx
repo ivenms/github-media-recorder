@@ -555,7 +555,7 @@ describe('AudioRecorder', () => {
       render(<AudioRecorder audioFormat="mp3" />);
       
       // Check for recording interface container with glass morphism effect
-      const recordingContainer = document.querySelector('.bg-white\\/70.rounded-3xl.shadow-lg');
+      const recordingContainer = document.querySelector('.bg-white\\/70.rounded-xl.shadow-lg');
       expect(recordingContainer).toBeInTheDocument();
       
       // Verify waveform and duration display are within this container
