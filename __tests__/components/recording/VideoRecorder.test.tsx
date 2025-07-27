@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import VideoRecorder from '../../../src/components/VideoRecorder';
 
@@ -1865,8 +1865,6 @@ describe('VideoRecorder', () => {
         target: { value: 'Test Author' }
       });
       
-      // Mock progress callback
-      const progressCallback = jest.fn();
       mockConvertVideo.mockImplementation(async (data, onProgress) => {
         if (onProgress) {
           onProgress(25);
