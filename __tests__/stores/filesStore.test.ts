@@ -26,6 +26,7 @@ import { useFilesStore } from '../../src/stores/filesStore';
 import { useGitStore } from '../../src/stores/gitStore';
 import { createFileRecord, restoreFileRecord, cleanupBlobUrls } from '../../src/utils/persistentStorage';
 import { combineAndDeduplicateFiles, findFilesToRemove } from '../../src/utils/fileDeduplication';
+import { GitState } from '../../src/types';
 
 const mockUseGitStore = useGitStore as jest.Mocked<typeof useGitStore>;
 const mockCreateFileRecord = createFileRecord as jest.MockedFunction<typeof createFileRecord>;
