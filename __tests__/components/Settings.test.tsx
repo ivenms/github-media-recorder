@@ -1,15 +1,9 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Settings from '../../src/components/Settings';
 
 jest.mock('../../src/stores/uiStore', () => ({
-  useUIStore: () => ({ 
-    modal: { isOpen: false, type: null }, 
-    openModal: jest.fn(), 
-    closeModal: jest.fn() 
-  })
   useUIStore: () => ({ 
     modal: { isOpen: false, type: null }, 
     openModal: jest.fn(), 
@@ -29,20 +23,7 @@ const mockAppSettings = {
 jest.mock('../../src/stores/settingsStore', () => ({
   useSettingsStore: jest.fn(() => ({ 
     appSettings: mockAppSettings, 
-const mockAppSettings = { 
-  repo: '', 
-  path: 'media/', 
-  thumbnailPath: 'thumbnails/', 
-  thumbnailWidth: 320, 
-  thumbnailHeight: 240, 
-  customCategories: [{ id: 'music', name: 'Music' }] 
-};
-
-jest.mock('../../src/stores/settingsStore', () => ({
-  useSettingsStore: jest.fn(() => ({ 
-    appSettings: mockAppSettings, 
     setAppSettings: mockSetAppSettings 
-  }))
   }))
 }));
 jest.mock('../../src/stores/authStore', () => ({
@@ -57,9 +38,7 @@ describe('Settings', () => {
     mockSetAppSettings.mockClear();
   });
   
-  
   afterEach(() => {
-    jest.restoreAllMocks();
     jest.restoreAllMocks();
   });
 
