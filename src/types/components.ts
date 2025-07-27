@@ -62,8 +62,6 @@ export interface PlayIconProps extends IconProps {}
 export interface CheckIconProps extends IconProps {}
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface CloseIconProps extends IconProps {}
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface EyeIconProps extends IconProps {}
 
 // Props for AudioRecorder
 export interface AudioRecorderProps {
