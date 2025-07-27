@@ -119,3 +119,14 @@ export interface InputFieldProps {
   inputClassName?: string;
 }
 
+// Props for SaveButton component
+export interface SaveButtonProps {
+  saving: boolean;
+  saved: boolean;
+  saveProgress?: number;
+  savePhase?: string;
+  disabled: boolean;
+  onClick: () => void;
+  label?: string;
+}
+

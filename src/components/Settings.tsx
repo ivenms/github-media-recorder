@@ -5,6 +5,7 @@ import { DEFAULT_MEDIA_CATEGORIES } from '../utils/appConfig';
 import Modal from './Modal';
 import Header from './Header';
 import InputField from './InputField';
+import SaveButton from './SaveButton';
 import { useUIStore } from '../stores/uiStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useAuthStore } from '../stores/authStore';
@@ -119,7 +120,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
       <div className="p-4 max-w-md mx-auto">
       
       {/* GitHub Account Section */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+      <div className="mb-6 p-4 bg-white rounded-xl shadow-lg">
         <h3 className="text-lg font-semibold mb-2">GitHub Account</h3>
         <div className="flex items-center justify-between">
           <div>
@@ -136,8 +137,9 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
       </div>
 
       {/* Repository Settings */}
-      <div className="mb-6 space-y-4">
-        <h3 className="text-lg font-semibold mb-3">Repository Settings</h3>
+      <div className="mb-6 p-4 bg-white rounded-xl shadow-lg">
+        <h3 className="text-lg font-semibold mb-4">Repository Settings</h3>
+        <div className="space-y-4">
         <InputField
           label="Repository Name"
           type="text"
@@ -194,11 +196,12 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
             <span className="text-xs text-gray-500 mt-1 block">Height in pixels (50-1080)</span>
           </div>
         </div>
+        </div>
       </div>
 
       {/* Audio Settings */}
-      <div className="mb-6 space-y-4">
-        <h3 className="text-lg font-semibold mb-3">Audio Settings</h3>
+      <div className="mb-6 p-4 bg-white rounded-xl shadow-lg">
+        <h3 className="text-lg font-semibold mb-4">Audio Settings</h3>
         <InputField
           label="Audio Format"
           type="select"
@@ -213,8 +216,8 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
       </div>
 
       {/* Category Management */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-3">Media Categories</h3>
+      <div className="mb-6 p-4 bg-white rounded-xl shadow-lg">
+        <h3 className="text-lg font-semibold mb-4">Media Categories</h3>
         
         {/* Current Categories */}
         <div className="mb-4">
@@ -226,7 +229,7 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
                 {settings.customCategories && settings.customCategories.length > 1 && (
                   <button
                     onClick={() => removeCategory(category.id)}
-                    className="ml-2 text-purple-600 hover:text-purple-800 font-bold"
+                    className="ml-2 w-4 h-4 rounded-full bg-purple-200 hover:bg-purple-300 text-purple-700 hover:text-purple-900 text-xs font-bold flex items-center justify-center transition-colors"
                     title="Remove category"
                   >
                     ×
@@ -269,18 +272,13 @@ const Settings: React.FC<SettingsProps> = ({ audioFormat, setAudioFormat, onLogo
         </button>
       </div>
 
-      <button
+      <SaveButton
+        saving={false}
+        saved={status !== ''}
+        disabled={false}
         onClick={handleSave}
-        className="w-full bg-purple-500 text-white px-4 py-2 rounded font-medium hover:bg-purple-400 transition-colors"
-      >
-        Save Settings
-      </button>
-      
-      {status && (
-        <div className="mt-3 p-2 bg-green-100 text-green-700 rounded text-sm text-center">
-          {status}
-        </div>
-      )}
+        label="Save Settings"
+      />
       
       <Modal
         isOpen={modal.isOpen}

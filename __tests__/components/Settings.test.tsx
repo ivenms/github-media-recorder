@@ -107,7 +107,7 @@ describe('Settings', () => {
     expect(mockSetAppSettings).toHaveBeenCalled();
     
     // Should show success message immediately (no need for waitFor)
-    expect(screen.getByText('Settings saved!')).toBeInTheDocument();
+    expect(screen.getByText('Saved!')).toBeInTheDocument();
   });
 
 
