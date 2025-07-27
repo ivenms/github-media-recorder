@@ -41,6 +41,15 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
   const [editingFile, setEditingFile] = useState<FileRecord | null>(null);
   const [showAddMediaModal, setShowAddMediaModal] = useState<boolean>(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(highlightId || null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [hasInitialContent, setHasInitialContent] = useState<boolean>(false);
+
+  // Track when we have initial content to decide when to show loader
+  useEffect(() => {
+    if (mediaFiles.length > 0) {
+      setHasInitialContent(true);
+    }
+  }, [mediaFiles.length]);
 
   // Update highlighted ID when prop changes
   useEffect(() => {
@@ -85,27 +94,45 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
     await uploadWithManagement(file);
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshAllFiles();
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleAddMedia = () => {
     setShowAddMediaModal(true);
   };
+
+  // Determine if we should show the loader
+  const shouldShowLoader = loading && (!hasInitialContent || isRefreshing);
 
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="Media Library" />
       
-      {/* Action Buttons Row - Hide when loading */}
-      {!loading && (
+      {/* Action Buttons Row - Hide when showing full loader */}
+      {!shouldShowLoader && (
         <div className="px-4 py-3">
           <div className="flex items-center justify-between">
             <button
-              onClick={refreshAllFiles}
-              className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:shadow-md transition-all shadow-sm border border-gray-200"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:shadow-md transition-all shadow-sm border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg 
+                className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Refresh
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
             <button
               onClick={handleAddMedia}
@@ -121,13 +148,25 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
       )}
       
       <div className="p-4">
-        {loading ? (
+        {shouldShowLoader ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
-            <div className="text-gray-600 font-medium">Loading files from repository...</div>
+            <div className="text-gray-600 font-medium">
+              {isRefreshing ? 'Refreshing files from repository...' : 'Loading files from repository...'}
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Show subtle loading indicator when refreshing with content */}
+            {loading && hasInitialContent && !isRefreshing && (
+              <div className="flex items-center justify-center py-2 mb-4">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                  <span>Syncing with repository...</span>
+                </div>
+              </div>
+            )}
+            
             {mediaFiles.map((file) => {
           const meta = parseMediaFileName(file.name) || { title: '', author: '', category: '', date: '' };
           const baseName = file.name.replace(/\.[^.]+$/, '');
@@ -140,7 +179,7 @@ const FileList: React.FC<FileListProps> = ({ highlightId }) => {
             <div 
               key={`${file.id}-${file.isLocal ? 'local' : 'remote'}`} 
               id={`file-${file.id}`}
-              className={`bg-white rounded-xl shadow-md border overflow-hidden transition-all duration-500 ${
+              className={`bg-white rounded-xl shadow-md border overflow-hidden transition-all duration-500 transform hover:scale-[1.02] animate-fadeInUp ${
                 isHighlighted 
                   ? 'border-purple-500 bg-purple-50 shadow-lg ring-2 ring-purple-200' 
                   : 'border-gray-100'
