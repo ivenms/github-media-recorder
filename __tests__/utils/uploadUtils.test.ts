@@ -39,8 +39,8 @@ if (!global.testUtils) {
 global.btoa = jest.fn((str: string) => Buffer.from(str, 'binary').toString('base64'));
 
 describe('uploadUtils', () => {
-  let mockUseAuthStore: any;
-  let mockUseSettingsStore: any;
+  let mockUseAuthStore: jest.MockedFunction<() => unknown>;
+  let mockUseSettingsStore: jest.MockedFunction<() => unknown>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -212,7 +212,7 @@ describe('uploadUtils', () => {
         let updateRefCalls = 0;
 
         (global.fetch as jest.Mock)
-          .mockImplementation((url: string, options: any) => {
+          .mockImplementation((url: string, options: RequestInit) => {
             if (url.includes('/git/refs/heads/')) {
               if (options?.method === 'PATCH') {
                 // updateRef - first call fails with 409, second succeeds
@@ -346,7 +346,7 @@ describe('uploadUtils', () => {
 
         // Mock all updateRef attempts to fail with 409 (3 attempts total)
         (global.fetch as jest.Mock)
-          .mockImplementation((url: string, options: any) => {
+          .mockImplementation((url: string, options: RequestInit) => {
             if (url.includes('/git/refs/heads/')) {
               if (options?.method === 'PATCH') {
                 // updateRef - always fails with 409

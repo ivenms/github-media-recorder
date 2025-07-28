@@ -83,8 +83,8 @@ describe('AddMediaModal', () => {
     onSave: jest.fn()
   };
 
-  let mockUseUIStore: jest.MockedFunction<any>;
-  let mockUseFilesStore: jest.MockedFunction<any>;
+  let mockUseUIStore: jest.MockedFunction<() => unknown>;
+  let mockUseFilesStore: jest.MockedFunction<() => unknown>;
   let mockOpenModal: jest.Mock;
   let mockSaveFile: jest.Mock;
 

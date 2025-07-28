@@ -110,8 +110,8 @@ describe('EditFileModal', () => {
     thumbnail: undefined
   };
 
-  let mockUseUIStore: jest.MockedFunction<any>;
-  let mockUseFilesStore: jest.MockedFunction<any>;
+  let mockUseUIStore: jest.MockedFunction<() => unknown>;
+  let mockUseFilesStore: jest.MockedFunction<() => unknown>;
   let mockOpenModal: jest.Mock;
   let mockUpdateFileWithThumbnail: jest.Mock;
 

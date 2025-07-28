@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import type { FileRecord, EnhancedFileRecord, FileMetadata } from '../../src/types';
 
 // Mock dependencies
 jest.mock('../../src/stores/gitStore', () => ({
@@ -46,12 +47,12 @@ const mockFileRecord = {
   duration: 180,
   created: Date.now(),
   uploaded: false,
-} as any;
+} as FileRecord;
 
 const mockEnhancedFile = {
   ...mockFileRecord,
   isLocal: true,
-} as any;
+} as EnhancedFileRecord;
 
 describe('filesStore', () => {
   const mockFetchRemoteFiles = jest.fn();
@@ -134,9 +135,9 @@ describe('filesStore', () => {
         size: 12,
         duration: 0,
         created: Date.now(),
-      } as any;
+      } as FileMetadata;
 
-      let savedFile: any;
+      let savedFile: FileRecord;
       await act(async () => {
         savedFile = await result.current.saveFile(blob, metadata);
       });
@@ -160,7 +161,7 @@ describe('filesStore', () => {
         size: 12,
         duration: 0,
         created: Date.now(),
-      } as any;
+      } as FileMetadata;
 
       await expect(act(async () => {
         await result.current.saveFile(blob, metadata);
@@ -510,7 +511,7 @@ describe('filesStore', () => {
         size: 12,
         duration: 0,
         created: Date.now(),
-      } as any;
+      } as FileMetadata;
 
       await act(async () => {
         await result.current.saveFile(blob, metadata);
