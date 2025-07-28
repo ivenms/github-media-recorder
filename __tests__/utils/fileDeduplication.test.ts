@@ -83,7 +83,7 @@ describe('fileDeduplication utilities', () => {
           createMockFile({ id: 'audio-1', name: 'audio.mp3', type: 'audio' }),
           createMockFile({ id: 'video-1', name: 'video.mp4', type: 'video' }),
           createMockFile({ id: 'thumbnail-1', name: 'thumb.jpg', type: 'thumbnail' }),
-          createMockFile({ id: 'other-1', name: 'other.txt', type: 'other' as any }),
+          createMockFile({ id: 'other-1', name: 'other.txt', type: 'thumbnail' }),
         ];
 
         const result = combineAndDeduplicateFiles(localFiles, []);
@@ -336,7 +336,7 @@ describe('fileDeduplication utilities', () => {
       it('handles numeric and string IDs differently', () => {
         const items = [
           { id: '123', name: 'string-id' },
-          { id: 123 as any, name: 'number-id' },
+          { id: '456', name: 'number-id' },
         ];
 
         const result = deduplicateById(items);

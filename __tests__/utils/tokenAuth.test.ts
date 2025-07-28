@@ -24,7 +24,7 @@ global.fetch = jest.fn();
 global.console.error = jest.fn();
 
 describe('tokenAuth utilities', () => {
-  let mockUseAuthStore: any;
+  let mockUseAuthStore: jest.MockedFunction<() => unknown>;
 
   beforeEach(() => {
     // Get the mocked store

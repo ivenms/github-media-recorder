@@ -25,8 +25,8 @@ global.fetch = jest.fn();
 global.console.log = jest.fn();
 
 describe('githubUtils', () => {
-  let mockUseAuthStore: any;
-  let mockUseSettingsStore: any;
+  let mockUseAuthStore: jest.MockedFunction<() => unknown>;
+  let mockUseSettingsStore: jest.MockedFunction<() => unknown>;
 
   beforeEach(() => {
     jest.clearAllMocks();

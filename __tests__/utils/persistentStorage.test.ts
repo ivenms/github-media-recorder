@@ -116,12 +116,12 @@ describe('persistentStorage utilities', () => {
           onloadend: null,
           onloadstart: null,
           onprogress: null,
-          readAsDataURL: jest.fn(function(this: any) {
+          readAsDataURL: jest.fn(function(this: FileReader) {
             setTimeout(() => {
               if (this.onerror) this.onerror(new Error('Read failed'));
             }, 0);
           }),
-        })) as any;
+        })) as jest.MockedClass<typeof FileReader>;
 
         await expect(blobToBase64(blob)).rejects.toThrow();
 
@@ -294,7 +294,7 @@ describe('persistentStorage utilities', () => {
         const transaction = db.transaction(['files'], 'readonly');
         const store = transaction.objectStore('files');
         
-        const retrievedData = await new Promise<any>((resolve, reject) => {
+        const retrievedData = await new Promise<Blob | unknown>((resolve, reject) => {
           const request = store.get(result.id);
           request.onsuccess = () => resolve(request.result);
           request.onerror = () => reject(request.error);
@@ -318,15 +318,15 @@ describe('persistentStorage utilities', () => {
         const originalOpen = indexedDB.open;
         indexedDB.open = jest.fn().mockImplementation(() => {
           const request = {
-            onerror: null as any,
-            onsuccess: null as any,
-            onupgradeneeded: null as any,
+            onerror: null as ((this: IDBRequest, ev: Event) => void) | null,
+            onsuccess: null as ((this: IDBRequest, ev: Event) => void) | null,
+            onupgradeneeded: null as ((this: IDBRequest, ev: IDBVersionChangeEvent) => void) | null,
             error: new Error('IndexedDB unavailable'),
           };
           setTimeout(() => {
             if (request.onerror) request.onerror();
           }, 0);
-          return request;
+          return request as IDBOpenDBRequest;
         });
 
         const largeBlob = testUtils.createMockFile('large.mp4', 2 * 1024 * 1024, 'video/mp4');
@@ -350,7 +350,7 @@ describe('persistentStorage utilities', () => {
           size: 1000,
           duration: 30,
           created: Date.now(),
-          file: null as any,
+          file: null as unknown as Blob,
           url: '',
           base64Data,
         };
@@ -373,7 +373,7 @@ describe('persistentStorage utilities', () => {
           size: 1000,
           duration: 30,
           created: Date.now(),
-          file: null as any,
+          file: null as unknown as Blob,
           url: 'invalid-url',
           base64Data,
         };
@@ -401,7 +401,7 @@ describe('persistentStorage utilities', () => {
         // Simulate persisted state (no file, no URL, no base64Data)
         const persistedFile: FileRecord = {
           ...fileRecord,
-          file: null as any,
+          file: null as unknown as Blob,
           url: '',
           base64Data: undefined,
         };
@@ -422,7 +422,7 @@ describe('persistentStorage utilities', () => {
           size: 2 * 1024 * 1024,
           duration: 120,
           created: Date.now(),
-          file: null as any,
+          file: null as unknown as Blob,
           url: '',
         };
 
@@ -471,7 +471,7 @@ describe('persistentStorage utilities', () => {
           size: 2 * 1024 * 1024,
           duration: 120,
           created: Date.now(),
-          file: null as any,
+          file: null as unknown as Blob,
           url: '',
         };
 
@@ -700,7 +700,7 @@ describe('persistentStorage utilities', () => {
       // Simulate persistence (lose file and URL)
       const persistedFile: FileRecord = {
         ...fileRecord,
-        file: null as any,
+        file: null as unknown as Blob,
         url: '',
       };
 
@@ -742,13 +742,13 @@ describe('persistentStorage utilities', () => {
       // Both should restore correctly
       const restoredSmall = await restoreFileRecord({
         ...smallFile,
-        file: null as any,
+        file: null as unknown as Blob,
         url: '',
       });
 
       const restoredLarge = await restoreFileRecord({
         ...largeFile,
-        file: null as any,
+        file: null as unknown as Blob,
         url: '',
       });
 

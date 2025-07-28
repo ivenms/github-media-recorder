@@ -1,5 +1,6 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useUploadManager } from '../../src/hooks/useUploadManager';
+import type { FileRecord } from '../../src/types';
 
 // Mock dependencies
 jest.mock('../../src/utils/uploadUtils', () => ({
@@ -50,7 +51,7 @@ const mockFile = {
   title: 'Test Audio',
   author: 'Test Author',
   category: 'music',
-} as any;
+} as FileRecord;
 
 const mockThumbnail = {
   id: 'test-thumb-1',
@@ -60,7 +61,7 @@ const mockThumbnail = {
   type: 'image/jpeg',
   lastModified: Date.now(),
   isLocal: true,
-} as any;
+} as FileRecord;
 
 describe('useUploadManager', () => {
   const mockOpenModal = jest.fn();

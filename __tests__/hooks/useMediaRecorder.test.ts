@@ -215,7 +215,7 @@ describe('useMediaRecorder', () => {
 
     it('should handle video MIME type selection for iOS Safari', async () => {
       mockGetMobilePlatform.mockReturnValue('ios-safari' as unknown as MobilePlatform);
-      (global.MediaRecorder as any).isTypeSupported.mockImplementation((type: string) => {
+      (global.MediaRecorder as typeof MediaRecorder & { isTypeSupported: jest.Mock }).isTypeSupported.mockImplementation((type: string) => {
         return type === 'video/mp4';
       });
 
