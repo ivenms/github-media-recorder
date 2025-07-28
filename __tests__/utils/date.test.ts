@@ -316,7 +316,7 @@ describe('date utilities', () => {
   describe('integration tests', () => {
     it('works correctly with all functions together', () => {
       const today = getTodayDateString();
-      expect(formatReadableDate(today)).toBe('Yesterday'); // Mock date is 2025-01-15, so today is yesterday
+      expect(formatReadableDate(today)).toBe('Today');
       expect(isFutureDate(today)).toBe(false);
       
       const tomorrow = '2025-01-16';

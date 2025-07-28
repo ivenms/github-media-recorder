@@ -3,6 +3,9 @@ export default {
   // Test environment
   testEnvironment: 'jsdom',
   
+  // Set timezone for tests
+  globalSetup: './jest.setup.js',
+  
   // Module file extensions
   moduleFileExtensions: ['js', 'jsx', 'ts', 'tsx', 'json'],
   
