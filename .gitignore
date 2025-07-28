@@ -47,7 +47,6 @@ temp/
 .temp/
 
 # Configuration files with sensitive data
-.mcp.json
 *.local.json
 
 # Additional build/deployment
@@ -62,3 +61,9 @@ android/.gradle/
 
 # Turborepo
 .turbo/
+
+# AI
+.mcp.json
+.claude
+CLAUDE.md
+GEMINI.md
