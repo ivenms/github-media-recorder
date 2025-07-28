@@ -24,6 +24,14 @@ class MockVideoWorkerService {
     return this.mockConversion(webmBuffer, onProgress);
   }
 
+  // New API method that matches the actual service
+  async convertVideo(
+    videoData: Uint8Array,
+    onProgress?: (progress: number, phase?: string) => void
+  ): Promise<VideoConversionResult> {
+    return this.mockConversionFromUint8Array(videoData, onProgress);
+  }
+
   private async mockConversion(
     webmBuffer: ArrayBuffer,
     onProgress?: (progress: number) => void
@@ -57,6 +65,49 @@ class MockVideoWorkerService {
       buffer: outputBuffer,
       mimeType: 'video/mp4',
       size: outputBuffer.byteLength
+    };
+  }
+
+  // New method for Uint8Array input (matches VideoRecorder usage)
+  private async mockConversionFromUint8Array(
+    videoData: Uint8Array,
+    onProgress?: (progress: number, phase?: string) => void
+  ): Promise<VideoConversionResult> {
+    // Simulate conversion progress with phases
+    if (onProgress) {
+      const steps = [
+        { progress: 10, phase: 'Initializing...' },
+        { progress: 25, phase: 'Loading FFmpeg...' },
+        { progress: 40, phase: 'Converting video...' },
+        { progress: 60, phase: 'Processing frames...' },
+        { progress: 75, phase: 'Encoding output...' },
+        { progress: 90, phase: 'Finalizing...' },
+        { progress: 100, phase: 'Complete!' }
+      ];
+      for (const step of steps) {
+        await new Promise(resolve => setTimeout(resolve, 15));
+        onProgress(step.progress, step.phase);
+      }
+    }
+
+    // Create mock output - return the expected structure
+    const convertedData = new Uint8Array(Math.floor(videoData.length * 0.9)); // Simulate compression
+    
+    // Mock MP4 header
+    const header = 'ftyp';
+    for (let i = 4; i < 4 + header.length; i++) {
+      convertedData[i] = header.charCodeAt(i - 4);
+    }
+
+    // Fill with mock video data
+    for (let i = 20; i < convertedData.length; i++) {
+      convertedData[i] = Math.floor(Math.random() * 256);
+    }
+
+    return {
+      convertedData,
+      originalSize: videoData.length,
+      convertedSize: convertedData.length
     };
   }
 

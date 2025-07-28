@@ -9,6 +9,9 @@ jest.useFakeTimers();
 jest.mock('../../../src/hooks/useMediaRecorder');
 const useMediaRecorder = require('../../../src/hooks/useMediaRecorder').useMediaRecorder;
 
+jest.mock('../../../src/hooks/useScreenOrientation');
+const useScreenOrientation = require('../../../src/hooks/useScreenOrientation').useScreenOrientation;
+
 // Mock the modules before importing
 jest.mock('../../../src/stores/filesStore');
 jest.mock('../../../src/stores/uiStore');
@@ -62,6 +65,9 @@ describe('VideoRecorder', () => {
       stream: null,
     }));
     
+    // Mock useScreenOrientation to return portrait by default
+    useScreenOrientation.mockReturnValue('portrait');
+    
     // Reset all mocks to default behavior
     mockGetMobilePlatform.mockReturnValue('other');
     mockFormatMediaFileName.mockReturnValue('Video_Test Video_Test Author_2024-06-01.mp4');
@@ -69,10 +75,21 @@ describe('VideoRecorder', () => {
     mockIsStorageNearCapacity.mockResolvedValue({ critical: false, warning: false });
     mockValidateFileSize.mockResolvedValue(true);
     mockSaveFile.mockResolvedValue({ id: 'test-file-id-123' });
-    mockConvertVideo.mockResolvedValue({
-      convertedData: new Uint8Array([1, 2, 3, 4]),
-      originalSize: 1000,
-      convertedSize: 800
+    mockConvertVideo.mockImplementation((videoData, onProgress) => {
+      // Simulate progress if callback provided
+      if (onProgress) {
+        // Call progress callback with some test values
+        setTimeout(() => onProgress(25, 'Converting...'), 10);
+        setTimeout(() => onProgress(50, 'Processing...'), 20);
+        setTimeout(() => onProgress(75, 'Finalizing...'), 30);
+        setTimeout(() => onProgress(100, 'Complete!'), 40);
+      }
+      
+      return Promise.resolve({
+        convertedData: new Uint8Array([1, 2, 3, 4]),
+        originalSize: 1000,
+        convertedSize: 800
+      });
     });
     mockConvertImageToJpg.mockResolvedValue(new Blob(['jpg-data'], { type: 'image/jpeg' }));
   });
@@ -1826,9 +1843,11 @@ describe('VideoRecorder', () => {
       const responsiveElements = document.querySelectorAll('.w-full');
       expect(responsiveElements.length).toBeGreaterThan(0);
       
-      // Verify video container has proper height and width settings for mobile
-      const videoPreviewContainer = document.querySelector('.w-full.h-48');
+      // Verify video container has proper responsive classes for mobile
+      // The video preview container now uses orientation-based classes
+      const videoPreviewContainer = document.querySelector('.video-preview-portrait, .video-preview-landscape');
       expect(videoPreviewContainer).toBeInTheDocument();
+      expect(videoPreviewContainer).toHaveClass('w-full');
     });
   });
 

@@ -14,9 +14,11 @@ import Header from './Header';
 import InputField from './InputField';
 import SaveButton from './SaveButton';
 import RecordIcon from './icons/RecordIcon';
+import { useScreenOrientation } from '../hooks/useScreenOrientation';
 
 const VideoRecorder: React.FC<VideoRecorderProps> = () => {
   const mediaCategories = getMediaCategories();
+  const orientation = useScreenOrientation();
   const {
     recording,
     paused,
@@ -367,7 +369,7 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
       <Header title="Video Recorder" />
       <div className="flex flex-col items-center p-4">
       <div className="w-full max-w-md mb-6 p-4 bg-white rounded-xl shadow-lg">
-        <div className="w-full h-48 bg-gray-300 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+        <div className={`w-full bg-gray-300 rounded-lg mb-4 flex items-center justify-center overflow-hidden ${orientation === 'portrait' ? 'video-preview-portrait' : 'video-preview-landscape'}`}>
           {recording && stream ? (
             <video 
               ref={videoRef} 
@@ -495,4 +497,5 @@ const VideoRecorder: React.FC<VideoRecorderProps> = () => {
   );
 };
 
-export default VideoRecorder; 
+export default VideoRecorder;
+ 
