@@ -36,7 +36,7 @@ describe('imageUtils', () => {
   describe('processImage', () => {
     beforeEach(() => {
       // Set up the mock implementation
-      (processImage as jest.Mock).mockImplementation(async (file: File, options: ImageProcessOptions) => {
+      (processImage as jest.Mock).mockImplementation(async (_file: File, _options: ImageProcessOptions) => {
         return new Blob(['processed-image'], { type: 'image/jpeg' });
       });
     });
@@ -130,7 +130,7 @@ describe('imageUtils', () => {
 
   describe('generateThumbnails', () => {
     beforeEach(() => {
-      (generateThumbnails as jest.Mock).mockImplementation(async (videoBlob: Blob) => {
+      (generateThumbnails as jest.Mock).mockImplementation(async (_videoBlob: Blob) => {
         return [
           new Blob(['thumb1'], { type: 'image/jpeg' }),
           new Blob(['thumb2'], { type: 'image/jpeg' }),

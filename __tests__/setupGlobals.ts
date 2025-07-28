@@ -16,7 +16,7 @@ if (!global.URL || !global.URL.createObjectURL) {
       return `blob:mock-audio-url-${urlCounter}`;
     }),
     revokeObjectURL: jest.fn(),
-  } as typeof URL;
+  } as unknown as typeof URL;
 }
 
 // Mock Blob constructor - ALWAYS override to ensure arrayBuffer() method is available
@@ -42,11 +42,11 @@ class MockBlob {
         const str = Array.from(view).map(b => String.fromCharCode(b)).join('');
         content += str;
         size += part.byteLength;
-      } else if (part && typeof part.length === 'number') {
+      } else if (part && typeof (part as unknown[]).length === 'number') {
         // Handle array-like objects
-        const str = Array.from(part as any).join('');
+        const str = Array.from(part as unknown[]).join('');
         content += str;
-        size += part.length;
+        size += (part as unknown[]).length;
       }
     }
     
@@ -77,7 +77,7 @@ class MockBlob {
 }
 
 // Force override global Blob to ensure our mock is used
-global.Blob = MockBlob as any;
+global.Blob = MockBlob as unknown as typeof Blob;
 
 // Mock File constructor extending MockBlob
 class MockFile extends MockBlob {
@@ -92,7 +92,7 @@ class MockFile extends MockBlob {
 }
 
 // Force override global File to ensure our mock is used
-global.File = MockFile as any;
+global.File = MockFile as unknown as typeof File;
 
 // Mock ReadableStream
 global.ReadableStream = global.ReadableStream || class MockReadableStream {
@@ -172,12 +172,14 @@ class MockFileReader {
         const content = await blob.text();
         const base64 = btoa(content);
         this.result = 'data:' + (blob.type || 'application/octet-stream') + ';base64,' + base64;
-        this.readyState = 2; // DONE
+        this.readyState = 2;
         if (this.onload) {
           this.onload({ target: this } as ProgressEvent<FileReader>);
         }
-      } catch (error) {
-        this.readyState = 2; // DONE
+      }
+      // @ts-expect-error - Testing error case
+      catch {
+        this.readyState = 2;
         if (this.onerror) {
           this.onerror({ target: this } as ProgressEvent<FileReader>);
         }
@@ -189,12 +191,12 @@ class MockFileReader {
     queueMicrotask(async () => {
       try {
         this.result = await blob.text();
-        this.readyState = 2; // DONE
+        this.readyState = 2;
         if (this.onload) {
           this.onload({ target: this } as ProgressEvent<FileReader>);
         }
-      } catch (error) {
-        this.readyState = 2; // DONE
+      } catch {
+        this.readyState = 2;
         if (this.onerror) {
           this.onerror({ target: this } as ProgressEvent<FileReader>);
         }
@@ -210,7 +212,7 @@ class MockFileReader {
         if (this.onload) {
           this.onload({ target: this } as ProgressEvent<FileReader>);
         }
-      } catch (error) {
+      } catch {
         this.readyState = 2; // DONE
         if (this.onerror) {
           this.onerror({ target: this } as ProgressEvent<FileReader>);
@@ -228,7 +230,7 @@ class MockFileReader {
 }
 
 // Force override global FileReader to ensure our mock is used
-global.FileReader = MockFileReader as any;
+global.FileReader = MockFileReader as unknown as typeof FileReader;
 
 // Mock crypto for secure random values
 Object.defineProperty(global, 'crypto', {
@@ -274,7 +276,7 @@ global.Response = global.Response || class MockResponse {
   }
 
   async blob() {
-    return new Blob([this.body || '']);
+    return new Blob([this.body as BlobPart || '']);
   }
 
   async arrayBuffer() {

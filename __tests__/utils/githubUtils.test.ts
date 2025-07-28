@@ -4,7 +4,6 @@ import {
   fetchRemoteThumbnails,
   extractDateFromFilename,
 } from '../../src/utils/githubUtils';
-import type { FileRecord } from '../../src/types';
 
 // Mock stores
 jest.mock('../../src/stores/authStore', () => ({
@@ -295,7 +294,7 @@ describe('githubUtils', () => {
       });
 
       it('handles API errors gracefully', async () => {
-        (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        (global.fetch as jest.Mock).mockImplementation((_url: string) => {
           return Promise.resolve({
             ok: false,
             status: 403,
@@ -308,7 +307,7 @@ describe('githubUtils', () => {
       });
 
       it('handles rate limiting', async () => {
-        (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        (global.fetch as jest.Mock).mockImplementation((_url: string) => {
           return Promise.resolve({
             ok: false,
             status: 403,
@@ -321,7 +320,7 @@ describe('githubUtils', () => {
       });
 
       it('handles network errors', async () => {
-        (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        (global.fetch as jest.Mock).mockImplementation((_url: string) => {
           return Promise.reject(new Error('Connection timeout'));
         });
 
@@ -385,7 +384,7 @@ describe('githubUtils', () => {
       });
 
       it('handles API errors gracefully', async () => {
-        (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        (global.fetch as jest.Mock).mockImplementation((_url: string) => {
           return Promise.resolve({
             ok: false,
             status: 500,
