@@ -87,8 +87,6 @@ describe('fileDeduplication utilities', () => {
         ];
 
         const result = combineAndDeduplicateFiles(localFiles, []);
-        console.log(result);
-
         expect(result).toHaveLength(2);
         expect(result.map(f => f.type)).toEqual(['audio', 'video']);
         expect(result.some(f => f.type === 'thumbnail')).toBe(false);
