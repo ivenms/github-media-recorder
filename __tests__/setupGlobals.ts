@@ -19,47 +19,52 @@ if (!global.URL || !global.URL.createObjectURL) {
   } as typeof URL;
 }
 
-// Mock File constructor
-global.File = global.File || class MockFile {
-  name: string;
+// Mock Blob constructor - ALWAYS override to ensure arrayBuffer() method is available
+class MockBlob {
   size: number;
   type: string;
-  lastModified: number;
-  
-  constructor(bits: BlobPart[], name: string, options: FilePropertyBag = {}) {
-    this.name = name;
-    this.size = bits.reduce((acc, bit) => acc + (bit.length || 0), 0);
-    this.type = options.type || '';
-    this.lastModified = options.lastModified || Date.now();
-  }
-};
-
-// Mock Blob constructor
-global.Blob = class MockBlob {
-  size: number;
-  type: string;
+  private _content: string;
   
   constructor(parts: BlobPart[] = [], options: BlobPropertyBag = {}) {
-    // Calculate size more accurately for ArrayBuffers
-    this.size = parts.reduce((acc, part) => {
-      if (part instanceof ArrayBuffer) {
-        return acc + part.byteLength;
-      } else if (part && typeof part.length === 'number') {
-        return acc + part.length;
-      } else if (typeof part === 'string') {
-        return acc + part.length;
-      }
-      return acc;
-    }, 0);
     this.type = options.type || '';
+    
+    // Process parts to build content and calculate size
+    let content = '';
+    let size = 0;
+    
+    for (const part of parts) {
+      if (typeof part === 'string') {
+        content += part;
+        size += part.length;
+      } else if (part instanceof ArrayBuffer) {
+        // Convert ArrayBuffer to string representation for testing
+        const view = new Uint8Array(part);
+        const str = Array.from(view).map(b => String.fromCharCode(b)).join('');
+        content += str;
+        size += part.byteLength;
+      } else if (part && typeof part.length === 'number') {
+        // Handle array-like objects
+        const str = Array.from(part as any).join('');
+        content += str;
+        size += part.length;
+      }
+    }
+    
+    this._content = content;
+    this.size = size;
   }
   
   arrayBuffer() {
-    return Promise.resolve(new ArrayBuffer(this.size));
+    const buffer = new ArrayBuffer(this.size);
+    const view = new Uint8Array(buffer);
+    for (let i = 0; i < this._content.length; i++) {
+      view[i] = this._content.charCodeAt(i);
+    }
+    return Promise.resolve(buffer);
   }
   
   text() {
-    return Promise.resolve('');
+    return Promise.resolve(this._content);
   }
   
   stream() {
@@ -69,7 +74,25 @@ global.Blob = class MockBlob {
   slice() {
     return new MockBlob();
   }
-};
+}
+
+// Force override global Blob to ensure our mock is used
+global.Blob = MockBlob as any;
+
+// Mock File constructor extending MockBlob
+class MockFile extends MockBlob {
+  name: string;
+  lastModified: number;
+  
+  constructor(bits: BlobPart[], name: string, options: FilePropertyBag = {}) {
+    super(bits, options);
+    this.name = name;
+    this.lastModified = options.lastModified || Date.now();
+  }
+}
+
+// Force override global File to ensure our mock is used
+global.File = MockFile as any;
 
 // Mock ReadableStream
 global.ReadableStream = global.ReadableStream || class MockReadableStream {
@@ -133,6 +156,79 @@ global.TextDecoder = global.TextDecoder || class MockTextDecoder {
     return decodeURIComponent(escape(result));
   }
 };
+
+// Mock FileReader to work with our MockBlob - Force override to ensure compatibility
+class MockFileReader {
+  onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+  onerror: ((event: ProgressEvent<FileReader>) => void) | null = null;
+  onabort: ((event: ProgressEvent<FileReader>) => void) | null = null;
+  result: string | ArrayBuffer | null = null;
+  readyState: number = 0;
+  
+  readAsDataURL(blob: Blob) {
+    // Simulate async file reading with proper base64 encoding
+    queueMicrotask(async () => {
+      try {
+        const content = await blob.text();
+        const base64 = btoa(content);
+        this.result = 'data:' + (blob.type || 'application/octet-stream') + ';base64,' + base64;
+        this.readyState = 2; // DONE
+        if (this.onload) {
+          this.onload({ target: this } as ProgressEvent<FileReader>);
+        }
+      } catch (error) {
+        this.readyState = 2; // DONE
+        if (this.onerror) {
+          this.onerror({ target: this } as ProgressEvent<FileReader>);
+        }
+      }
+    });
+  }
+  
+  readAsText(blob: Blob) {
+    queueMicrotask(async () => {
+      try {
+        this.result = await blob.text();
+        this.readyState = 2; // DONE
+        if (this.onload) {
+          this.onload({ target: this } as ProgressEvent<FileReader>);
+        }
+      } catch (error) {
+        this.readyState = 2; // DONE
+        if (this.onerror) {
+          this.onerror({ target: this } as ProgressEvent<FileReader>);
+        }
+      }
+    });
+  }
+  
+  readAsArrayBuffer(blob: Blob) {
+    queueMicrotask(async () => {
+      try {
+        this.result = await blob.arrayBuffer();
+        this.readyState = 2; // DONE
+        if (this.onload) {
+          this.onload({ target: this } as ProgressEvent<FileReader>);
+        }
+      } catch (error) {
+        this.readyState = 2; // DONE
+        if (this.onerror) {
+          this.onerror({ target: this } as ProgressEvent<FileReader>);
+        }
+      }
+    });
+  }
+  
+  abort() {
+    this.readyState = 2; // DONE
+    if (this.onabort) {
+      this.onabort({ target: this } as ProgressEvent<FileReader>);
+    }
+  }
+}
+
+// Force override global FileReader to ensure our mock is used
+global.FileReader = MockFileReader as any;
 
 // Mock crypto for secure random values
 Object.defineProperty(global, 'crypto', {
