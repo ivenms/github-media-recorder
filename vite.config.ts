@@ -17,7 +17,6 @@ export default defineConfig(({ mode }) => {
           enabled: true,
           type: 'module'
         },
-        devDistDir: 'dist',
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
           runtimeCaching: [
