@@ -1,0 +1,42 @@
+{
+  "name": "Github Media Recorder for Mobiles",
+  "short_name": "Media Recorder",
+  "description": "Record and upload audio/video files",
+  "start_url": "/github-media-recorder/",
+  "scope": "/github-media-recorder/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "orientation": "portrait",
+  "categories": ["utilities", "productivity"],
+  "prefer_related_applications": false,
+  "dir": "ltr",
+  "lang": "en",
+  "display_override": ["standalone", "fullscreen"],
+  "icons": [
+    {
+      "src": "/github-media-recorder/icons/icon-192x192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/github-media-recorder/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/github-media-recorder/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/github-media-recorder/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

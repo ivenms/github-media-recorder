@@ -4,6 +4,9 @@ import Modal from './Modal';
 import { useUIStore } from '../stores/uiStore';
 import { getAppIconUrl } from '../utils/imageUtils';
 import { useAuthStore } from '../stores/authStore';
+import { getStandaloneStatus } from '../utils/standalone';
+import InstallPrompt from './InstallPrompt';
+import { getMobilePlatform } from '../utils/device';
 
 const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
   const { modal, openModal, closeModal } = useUIStore();
@@ -11,10 +14,24 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
   const [token, setToken] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
+  
+  const platform = getMobilePlatform();
+  const standaloneStatus = getStandaloneStatus();
+  const requiresPWA = platform !== null; // Require PWA for mobile platforms
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token.trim()) return;
+
+    // Check if PWA installation is required
+    if (requiresPWA && !standaloneStatus.isStandalone) {
+      openModal({ 
+        type: 'alert', 
+        message: 'Please install this app as a PWA first by using the install prompt above. This ensures the best experience and offline functionality.', 
+        title: 'PWA Installation Required' 
+      });
+      return;
+    }
 
     setIsVerifying(true);
     
@@ -78,9 +95,35 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
           </div>
         </div>
 
+        {/* PWA Install Prompt for Mobile */}
+        {requiresPWA && !standaloneStatus.isStandalone && (
+          <div className="mb-4">
+            <InstallPrompt />
+          </div>
+        )}
+
+        {/* PWA Requirement Warning */}
+        {requiresPWA && !standaloneStatus.isStandalone && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-orange-600 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              <div>
+                <h3 className="text-orange-800 font-medium mb-1">PWA Installation Required</h3>
+                <p className="text-orange-700 text-sm">
+                  For the best mobile experience and offline functionality, please install this app as a PWA using the prompt above before setting up your GitHub token.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-white shadow-lg rounded-lg p-3 md:p-6 overflow-hidden">
           <div className="mb-3 md:mb-5">
-            <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-2 md:mb-3 break-words">GitHub Personal Access Token Required</h2>
+            <h2 className="text-lg md:text-xl font-semibold text-gray-900 mb-2 md:mb-3 break-words">
+              GitHub Personal Access Token {requiresPWA && !standaloneStatus.isStandalone ? '(PWA Required)' : 'Required'}
+            </h2>
             <p className="text-gray-600 mb-2 md:mb-3 text-sm md:text-base leading-relaxed">
               This app needs a GitHub Personal Access Token to upload your recorded media files to your repositories. 
               Your token is stored securely in your browser and never shared with third parties.
@@ -163,8 +206,12 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
             
             <button
               type="submit"
-              disabled={isVerifying || !token.trim()}
-              className="w-full bg-purple-500 text-white px-4 py-3 md:py-4 rounded-lg font-medium hover:bg-purple-400 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm md:text-base min-w-0"
+              disabled={isVerifying || !token.trim() || (requiresPWA && !standaloneStatus.isStandalone)}
+              className={`w-full px-4 py-3 md:py-4 rounded-lg font-medium transition-colors text-sm md:text-base min-w-0 ${
+                requiresPWA && !standaloneStatus.isStandalone
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                  : 'bg-purple-500 text-white hover:bg-purple-400 disabled:bg-gray-400 disabled:cursor-not-allowed'
+              }`}
             >
               {isVerifying ? (
                 <span className="flex items-center justify-center">
@@ -174,6 +221,8 @@ const TokenSetup: React.FC<TokenSetupProps> = ({ onSuccess }) => {
                   </svg>
                   Verifying...
                 </span>
+              ) : requiresPWA && !standaloneStatus.isStandalone ? (
+                'Install PWA First'
               ) : (
                 'Verify & Continue'
               )}
