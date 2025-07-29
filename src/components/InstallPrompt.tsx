@@ -46,7 +46,7 @@ const InstallPrompt: React.FC = () => {
           if (relatedApps.length > 0) {
             return true;
           }
-        } catch (error) {
+        } catch {
           // Silently handle error
         }
       }
