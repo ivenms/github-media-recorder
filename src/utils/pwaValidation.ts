@@ -59,7 +59,7 @@ export async function validatePWACriteria(): Promise<PWAValidationResult> {
 
         // Check icons
         const hasRequiredIcons = manifest.icons && Array.isArray(manifest.icons) && 
-          manifest.icons.some((icon: any) => {
+          manifest.icons.some((icon: { sizes?: string; type?: string }) => {
             const size = parseInt(icon.sizes?.split('x')[0] || '0');
             return size >= 192 && icon.type?.includes('png');
           });
@@ -70,7 +70,7 @@ export async function validatePWACriteria(): Promise<PWAValidationResult> {
         }
 
         // Check for maskable icons (warning only)
-        const hasMaskableIcon = manifest.icons.some((icon: any) => 
+        const hasMaskableIcon = manifest.icons.some((icon: { purpose?: string }) => 
           icon.purpose?.includes('maskable')
         );
         if (!hasMaskableIcon) {
