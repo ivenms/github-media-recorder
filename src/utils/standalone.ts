@@ -69,7 +69,7 @@ export function debugStandaloneStatus(): void {
   console.log('Display Mode (standalone):', window.matchMedia('(display-mode: standalone)').matches);
   console.log('Display Mode (fullscreen):', window.matchMedia('(display-mode: fullscreen)').matches);
   console.log('Display Mode (minimal-ui):', window.matchMedia('(display-mode: minimal-ui)').matches);
-  console.log('iOS navigator.standalone:', (window.navigator as any).standalone);
+  console.log('iOS navigator.standalone:', (window.navigator as Navigator & { standalone?: boolean }).standalone);
   console.log('localStorage pwa-installed:', localStorage.getItem('pwa-installed'));
   console.log('');
   console.log('Detection Results:');
