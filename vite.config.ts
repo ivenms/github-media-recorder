@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
           enabled: true,
           type: 'module'
         },
+        devDistDir: 'dist',
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
           runtimeCaching: [
@@ -33,7 +34,7 @@ export default defineConfig(({ mode }) => {
             }
           ]
         },
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg', 'icons/*.png'],
+        includeAssets: ['favicon.ico', 'icon.svg', 'icons/*.png'],
         manifest: {
           name: 'Github Media Recorder for Mobiles',
           short_name: 'Media Recorder',
@@ -51,9 +52,57 @@ export default defineConfig(({ mode }) => {
           display_override: ['standalone', 'fullscreen'],
           icons: [
             {
-              src: `${baseUrl}icon.svg`.replace(/\/+/g, '/'),
-              sizes: 'any',
-              type: 'image/svg+xml',
+              src: `${baseUrl}icons/icon-16x16.png`.replace(/\/+/g, '/'),
+              sizes: '16x16',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${baseUrl}icons/icon-32x32.png`.replace(/\/+/g, '/'),
+              sizes: '32x32',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${baseUrl}icons/icon-48x48.png`.replace(/\/+/g, '/'),
+              sizes: '48x48',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${baseUrl}icons/icon-72x72.png`.replace(/\/+/g, '/'),
+              sizes: '72x72',
+              type: 'image/png',
+              purpose: 'any maskable'
+            },
+            {
+              src: `${baseUrl}icons/icon-96x96.png`.replace(/\/+/g, '/'),
+              sizes: '96x96',
+              type: 'image/png',
+              purpose: 'any maskable'
+            },
+            {
+              src: `${baseUrl}icons/icon-128x128.png`.replace(/\/+/g, '/'),
+              sizes: '128x128',
+              type: 'image/png',
+              purpose: 'any maskable'
+            },
+            {
+              src: `${baseUrl}icons/icon-144x144.png`.replace(/\/+/g, '/'),
+              sizes: '144x144',
+              type: 'image/png',
+              purpose: 'any maskable'
+            },
+            {
+              src: `${baseUrl}icons/icon-152x152.png`.replace(/\/+/g, '/'),
+              sizes: '152x152',
+              type: 'image/png',
+              purpose: 'any'
+            },
+            {
+              src: `${baseUrl}icons/icon-180x180.png`.replace(/\/+/g, '/'),
+              sizes: '180x180',
+              type: 'image/png',
               purpose: 'any'
             },
             {
@@ -63,17 +112,17 @@ export default defineConfig(({ mode }) => {
               purpose: 'any maskable'
             },
             {
-              src: `${baseUrl}icons/icon-512x512.png`.replace(/\/+/g, '/'),
-              sizes: '512x512',
+              src: `${baseUrl}icons/icon-256x256.png`.replace(/\/+/g, '/'),
+              sizes: '256x256',
               type: 'image/png',
               purpose: 'any maskable'
             },
             {
-              src: `${baseUrl}apple-touch-icon.png`.replace(/\/+/g, '/'),
-              sizes: '180x180',
+              src: `${baseUrl}icons/icon-512x512.png`.replace(/\/+/g, '/'),
+              sizes: '512x512',
               type: 'image/png',
-              purpose: 'any'
-            },
+              purpose: 'any maskable'
+            }
           ],
         },
       }),
