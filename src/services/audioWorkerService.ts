@@ -49,8 +49,10 @@ class AudioWorkerService {
       new URL('../workers/audioProcessingWorker.ts', import.meta.url),
       { type: 'module' }
     );
+    
 
     this.worker.onmessage = (event: MessageEvent<AudioProcessingResponse>) => {
+      
       this.handleWorkerMessage(event.data);
     };
 
