@@ -39,20 +39,21 @@ const GitHubImage: React.FC<GitHubImageProps> = ({
     }
   }, [filePath, getUrl]);
 
-  if (error || !imageUrl) {
-    return <>{fallback}</>;
-  }
-
   if (isLoading(filePath)) {
     return (
-      <div className={`flex items-center justify-center ${className}`}>
+      <div className={`flex items-center justify-center ${className}`} data-testid="loading-indicator">
         <div className="animate-pulse bg-gray-200 w-full h-full rounded"></div>
       </div>
     );
   }
 
+  if (error || !imageUrl) {
+    return <div data-testid="fallback">{fallback}</div>;
+  }
+
   return (
     <img
+      data-testid="github-image"
       src={imageUrl}
       alt={alt}
       className={className}

@@ -41,13 +41,9 @@ const GitHubMedia: React.FC<GitHubMediaProps> = ({
     }
   }, [filePath, getUrl]);
 
-  if (error || !mediaUrl) {
-    return <>{fallback}</>;
-  }
-
   if (isLoading(filePath)) {
     return (
-      <div className={`flex items-center justify-center ${className}`}>
+      <div className={`flex items-center justify-center ${className}`} data-testid="loading-indicator">
         <div className="animate-pulse bg-gray-200 w-full h-full rounded flex items-center justify-center">
           <span className="text-gray-500 text-sm">Loading {type}...</span>
         </div>
@@ -55,9 +51,14 @@ const GitHubMedia: React.FC<GitHubMediaProps> = ({
     );
   }
 
+  if (error || !mediaUrl) {
+    return <div data-testid="fallback">{fallback}</div>;
+  }
+
   if (type === 'audio') {
     return (
       <audio
+        data-testid="github-media-audio"
         src={mediaUrl}
         controls={controls}
         className={className}
@@ -68,6 +69,7 @@ const GitHubMedia: React.FC<GitHubMediaProps> = ({
 
   return (
     <video
+      data-testid="github-media-video"
       src={mediaUrl}
       controls={controls}
       className={className}

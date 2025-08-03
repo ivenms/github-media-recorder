@@ -11,7 +11,7 @@ export default {
   
   // Transform files with babel-jest
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+    '^.+\.(js|jsx|ts|tsx)$': 'babel-jest',
   },
   
   // Setup files
@@ -33,17 +33,17 @@ export default {
     '!src/main.tsx',
     '!src/vite-env.d.ts',
     '!src/**/*.stories.{js,jsx,ts,tsx}',
-    '!src/**/__tests__/**',
-    '!src/**/__mocks__/**',
+    '!src/**/__tests__/**', 
+    '!src/**/__mocks__/**', 
   ],
   
   // Coverage thresholds
   coverageThreshold: {
     global: {
-      branches: 35,
-      functions: 40,
-      lines: 40,
-      statements: 35,
+      branches: 75,
+      functions: 80,
+      lines: 85,
+      statements: 80,
     },
   },
   
@@ -76,16 +76,6 @@ export default {
   
   // Verbose output
   verbose: true,
-  
-  // Handle ES modules
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  
-  // Jest globals
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-  },
   
   // Timeout for tests
   testTimeout: 10000,

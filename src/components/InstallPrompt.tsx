@@ -40,7 +40,7 @@ const InstallPrompt: React.FC = () => {
 
     // Check if app is already installed via related apps
     const checkRelatedApps = async () => {
-      if ('getInstalledRelatedApps' in navigator) {
+      if (typeof navigator !== 'undefined' && 'getInstalledRelatedApps' in navigator) {
         try {
           const relatedApps = await (navigator as Navigator & { getInstalledRelatedApps: () => Promise<Array<{ id: string; platform: string; url: string }>> }).getInstalledRelatedApps();
           if (relatedApps.length > 0) {
@@ -77,7 +77,12 @@ const InstallPrompt: React.FC = () => {
     window.addEventListener('appinstalled', appInstalledHandler);
 
     // iOS Safari: Show prompt if not in standalone
-    if (platform === 'ios-safari' && !(window.navigator as Navigator & {standalone?: boolean}).standalone) {
+    if (platform === 'ios-safari' && typeof navigator !== 'undefined' && !(navigator as Navigator & {standalone?: boolean}).standalone) {
+      setShowPrompt(true);
+    }
+
+    // iOS Chrome: Always show warning message
+    if (platform === 'ios-chrome') {
       setShowPrompt(true);
     }
 
