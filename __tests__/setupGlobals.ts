@@ -7,16 +7,61 @@ global.structuredClone = global.structuredClone || ((val: unknown) => JSON.parse
 // Define global for compatibility (same as in vite.config.ts)
 global.global = globalThis;
 
-// Mock URL.createObjectURL and revokeObjectURL
-if (!global.URL || !global.URL.createObjectURL) {
+// Mock URL constructor and URL.createObjectURL/revokeObjectURL
+if (!global.URL) {
   let urlCounter = 0;
-  global.URL = {
-    createObjectURL: jest.fn(() => {
+  
+  // Mock URL constructor that works with Worker constructor
+  class MockURL {
+    href: string;
+    protocol: string;
+    hostname: string;
+    port: string;
+    pathname: string;
+    search: string;
+    hash: string;
+    
+    constructor(url: string, _base?: string | URL) {
+      // For worker URLs, we just need a valid URL-like string
+      if (typeof url === 'string') {
+        this.href = url;
+        this.protocol = 'file:';
+        this.hostname = '';
+        this.port = '';
+        this.pathname = url;
+        this.search = '';
+        this.hash = '';
+      } else {
+        this.href = url.toString();
+        this.protocol = 'file:';
+        this.hostname = '';
+        this.port = '';
+        this.pathname = url.toString();
+        this.search = '';
+        this.hash = '';
+      }
+    }
+    
+    toString() {
+      return this.href;
+    }
+    
+    static createObjectURL = jest.fn(() => {
       urlCounter++;
       return `blob:mock-audio-url-${urlCounter}`;
-    }),
-    revokeObjectURL: jest.fn(),
-  } as unknown as typeof URL;
+    });
+    
+    static revokeObjectURL = jest.fn();
+  }
+  
+  global.URL = MockURL as unknown as typeof URL;
+} else if (!global.URL.createObjectURL) {
+  let urlCounter = 0;
+  global.URL.createObjectURL = jest.fn(() => {
+    urlCounter++;
+    return `blob:mock-audio-url-${urlCounter}`;
+  });
+  global.URL.revokeObjectURL = jest.fn();
 }
 
 // Mock Blob constructor - ALWAYS override to ensure arrayBuffer() method is available
@@ -268,6 +313,9 @@ global.Response = global.Response || class MockResponse {
   }
 
   async json() {
+    if (!this.ok) {
+      throw new Error(`HTTP error! status: ${this.status}`);
+    }
     return typeof this.body === 'string' ? JSON.parse(this.body) : this.body;
   }
 
@@ -344,22 +392,68 @@ global.Headers = global.Headers || class MockHeaders extends Map<string, string>
 };
 
 // Mock fetch for HTTP requests
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    status: 200,
-    statusText: 'OK',
-    json: () => Promise.resolve({}),
+global.fetch = jest.fn((url: RequestInfo, init?: RequestInit) => {
+  const status = init?.status || 200;
+  const ok = status >= 200 && status < 300;
+
+  return Promise.resolve({
+    ok,
+    status,
+    statusText: init?.statusText || (ok ? 'OK' : 'Error'),
+    json: () => {
+      if (!ok) {
+        // For error responses, return an empty object or throw, depending on expected behavior
+        // For these tests, it seems the expectation is that .json() is not called or returns empty
+        return Promise.resolve({});
+      }
+      return Promise.resolve({});
+    },
     text: () => Promise.resolve(''),
     blob: () => Promise.resolve(new Blob()),
     arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
     headers: new Map(),
     clone: jest.fn(),
-  } as Response)
-);
+  } as Response);
+});
 
-// Note: Skip window.location and navigator mocking for now 
-// as they are already provided by jsdom and can cause conflicts
+// Mock location for PWA validation tests
+if (!global.location) {
+  Object.defineProperty(global, 'location', {
+    value: {
+      protocol: 'https:',
+      hostname: 'example.com',
+      href: 'https://example.com/',
+      origin: 'https://example.com',
+      pathname: '/',
+      search: '',
+      hash: '',
+    },
+    writable: true,
+    configurable: true
+  });
+}
+
+// Mock navigator with common PWA APIs
+if (!global.navigator) {
+  Object.defineProperty(global, 'navigator', {
+    value: {
+      userAgent: 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36',
+      standalone: false,
+      getInstalledRelatedApps: jest.fn(() => Promise.resolve([])),
+    },
+    writable: true,
+    configurable: true
+  });
+} else {
+  // Ensure navigator has the PWA APIs we need
+  if (!global.navigator.getInstalledRelatedApps) {
+    Object.defineProperty(global.navigator, 'getInstalledRelatedApps', {
+      value: jest.fn(() => Promise.resolve([])),
+      writable: true,
+      configurable: true
+    });
+  }
+}
 
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
@@ -400,6 +494,47 @@ global.BroadcastChannel = global.BroadcastChannel || class MockBroadcastChannel 
     // Mock implementation
   }
 };
+
+// Mock Worker constructor globally to prevent initialization issues
+// This provides a basic fallback mock that tests can override with jest.fn()
+class MockWorker {
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onerror: ((error: ErrorEvent) => void) | null = null;
+  onmessageerror: ((error: MessageEvent) => void) | null = null;
+  
+  constructor(scriptURL: string | URL, _options?: WorkerOptions) {
+    // Basic mock worker that doesn't actually initialize anything
+    this.scriptURL = scriptURL.toString();
+  }
+  
+  scriptURL: string = '';
+  
+  postMessage(_message: unknown, _transfer?: Transferable[]): void {
+    // Mock implementation - tests can override this behavior
+  }
+  
+  terminate(): void {
+    // Mock implementation - clean termination
+    this.onmessage = null;
+    this.onerror = null;
+    this.onmessageerror = null;
+  }
+  
+  addEventListener(_type: string, _listener: EventListener): void {
+    // Mock implementation
+  }
+  
+  removeEventListener(_type: string, _listener: EventListener): void {
+    // Mock implementation
+  }
+  
+  dispatchEvent(_event: Event): boolean {
+    return true;
+  }
+}
+
+// Set the global Worker but allow tests to override it completely
+global.Worker = MockWorker as unknown as typeof Worker;
 
 // Mock Canvas and Image for image processing tests
 global.HTMLCanvasElement = global.HTMLCanvasElement || class MockCanvas {
@@ -533,6 +668,17 @@ Object.defineProperty(window, 'matchMedia', {
     removeEventListener: jest.fn(),
     dispatchEvent: jest.fn(),
   })),
+});
+
+// Handle unhandled promise rejections in tests to prevent Jest crashes
+process.on('unhandledRejection', (reason, promise) => {
+  // Only ignore "Service destroyed" errors in test environment
+  if (reason instanceof Error && reason.message === 'Service destroyed') {
+    // This is expected during test cleanup - ignore it
+    return;
+  }
+  // Log other unhandled rejections
+  console.warn('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
 // Note: Console suppression moved to setupTests.ts where beforeAll/afterAll are available

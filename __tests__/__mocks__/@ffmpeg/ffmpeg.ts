@@ -150,6 +150,15 @@ export class FFmpeg {
     }
   }
 
+  // Mock deleteFile method
+  async deleteFile(path: string): Promise<void> {
+    if (!this.loaded) {
+      throw new Error('FFmpeg not loaded');
+    }
+    // Simulate file deletion (successful or throw error for testing)
+    return Promise.resolve();
+  }
+
   // Test utility methods
   simulateProgress(progress: number, time: number = 0) {
     if (this.progressCallback) {
