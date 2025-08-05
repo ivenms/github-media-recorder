@@ -111,6 +111,7 @@ describe('githubUtils', () => {
           ok: false,
           status: 404,
           statusText: 'Not Found',
+          json: () => Promise.resolve({}),
         });
 
         const result = await generateFreshDownloadUrl('nonexistent.mp3');
@@ -303,7 +304,7 @@ describe('githubUtils', () => {
           });
         });
 
-        await expect(fetchRemoteFiles()).rejects.toThrow('HTTP 403: Forbidden');
+        await expect(fetchRemoteFiles()).rejects.toThrow('GitHub API rate limit exceeded or repository access denied');
       });
 
       it('handles rate limiting', async () => {
@@ -316,7 +317,7 @@ describe('githubUtils', () => {
           });
         });
 
-        await expect(fetchRemoteFiles()).rejects.toThrow('HTTP 403: Rate Limited');
+        await expect(fetchRemoteFiles()).rejects.toThrow('GitHub API rate limit exceeded or repository access denied');
       });
 
       it('handles network errors', async () => {
@@ -363,14 +364,16 @@ describe('githubUtils', () => {
       });
 
       it('handles missing thumbnails directory', async () => {
-        // Mock 404 for thumbnails directory - fetchWithRetry will retry 3 times then throw
+        // Mock 404 for thumbnails directory - should return empty object, not throw
         (global.fetch as jest.Mock).mockResolvedValue({
           ok: false,
           status: 404,
           statusText: 'Not Found',
+          json: () => Promise.resolve({}),
         });
 
-        await expect(fetchRemoteThumbnails()).rejects.toThrow('HTTP 404: Not Found');
+        const result = await fetchRemoteThumbnails();
+        expect(result).toEqual({});
       });
     });
 
@@ -480,6 +483,514 @@ describe('githubUtils', () => {
 
       await expect(fetchRemoteFiles()).rejects.toThrow('Network error');
       await expect(fetchRemoteThumbnails()).rejects.toThrow('Network error');
+    });
+  });
+
+  // Additional comprehensive tests for missing coverage
+  describe('Edge Cases and Error Scenarios', () => {
+    describe('fetchRemoteFiles - Additional coverage', () => {
+      it('handles non-media files (returns null for parseRemoteFile)', async () => {
+        const mockFiles = [
+          {
+            name: 'README.md',
+            path: 'recordings/README.md',
+            sha: 'sha1',
+            size: 1024,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/README.md',
+            type: 'file',
+          },
+          {
+            name: 'config.json',
+            path: 'recordings/config.json',
+            sha: 'sha2',
+            size: 512,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/config.json',
+            type: 'file',
+          },
+          {
+            name: 'test.mp3',
+            path: 'recordings/test.mp3',
+            sha: 'sha3',
+            size: 2048,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.mp3',
+            type: 'file',
+          },
+        ];
+
+        // Mock repository validation (success)
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ name: 'test-repo' }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockFiles),
+          })
+          .mockResolvedValueOnce({
+            ok: true,  // URL validation for mp3 file
+            status: 200,
+          });
+
+        const files = await fetchRemoteFiles();
+
+        // Should only include the mp3 file, not the README.md or config.json
+        expect(files).toHaveLength(1);
+        expect(files[0].name).toBe('test.mp3');
+        expect(files[0].type).toBe('audio');
+      });
+
+      it('handles different video file extensions', async () => {
+        const mockFiles = [
+          {
+            name: 'test.mp4',
+            path: 'recordings/test.mp4',
+            sha: 'sha1',
+            size: 5000000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.mp4',
+            type: 'file',
+          },
+          {
+            name: 'test.webm',
+            path: 'recordings/test.webm',
+            sha: 'sha2',
+            size: 4000000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.webm',
+            type: 'file',
+          },
+          {
+            name: 'test.avi',
+            path: 'recordings/test.avi',
+            sha: 'sha3',
+            size: 6000000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.avi',
+            type: 'file',
+          },
+          {
+            name: 'test.mov',
+            path: 'recordings/test.mov',
+            sha: 'sha4',
+            size: 7000000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.mov',
+            type: 'file',
+          },
+        ];
+
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ name: 'test-repo' }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockFiles),
+          })
+          // URL validations for all video files
+          .mockResolvedValue({
+            ok: true,
+            status: 200,
+          });
+
+        const files = await fetchRemoteFiles();
+
+        expect(files).toHaveLength(4);
+        files.forEach(file => {
+          expect(file.type).toBe('video');
+        });
+
+        const extensions = files.map(f => f.name.split('.').pop());
+        expect(extensions).toContain('mp4');
+        expect(extensions).toContain('webm');
+        expect(extensions).toContain('avi');
+        expect(extensions).toContain('mov');
+      });
+
+      it('handles different audio file extensions', async () => {
+        const mockFiles = [
+          {
+            name: 'test.mp3',
+            path: 'recordings/test.mp3',
+            sha: 'sha1',
+            size: 3000000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.mp3',
+            type: 'file',
+          },
+          {
+            name: 'test.wav',
+            path: 'recordings/test.wav',
+            sha: 'sha2',
+            size: 8000000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.wav',
+            type: 'file',
+          },
+          {
+            name: 'test.m4a',
+            path: 'recordings/test.m4a',
+            sha: 'sha3',
+            size: 4000000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.m4a',
+            type: 'file',
+          },
+          {
+            name: 'test.aac',
+            path: 'recordings/test.aac',
+            sha: 'sha4',
+            size: 2500000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test.aac',
+            type: 'file',
+          },
+        ];
+
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ name: 'test-repo' }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockFiles),
+          })
+          // URL validations for all audio files
+          .mockResolvedValue({
+            ok: true,
+            status: 200,
+          });
+
+        const files = await fetchRemoteFiles();
+
+        expect(files).toHaveLength(4);
+        files.forEach(file => {
+          expect(file.type).toBe('audio');
+        });
+
+        const extensions = files.map(f => f.name.split('.').pop());
+        expect(extensions).toContain('mp3');
+        expect(extensions).toContain('wav');
+        expect(extensions).toContain('m4a');
+        expect(extensions).toContain('aac');
+      });
+
+      it('handles repository access errors - 404', async () => {
+        // Mock the repository validation call (first fetch) to return 404
+        (global.fetch as jest.Mock).mockResolvedValue({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve(''),
+        });
+
+        await expect(fetchRemoteFiles()).rejects.toThrow("Repository 'test-owner/test-repo' not found. Please check the repository name and your access permissions.");
+      });
+
+      it('handles repository access errors - 401', async () => {
+        // Mock the repository validation call (first fetch) to return 401
+        (global.fetch as jest.Mock).mockResolvedValue({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve(''),
+        });
+
+        await expect(fetchRemoteFiles()).rejects.toThrow('Invalid GitHub token or insufficient permissions');
+      });
+
+      it('handles repository access errors - 403', async () => {
+        // Mock the repository validation call (first fetch) to return 403
+        (global.fetch as jest.Mock).mockResolvedValue({
+          ok: false,
+          status: 403,
+          statusText: 'Forbidden',
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve(''),
+        });
+
+        await expect(fetchRemoteFiles()).rejects.toThrow('GitHub API rate limit exceeded or repository access denied');
+      });
+
+      it('handles repository access errors - generic', async () => {
+        // Mock the repository validation call (first fetch) to return 500
+        (global.fetch as jest.Mock).mockResolvedValue({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve(''),
+        });
+
+        await expect(fetchRemoteFiles()).rejects.toThrow('HTTP 500: Internal Server Error');
+      });
+
+      it('handles media path not found (404)', async () => {
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ name: 'test-repo' }),
+          })
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 404,
+            statusText: 'Not Found',
+            json: () => Promise.resolve({}),
+            text: () => Promise.resolve(''),
+          });
+
+        // Should not throw error, just log and return empty array
+        const files = await fetchRemoteFiles();
+        expect(files).toEqual([]);
+        expect(console.log).toHaveBeenCalledWith('Media path not found (404), continuing...');
+      });
+
+      it('handles media path access errors - 401', async () => {
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ name: 'test-repo' }),
+          })
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 401,
+            statusText: 'Unauthorized',
+            json: () => Promise.resolve({}),
+            text: () => Promise.resolve(''),
+          });
+
+        await expect(fetchRemoteFiles()).rejects.toThrow('Invalid GitHub token or insufficient permissions');
+      });
+
+      it('handles media path access errors - 403', async () => {
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ name: 'test-repo' }),
+          })
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 403,
+            statusText: 'Forbidden',
+            json: () => Promise.resolve({}),
+            text: () => Promise.resolve(''),
+          });
+
+        await expect(fetchRemoteFiles()).rejects.toThrow('GitHub API rate limit exceeded or repository access denied');
+      });
+
+      it('handles media path access errors - generic', async () => {
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ name: 'test-repo' }),
+          })
+          .mockResolvedValueOnce({
+            ok: false,
+            status: 500,
+            statusText: 'Internal Server Error',
+            json: () => Promise.resolve({}),
+            text: () => Promise.resolve(''),
+          });
+
+        await expect(fetchRemoteFiles()).rejects.toThrow('HTTP 500: Internal Server Error');
+      });
+
+      it('handles URL validation errors gracefully', async () => {
+        const mockFiles = [
+          {
+            name: 'test1.mp3',
+            path: 'recordings/test1.mp3',
+            sha: 'sha1',
+            size: 1024,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test1.mp3',
+            type: 'file',
+          },
+          {
+            name: 'test2.mp3',
+            path: 'recordings/test2.mp3',
+            sha: 'sha2',
+            size: 2048,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/recordings/test2.mp3',
+            type: 'file',
+          },
+        ];
+
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve({ name: 'test-repo' }),
+            text: () => Promise.resolve(''),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockFiles),
+            text: () => Promise.resolve(''),
+          });
+
+        const files = await fetchRemoteFiles();
+
+        // Both files should be processed successfully
+        expect(files).toHaveLength(2);
+        expect(files[0].name).toBe('test1.mp3');
+        expect(files[1].name).toBe('test2.mp3');
+      });
+    });
+
+    describe('fetchRemoteThumbnails - Additional coverage', () => {
+      it('handles thumbnail path not found (404)', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve(''),
+        });
+
+        // Should not throw error, just log and return empty object
+        const thumbnails = await fetchRemoteThumbnails();
+        expect(thumbnails).toEqual({});
+        expect(console.log).toHaveBeenCalledWith('Thumbnail path not found (404), continuing...');
+      });
+
+      it('handles thumbnail path access errors - 401', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          json: () => Promise.resolve([]),
+          text: () => Promise.resolve(''),
+        });
+
+        await expect(fetchRemoteThumbnails()).rejects.toThrow('Invalid GitHub token or insufficient permissions');
+      });
+
+      it('handles thumbnail path access errors - 403', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+          ok: false,
+          status: 403,
+          statusText: 'Forbidden',
+          json: () => Promise.resolve([]),
+          text: () => Promise.resolve(''),
+        });
+
+        await expect(fetchRemoteThumbnails()).rejects.toThrow('GitHub API rate limit exceeded or repository access denied');
+      });
+
+      it('handles thumbnail path access errors - generic', async () => {
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          json: () => Promise.resolve([]),
+          text: () => Promise.resolve(''),
+        });
+
+        await expect(fetchRemoteThumbnails()).rejects.toThrow('HTTP 500: Internal Server Error');
+      });
+
+      it('handles thumbnail validation errors gracefully', async () => {
+        const mockThumbnails = [
+          {
+            name: 'thumb1.jpg',
+            path: 'thumbnails/thumb1.jpg',
+            sha: 'thumb1',
+            size: 50000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/thumbnails/thumb1.jpg',
+            type: 'file',
+          },
+          {
+            name: 'thumb2.jpg',
+            path: 'thumbnails/thumb2.jpg',
+            sha: 'thumb2',
+            size: 60000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/thumbnails/thumb2.jpg',
+            type: 'file',
+          },
+        ];
+
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: () => Promise.resolve(mockThumbnails),
+          text: () => Promise.resolve(''),
+        });
+
+        const thumbnails = await fetchRemoteThumbnails();
+
+        // Both thumbnails should be processed successfully
+        expect(thumbnails).toHaveProperty('thumb1');
+        expect(thumbnails.thumb1).toEqual({
+          url: 'thumbnails/thumb1.jpg',
+          isLocal: false,
+        });
+
+        expect(thumbnails).toHaveProperty('thumb2');
+        expect(thumbnails.thumb2).toEqual({
+          url: 'thumbnails/thumb2.jpg',
+          isLocal: false,
+        });
+
+        // Since we removed URL validation, no console.warn should be called
+        expect(console.warn).not.toHaveBeenCalled();
+      });
+
+      it('handles mixed file types in thumbnail directory', async () => {
+        const mockFiles = [
+          {
+            name: 'thumb1.jpg',
+            path: 'thumbnails/thumb1.jpg',
+            sha: 'thumb1',
+            size: 50000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/thumbnails/thumb1.jpg',
+            type: 'file',
+          },
+          {
+            name: 'thumb2.png',
+            path: 'thumbnails/thumb2.png',
+            sha: 'thumb2',
+            size: 60000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/thumbnails/thumb2.png',
+            type: 'file',
+          },
+          {
+            name: 'not-a-thumbnail.txt',
+            path: 'thumbnails/not-a-thumbnail.txt',
+            sha: 'txt1',
+            size: 1000,
+            download_url: 'https://raw.githubusercontent.com/test-owner/test-repo/main/thumbnails/not-a-thumbnail.txt',
+            type: 'file',
+          },
+        ];
+
+        const mockFetch = global.fetch as jest.Mock;
+        mockFetch
+          .mockResolvedValueOnce({
+            ok: true,
+            json: () => Promise.resolve(mockFiles),
+            text: () => Promise.resolve(''),
+          })
+          // URL validations for image files
+          .mockResolvedValue({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({}),
+            text: () => Promise.resolve(''),
+          });
+
+        const thumbnails = await fetchRemoteThumbnails();
+
+        // Should include both image files but not the text file
+        expect(Object.keys(thumbnails)).toHaveLength(2);
+        expect(thumbnails).toHaveProperty('thumb1');
+        expect(thumbnails).toHaveProperty('thumb2');
+        expect(thumbnails).not.toHaveProperty('not-a-thumbnail');
+      });
     });
   });
 });

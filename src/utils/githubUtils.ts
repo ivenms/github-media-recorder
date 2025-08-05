@@ -209,9 +209,10 @@ async function fetchWithRetry(url: string, options: RequestInit = {}, maxRetries
         return response;
       }
       
-      // Don't retry on client errors (400-499) except 404 which might be intermittent
-      if (response.status >= 400 && response.status < 500 && response.status !== 404) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Don't retry on client errors (400-499)
+      // Return the response so caller can handle specific error codes with appropriate messages
+      if (response.status >= 400 && response.status < 500) {
+        return response;
       }
       
       lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);

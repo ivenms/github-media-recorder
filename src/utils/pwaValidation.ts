@@ -13,7 +13,7 @@ export interface PWAValidationResult {
   };
 }
 
-export async function validatePWACriteria(): Promise<PWAValidationResult> {
+export async function validatePWACriteria(loc: Location = location): Promise<PWAValidationResult> {
   const errors: string[] = [];
   const warnings: string[] = [];
   const criteria = {
@@ -27,7 +27,7 @@ export async function validatePWACriteria(): Promise<PWAValidationResult> {
   };
 
   // Check HTTPS
-  criteria.https = location.protocol === 'https:' || location.hostname === 'localhost';
+  criteria.https = loc.protocol === 'https:' || loc.hostname === 'localhost';
   if (!criteria.https) {
     errors.push('HTTPS is required for PWA installation');
   }
@@ -64,15 +64,16 @@ export async function validatePWACriteria(): Promise<PWAValidationResult> {
             return size >= 192 && icon.type?.includes('png');
           });
         
-        criteria.icons = hasRequiredIcons;
+        criteria.icons = !!hasRequiredIcons;
         if (!criteria.icons) {
           errors.push('Manifest must have at least one PNG icon ≥192x192');
         }
 
         // Check for maskable icons (warning only)
-        const hasMaskableIcon = manifest.icons.some((icon: { purpose?: string }) => 
-          icon.purpose?.includes('maskable')
-        );
+        const hasMaskableIcon = manifest.icons && Array.isArray(manifest.icons) && 
+          manifest.icons.some((icon: { purpose?: string }) => 
+            icon.purpose?.includes('maskable')
+          );
         if (!hasMaskableIcon) {
           warnings.push('Consider adding maskable icons for better Android integration');
         }
@@ -88,7 +89,7 @@ export async function validatePWACriteria(): Promise<PWAValidationResult> {
   }
 
   // Check service worker
-  if ('serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator && navigator.serviceWorker) {
     try {
       const registrations = await navigator.serviceWorker.getRegistrations();
       criteria.serviceWorker = registrations.length > 0 && 

@@ -6,9 +6,10 @@ import {
   formatMediaFileName,
   parseMediaFileName,
   isValidMediaFile,
-  convertImageToJpg as _convertImageToJpg,
+  convertImageToJpg,
   decodeWebmToPCM,
   encodeWAV,
+  sortFilesByDate,
 } from '../../src/utils/fileUtils';
 import type { FileMetadata } from '../../src/types';
 
@@ -678,6 +679,453 @@ describe('fileUtils', () => {
 
       expect(fileIds).toHaveLength(100);
       expect(end - start).toBeLessThan(10000); // Should complete within 10 seconds
+    });
+  });
+
+  // Additional comprehensive tests for missing coverage
+  describe('Audio Processing Functions (Real Implementation)', () => {
+    // Mock Web Audio API
+    const mockAudioContext = {
+      decodeAudioData: jest.fn(),
+    };
+
+    const mockAudioBuffer = {
+      numberOfChannels: 2,
+      sampleRate: 44100,
+      getChannelData: jest.fn(),
+    };
+
+    beforeEach(() => {
+      // Mock AudioContext
+      global.AudioContext = jest.fn(() => mockAudioContext) as unknown as typeof AudioContext;
+      (global as typeof global & { webkitAudioContext: typeof AudioContext }).webkitAudioContext = jest.fn(() => mockAudioContext);
+      
+      // Setup mock audio buffer
+      mockAudioBuffer.getChannelData.mockImplementation((_channel: number) => {
+        return new Float32Array(1024); // Mock channel data
+      });
+      
+      mockAudioContext.decodeAudioData.mockResolvedValue(mockAudioBuffer);
+    });
+
+    describe('decodeWebmToPCM - Real Implementation', () => {
+      it('decodes webm audio to PCM data', async () => {
+        const mockBlob = new Blob(['mock-webm-data'], { type: 'audio/webm' });
+        
+        const result = await decodeWebmToPCM(mockBlob);
+        
+        expect(result).toHaveProperty('channelData');
+        expect(result).toHaveProperty('sampleRate');
+        expect(result.channelData).toHaveLength(2); // 2 channels
+        expect(result.sampleRate).toBe(44100);
+        expect(mockAudioContext.decodeAudioData).toHaveBeenCalled();
+      });
+
+      it('handles mono audio', async () => {
+        mockAudioBuffer.numberOfChannels = 1;
+        const mockBlob = new Blob(['mock-webm-data'], { type: 'audio/webm' });
+        
+        const result = await decodeWebmToPCM(mockBlob);
+        
+        expect(result.channelData).toHaveLength(1);
+      });
+
+      it('handles different sample rates', async () => {
+        mockAudioBuffer.sampleRate = 48000;
+        const mockBlob = new Blob(['mock-webm-data'], { type: 'audio/webm' });
+        
+        const result = await decodeWebmToPCM(mockBlob);
+        
+        expect(result.sampleRate).toBe(48000);
+      });
+
+      it('handles audio decoding errors', async () => {
+        mockAudioContext.decodeAudioData.mockRejectedValue(new Error('Decode error'));
+        const mockBlob = new Blob(['invalid-data'], { type: 'audio/webm' });
+        
+        await expect(decodeWebmToPCM(mockBlob)).rejects.toThrow('Decode error');
+      });
+
+      it('handles empty blob', async () => {
+        const emptyBlob = new Blob([], { type: 'audio/webm' });
+        
+        // Should not throw during blob processing
+        await expect(decodeWebmToPCM(emptyBlob)).resolves.toBeDefined();
+      });
+
+      it('uses webkit audio context fallback', async () => {
+        // Remove standard AudioContext
+        delete (global as typeof global & { AudioContext?: typeof AudioContext }).AudioContext;
+        
+        const mockBlob = new Blob(['mock-webm-data'], { type: 'audio/webm' });
+        
+        const result = await decodeWebmToPCM(mockBlob);
+        
+        expect(result).toHaveProperty('channelData');
+        expect(result).toHaveProperty('sampleRate');
+      });
+    });
+
+    describe('encodeWAV - Real Implementation', () => {
+      it('encodes PCM data to WAV format', () => {
+        const channelData = [
+          new Float32Array([0.1, 0.2, 0.3, 0.4]),
+          new Float32Array([0.5, 0.6, 0.7, 0.8]),
+        ];
+        const sampleRate = 44100;
+        
+        const result = encodeWAV(channelData, sampleRate);
+        
+        expect(result).toBeInstanceOf(Blob);
+        expect(result.type).toBe('audio/wav');
+        expect(result.size).toBe(44 + 4 * 2 * 2); // WAV header + data
+      });
+
+      it('handles mono audio', () => {
+        const channelData = [new Float32Array([0.1, 0.2, 0.3, 0.4])];
+        const sampleRate = 48000;
+        
+        const result = encodeWAV(channelData, sampleRate);
+        
+        expect(result).toBeInstanceOf(Blob);
+        expect(result.type).toBe('audio/wav');
+        expect(result.size).toBe(44 + 4 * 1 * 2); // WAV header + mono data
+      });
+
+      it('handles empty channel data error', () => {
+        expect(() => encodeWAV([], 44100)).toThrow('Channel data is required');
+      });
+
+      it('handles null channel data error', () => {
+        expect(() => encodeWAV(null as unknown as Float32Array[], 44100)).toThrow('Channel data is required');
+      });
+
+      it('handles undefined channel data error', () => {
+        expect(() => encodeWAV(undefined as unknown as Float32Array[], 44100)).toThrow('Channel data is required');
+      });
+
+      it('handles zero sample rate error', () => {
+        const channelData = [new Float32Array([0.1, 0.2])];
+        expect(() => encodeWAV(channelData, 0)).toThrow('Sample rate must be positive');
+      });
+
+      it('handles negative sample rate error', () => {
+        const channelData = [new Float32Array([0.1, 0.2])];
+        expect(() => encodeWAV(channelData, -44100)).toThrow('Sample rate must be positive');
+      });
+
+      it('handles large audio data', () => {
+        const largeData = new Float32Array(44100); // 1 second of audio
+        largeData.fill(0.5);
+        const channelData = [largeData];
+        
+        const result = encodeWAV(channelData, 44100);
+        
+        expect(result).toBeInstanceOf(Blob);
+        expect(result.type).toBe('audio/wav');
+        expect(result.size).toBe(44 + 44100 * 2); // Header + 16-bit samples
+      });
+
+      it('handles multiple channels with different data', () => {
+        const leftChannel = new Float32Array([0.1, 0.3, 0.5]);
+        const rightChannel = new Float32Array([-0.1, -0.3, -0.5]);
+        const channelData = [leftChannel, rightChannel];
+        
+        const result = encodeWAV(channelData, 44100);
+        
+        expect(result).toBeInstanceOf(Blob);
+        expect(result.type).toBe('audio/wav');
+        expect(result.size).toBe(44 + 3 * 2 * 2); // Header + stereo samples
+      });
+    });
+  });
+
+  describe('Image Processing Functions (Real Implementation)', () => {
+    // Mock Image and Canvas APIs
+    class MockImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      width = 100;
+      height = 100;
+      
+      set src(_value: string) {
+        setTimeout(() => {
+          if (this.onload) this.onload();
+        }, 0);
+      }
+    }
+
+    class MockCanvas {
+      width = 0;
+      height = 0;
+      
+      getContext() {
+        return {
+          drawImage: jest.fn(),
+        };
+      }
+      
+      toBlob(callback: (blob: Blob | null) => void, type?: string, _quality?: number) {
+        setTimeout(() => {
+          callback(new Blob(['mock-jpg-data'], { type: type || 'image/jpeg' }));
+        }, 0);
+      }
+    }
+
+    beforeEach(() => {
+      global.Image = MockImage as unknown as typeof Image;
+      Object.defineProperty(document, 'createElement', {
+        value: jest.fn((tagName: string) => {
+          if (tagName === 'canvas') return new MockCanvas();
+          return {};
+        }),
+        configurable: true,
+      });
+      global.URL.createObjectURL = jest.fn(() => 'mock-url');
+    });
+
+    describe('convertImageToJpg - Real Implementation', () => {
+      it('converts image to JPG with default quality', async () => {
+        const imageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
+        
+        const result = await convertImageToJpg(imageFile);
+        
+        expect(result).toBeInstanceOf(Blob);
+        expect(result.type).toBe('image/jpeg');
+      });
+
+      it('converts image to JPG with custom quality', async () => {
+        const imageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
+        
+        const result = await convertImageToJpg(imageFile, 0.8);
+        
+        expect(result).toBeInstanceOf(Blob);
+        expect(result.type).toBe('image/jpeg');
+      });
+
+      it('handles image loading errors', async () => {
+        const MockErrorImage = class extends MockImage {
+          set src(_value: string) {
+            setTimeout(() => {
+              if (this.onerror) this.onerror();
+            }, 0);
+          }
+        };
+        global.Image = MockErrorImage as unknown as typeof Image;
+        
+        const imageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
+        
+        await expect(convertImageToJpg(imageFile)).rejects.toThrow('Failed to load image for conversion');
+      });
+
+      it('handles canvas context creation failure', async () => {
+        Object.defineProperty(document, 'createElement', {
+          value: jest.fn(() => ({
+            getContext: () => null,
+          })),
+          configurable: true,
+        });
+        
+        const imageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
+        
+        await expect(convertImageToJpg(imageFile)).rejects.toThrow('Could not get canvas context');
+      });
+
+      it('handles blob creation failure', async () => {
+        const MockFailingBlobCanvas = class extends MockCanvas {
+          toBlob(callback: (blob: Blob | null) => void) {
+            setTimeout(() => callback(null), 0);
+          }
+        };
+        
+        Object.defineProperty(document, 'createElement', {
+          value: jest.fn(() => new MockFailingBlobCanvas()),
+          configurable: true,
+        });
+        
+        const imageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
+        
+        await expect(convertImageToJpg(imageFile)).rejects.toThrow('Failed to convert image to JPG');
+      });
+
+      it('preserves image dimensions', async () => {
+        const MockLargeImage = class extends MockImage {
+          width = 800;
+          height = 600;
+        };
+        global.Image = MockLargeImage as unknown as typeof Image;
+        
+        const imageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
+        
+        const result = await convertImageToJpg(imageFile);
+        
+        expect(result).toBeInstanceOf(Blob);
+      });
+
+      it('handles very high quality setting', async () => {
+        const imageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
+        
+        const result = await convertImageToJpg(imageFile, 1.0);
+        
+        expect(result).toBeInstanceOf(Blob);
+        expect(result.type).toBe('image/jpeg');
+      });
+
+      it('handles very low quality setting', async () => {
+        const imageFile = testUtils.createMockFile('test.png', 1000, 'image/png');
+        
+        const result = await convertImageToJpg(imageFile, 0.1);
+        
+        expect(result).toBeInstanceOf(Blob);
+        expect(result.type).toBe('image/jpeg');
+      });
+    });
+  });
+
+  describe('File Sorting Functions (Real Implementation)', () => {
+    describe('sortFilesByDate - Real Implementation', () => {
+      it('sorts files by filename date (newest first)', () => {
+        const files = [
+          { name: 'Music_Song1_Artist1_2024-01-01.mp3', created: 1000 },
+          { name: 'Music_Song2_Artist2_2024-06-15.mp3', created: 2000 },
+          { name: 'Music_Song3_Artist3_2024-03-10.mp3', created: 3000 },
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        expect(sorted[0].name).toContain('2024-06-15');
+        expect(sorted[1].name).toContain('2024-03-10');
+        expect(sorted[2].name).toContain('2024-01-01');
+      });
+
+      it('falls back to created timestamp when no date in filename', () => {
+        const files = [
+          { name: 'oldfile.mp3', created: 1000 },
+          { name: 'newfile.mp3', created: 3000 },
+          { name: 'middlefile.mp3', created: 2000 },
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        expect(sorted[0].created).toBe(3000);
+        expect(sorted[1].created).toBe(2000);
+        expect(sorted[2].created).toBe(1000);
+      });
+
+      it('uses created timestamp as tiebreaker for same date', () => {
+        const files = [
+          { name: 'Music_Song1_Artist1_2024-06-15.mp3', created: 1000 },
+          { name: 'Music_Song2_Artist2_2024-06-15.mp3', created: 3000 },
+          { name: 'Music_Song3_Artist3_2024-06-15.mp3', created: 2000 },
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        // Same date, so created timestamp should be the tiebreaker (newest first)
+        expect(sorted[0].created).toBe(3000);
+        expect(sorted[1].created).toBe(2000);
+        expect(sorted[2].created).toBe(1000);
+      });
+
+      it('prioritizes local files over remote files for same date', () => {
+        const files = [
+          { name: 'Music_Song1_Artist1_2024-06-15.mp3', created: 1000, isLocal: false },
+          { name: 'Music_Song2_Artist2_2024-06-15.mp3', created: 1000, isLocal: true },
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        expect(sorted[0].isLocal).toBe(true);
+        expect(sorted[1].isLocal).toBe(false);
+      });
+
+      it('handles mixed scenarios with dates and timestamps', () => {
+        const files = [
+          { name: 'oldfile.mp3', created: 5000 }, // No date, recent timestamp
+          { name: 'Music_NewSong_Artist_2024-12-01.mp3', created: 1000 }, // Recent date, old timestamp
+          { name: 'Music_OldSong_Artist_2024-01-01.mp3', created: 3000 }, // Old date, middle timestamp
+          { name: 'recentfile.mp3', created: 4000 }, // No date, middle timestamp
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        // Should be ordered by: 2024-12-01, then by created timestamps for files without dates (newest first)
+        expect(sorted[0].name).toContain('2024-12-01'); // Most recent date
+        expect(sorted[1].name).toContain('2024-01-01'); // Next most recent date
+        expect(sorted[2].created).toBe(5000); // oldfile.mp3 (highest timestamp among non-dated files)
+        expect(sorted[3].created).toBe(4000); // recentfile.mp3
+      });
+
+      it('handles empty array', () => {
+        const files: import('../../src/types').EnhancedFileRecord[] = [];
+        
+        const sorted = sortFilesByDate(files);
+        
+        expect(sorted).toEqual([]);
+      });
+
+      it('handles single file', () => {
+        const files = [
+          { name: 'Music_Song_Artist_2024-06-15.mp3', created: 1000 },
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        expect(sorted).toHaveLength(1);
+        expect(sorted[0]).toBe(files[0]);
+      });
+
+      it('handles files without created timestamp', () => {
+        const files = [
+          { name: 'Music_Song1_Artist_2024-06-15.mp3' },
+          { name: 'Music_Song2_Artist_2024-03-10.mp3' },
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        expect(sorted[0].name).toContain('2024-06-15');
+        expect(sorted[1].name).toContain('2024-03-10');
+      });
+
+      it('handles malformed date in filename', () => {
+        const files = [
+          { name: 'Music_Song1_Artist_invalid-date.mp3', created: 1000 },
+          { name: 'Music_Song2_Artist_2024-06-15.mp3', created: 2000 },
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        // File with valid date should come first
+        expect(sorted[0].name).toContain('2024-06-15');
+        expect(sorted[1].name).toContain('invalid-date');
+      });
+
+      it('handles very large created timestamps', () => {
+        const largeTimestamp = Date.now() + 1000000000; // Far future timestamp
+        const files = [
+          { name: 'file1.mp3', created: 1000 },
+          { name: 'file2.mp3', created: largeTimestamp },
+        ];
+        
+        const sorted = sortFilesByDate(files);
+        
+        expect(sorted[0].created).toBe(largeTimestamp);
+        expect(sorted[1].created).toBe(1000);
+      });
+
+      it('maintains stable sort for identical files', () => {
+        const files = [
+          { name: 'identical.mp3', created: 1000, id: 'a' },
+          { name: 'identical.mp3', created: 1000, id: 'b' },
+          { name: 'identical.mp3', created: 1000, id: 'c' },
+        ];
+        
+        const sorted1 = sortFilesByDate([...files]);
+        const sorted2 = sortFilesByDate([...files]);
+        
+        // Results should be consistent
+        expect(sorted1.map(f => (f as import('../../src/types').EnhancedFileRecord).id)).toEqual(sorted2.map(f => (f as import('../../src/types').EnhancedFileRecord).id));
+      });
     });
   });
 });

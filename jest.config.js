@@ -11,7 +11,7 @@ export default {
   
   // Transform files with babel-jest
   transform: {
-    '^.+\.(js|jsx|ts|tsx)$': 'babel-jest',
+    '^.+\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './.babelrc' }],
   },
   
   // Setup files
@@ -67,7 +67,7 @@ export default {
   
   // Transform ignore patterns for ES modules
   transformIgnorePatterns: [
-    'node_modules/(?!(.*\\.mjs$))'
+    'node_modules/(?!(@ffmpeg|@react-hook|uuid|nanoid|@github-media-recorder/.*)\.(js|jsx|ts|tsx|mjs)$)'
   ],
   
   // Clear mocks automatically
