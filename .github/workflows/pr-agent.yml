@@ -1,0 +1,22 @@
+name: PR Review Agent 🤖
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  issue_comment:                                   # React to user comments
+
+jobs:
+  pr_agent_job:
+    if: ${{ github.event.sender.type != 'Bot' }}  # Avoid bot-on-bot drama
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write     # Let the bot comment
+      pull-requests: write  # Edit PRs
+      contents: read
+
+    steps:
+      - name: Unleash the PR Agent 🚀
+        uses: qodo-ai/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.OPENAI_KEY }}  # Your OpenAI API key
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub’s built-in auth
